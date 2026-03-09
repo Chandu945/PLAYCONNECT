@@ -14,6 +14,7 @@ WORKDIR /repo
 # Copy workspace manifests and lockfile first (cache-friendly layer)
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
+COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/tsconfig/package.json ./packages/tsconfig/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/prettier-config/package.json ./packages/prettier-config/
@@ -27,6 +28,9 @@ COPY packages/ ./packages/
 
 # Copy API source
 COPY apps/api/ ./apps/api/
+
+# Build contracts first (shared types required by API)
+RUN npm run build --workspace=@playconnect/contracts
 
 # Build the NestJS application
 RUN npm run build --workspace=@playconnect/api
@@ -45,6 +49,7 @@ WORKDIR /app
 # Copy workspace manifests and lockfile for production install
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
+COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/tsconfig/package.json ./packages/tsconfig/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/prettier-config/package.json ./packages/prettier-config/
@@ -55,6 +60,8 @@ RUN npm ci --omit=dev --ignore-scripts && \
     npm cache clean --force
 
 # Copy built output from builder
+COPY --from=builder /repo/packages/contracts/dist ./packages/contracts/dist
+COPY --from=builder /repo/packages/contracts/package.json ./packages/contracts/package.json
 COPY --from=builder /repo/apps/api/dist ./apps/api/dist
 
 # Set environment

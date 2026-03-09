@@ -4,6 +4,7 @@
   "private": true,
   "description": "PlayConnect API — NestJS backend (Clean Architecture + DDD)",
   "scripts": {
+    "prebuild": "npm run build --workspace=@playconnect/contracts --if-present",
     "build": "nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -27,6 +28,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.4.15",
     "@nestjs/schedule": "^6.1.1",
+    "@playconnect/contracts": "*",
     "@nestjs/swagger": "^8.1.0",
     "@nestjs/throttler": "^6.5.0",
     "@types/pdfkit": "^0.17.5",

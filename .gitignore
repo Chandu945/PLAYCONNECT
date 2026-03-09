@@ -79,5 +79,5 @@ apps/mobile/ios/build/
 *.aab
 *.ipa
 
-# Uploads directory (user content)
-uploads/
+# Uploads directory (user content, root-level only)
+/uploads/

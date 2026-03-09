@@ -70,17 +70,23 @@ export class GetMonthlyAttendanceSummaryUseCase {
     ]);
 
     const holidayCount = holidays.length;
+    const holidayDateSet = new Set(holidays.map((h) => h.date));
     const daysInMonth = getDaysInMonth(input.month);
 
-    // Build absent count per student
+    // Build absent count and overlap count per student
     const absentCountMap = new Map<string, number>();
+    const overlapCountMap = new Map<string, number>();
     for (const record of allAbsent) {
       absentCountMap.set(record.studentId, (absentCountMap.get(record.studentId) ?? 0) + 1);
+      if (holidayDateSet.has(record.date)) {
+        overlapCountMap.set(record.studentId, (overlapCountMap.get(record.studentId) ?? 0) + 1);
+      }
     }
 
     const data: MonthlyAttendanceSummaryItem[] = students.map((s) => {
       const absentCount = absentCountMap.get(s.id.toString()) ?? 0;
-      const presentCount = Math.max(0, daysInMonth - absentCount - holidayCount);
+      const overlapCount = overlapCountMap.get(s.id.toString()) ?? 0;
+      const presentCount = Math.max(0, daysInMonth - absentCount - holidayCount + overlapCount);
       return {
         studentId: s.id.toString(),
         fullName: s.fullName,

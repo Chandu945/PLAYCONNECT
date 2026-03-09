@@ -134,9 +134,9 @@ export class InMemorySessionRepository implements SessionRepository {
     return null;
   }
 
-  async findActiveByDeviceId(deviceId: string): Promise<Session | null> {
+  async findActiveByDeviceId(userId: string, deviceId: string): Promise<Session | null> {
     for (const session of this.sessions.values()) {
-      if (session.deviceId === deviceId && !session.isRevoked()) {
+      if (session.userId === userId && session.deviceId === deviceId && !session.isRevoked()) {
         return session;
       }
     }
@@ -163,22 +163,25 @@ export class InMemorySessionRepository implements SessionRepository {
     }
   }
 
-  async updateRefreshToken(sessionId: string, newHash: string, expiresAt: Date): Promise<void> {
+  async updateRefreshToken(sessionId: string, newHash: string, expiresAt: Date, expectedCurrentHash?: string): Promise<boolean> {
     const session = this.sessions.get(sessionId);
-    if (session) {
-      const { Session: SessionClass } =
-        await import('../../src/domain/identity/entities/session.entity');
-      const updated = SessionClass.reconstitute(sessionId, {
-        userId: session.userId,
-        deviceId: session.deviceId,
-        refreshTokenHash: newHash,
-        createdAt: new Date(),
-        expiresAt,
-        revokedAt: null,
-        lastRotatedAt: new Date(),
-      });
-      this.sessions.set(sessionId, updated);
+    if (!session) return false;
+    if (expectedCurrentHash && session.refreshTokenHash !== expectedCurrentHash) {
+      return false;
     }
+    const { Session: SessionClass } =
+      await import('../../src/domain/identity/entities/session.entity');
+    const updated = SessionClass.reconstitute(sessionId, {
+      userId: session.userId,
+      deviceId: session.deviceId,
+      refreshTokenHash: newHash,
+      createdAt: new Date(),
+      expiresAt,
+      revokedAt: null,
+      lastRotatedAt: new Date(),
+    });
+    this.sessions.set(sessionId, updated);
+    return true;
   }
 
   async revokeAllByUserIds(userIds: string[]): Promise<void> {
@@ -230,6 +233,27 @@ export class InMemoryPasswordResetChallengeRepository
       )
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     return active[0] ?? null;
+  }
+
+  async invalidateActiveByUserId(userId: string): Promise<void> {
+    const now = new Date();
+    for (const [id, challenge] of this.challenges) {
+      if (challenge.userId === userId && challenge.usedAt === null && challenge.expiresAt > now) {
+        const { PasswordResetChallenge: Cls } = await import(
+          '../../src/domain/identity/entities/password-reset-challenge.entity'
+        );
+        const updated = Cls.reconstitute(id, {
+          userId: challenge.userId,
+          otpHash: challenge.otpHash,
+          expiresAt: challenge.expiresAt,
+          attempts: challenge.attempts,
+          maxAttempts: challenge.maxAttempts,
+          usedAt: now,
+          createdAt: challenge.createdAt,
+        });
+        this.challenges.set(id, updated);
+      }
+    }
   }
 
   async markUsed(challengeId: string): Promise<void> {
@@ -624,6 +648,10 @@ export class InMemoryFeeDueRepository implements FeeDueRepository {
 
   private compositeKey(academyId: string, studentId: string, monthKey: string): string {
     return `${academyId}:${studentId}:${monthKey}`;
+  }
+
+  async findById(id: string): Promise<FeeDue | null> {
+    return this.dues.get(id) ?? null;
   }
 
   async save(feeDue: FeeDue): Promise<void> {

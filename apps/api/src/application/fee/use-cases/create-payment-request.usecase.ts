@@ -39,7 +39,7 @@ export class CreatePaymentRequestUseCase {
     if (!check.allowed) return err(PaymentRequestErrors.createNotAllowed());
 
     const notesCheck = validateStaffNotes(input.staffNotes);
-    if (!notesCheck.valid) return err(PaymentRequestErrors.createNotAllowed());
+    if (!notesCheck.valid) return err(PaymentRequestErrors.invalidNotes(notesCheck.reason!));
 
     const user = await this.userRepo.findById(input.actorUserId);
     if (!user || !user.academyId) return err(PaymentRequestErrors.academyRequired());

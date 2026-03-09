@@ -10,6 +10,7 @@ import { UserModel } from '../database/schemas/user.schema';
 import type { UserDocument } from '../database/schemas/user.schema';
 import type { UserRole } from '@playconnect/contracts';
 import type { StaffQualificationInfo, StaffSalaryConfig, SalaryFrequency } from '@domain/identity/entities/user.entity';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoUserRepository implements UserRepository {
@@ -40,7 +41,7 @@ export class MongoUserRepository implements UserRepository {
         deletedAt: user.softDelete.deletedAt,
         deletedBy: user.softDelete.deletedBy,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
@@ -63,7 +64,7 @@ export class MongoUserRepository implements UserRepository {
   }
 
   async updateAcademyId(userId: string, academyId: string): Promise<void> {
-    await this.model.updateOne({ _id: userId }, { $set: { academyId } });
+    await this.model.updateOne({ _id: userId }, { $set: { academyId } }, { session: getTransactionSession() });
   }
 
   async listByAcademyAndRole(
@@ -85,7 +86,7 @@ export class MongoUserRepository implements UserRepository {
   }
 
   async incrementTokenVersionByAcademyId(academyId: string): Promise<string[]> {
-    await this.model.updateMany({ academyId, deletedAt: null }, { $inc: { tokenVersion: 1 } });
+    await this.model.updateMany({ academyId, deletedAt: null }, { $inc: { tokenVersion: 1 } }, { session: getTransactionSession() });
     const docs = await this.model.find({ academyId, deletedAt: null }).select('_id').lean().exec();
     return docs.map((d) => String(d._id));
   }

@@ -71,6 +71,7 @@ describe('RefreshUseCase', () => {
     const result = await uc.execute({
       refreshToken: 'old-refresh',
       deviceId: 'device-1',
+      userId: 'user-1',
     });
 
     expect(result.ok).toBe(true);
@@ -94,6 +95,7 @@ describe('RefreshUseCase', () => {
     const result = await uc.execute({
       refreshToken: 'wrong-token',
       deviceId: 'device-1',
+      userId: 'user-1',
     });
 
     expect(result.ok).toBe(false);
@@ -112,6 +114,7 @@ describe('RefreshUseCase', () => {
     const result = await uc.execute({
       refreshToken: 'refresh-token',
       deviceId: 'unknown-device',
+      userId: 'user-1',
     });
 
     expect(result.ok).toBe(false);
@@ -131,6 +134,7 @@ describe('RefreshUseCase', () => {
     const result = await uc.execute({
       refreshToken: 'refresh-token',
       deviceId: 'device-1',
+      userId: 'user-1',
     });
 
     expect(result.ok).toBe(false);
@@ -145,6 +149,7 @@ describe('RefreshUseCase', () => {
     const result = await uc.execute({
       refreshToken: 'refresh-token',
       deviceId: 'device-1',
+      userId: 'user-1',
     });
 
     expect(result.ok).toBe(false);

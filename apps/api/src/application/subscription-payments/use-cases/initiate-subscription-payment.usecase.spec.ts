@@ -94,7 +94,7 @@ describe('InitiateSubscriptionPaymentUseCase', () => {
     }
 
     expect(deps.cashfreeGateway.createOrder).toHaveBeenCalledTimes(1);
-    expect(deps.paymentRepo.save).toHaveBeenCalledTimes(1);
+    expect(deps.paymentRepo.save).toHaveBeenCalledTimes(2); // once before Cashfree API, once after success
   });
 
   it('rejects non-OWNER users', async () => {
@@ -145,7 +145,7 @@ describe('InitiateSubscriptionPaymentUseCase', () => {
   it('rejects if PENDING payment already exists', async () => {
     const deps = makeDeps({
       paymentRepo: {
-        findPendingByAcademyId: jest.fn().mockResolvedValue({ orderId: 'old-order' }),
+        findPendingByAcademyId: jest.fn().mockResolvedValue({ orderId: 'old-order', audit: { createdAt: new Date('2026-03-15T11:50:00+05:30') } }),
         save: jest.fn(),
       },
     });

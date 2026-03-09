@@ -14,11 +14,25 @@ const SMTP_TIMEOUT_MS = 10_000;
 
 @Injectable()
 export class NodemailerEmailSender implements EmailSenderPort {
+  private readonly transport: nodemailer.Transporter;
+
   constructor(
     private readonly config: AppConfigService,
     @Inject(LOGGER_PORT) private readonly logger: LoggerPort,
     @Optional() @Inject(EXTERNAL_CALL_POLICY) private readonly callPolicy?: ExternalCallPolicyPort,
-  ) {}
+  ) {
+    this.transport = nodemailer.createTransport({
+      host: this.config.smtpHost,
+      port: this.config.smtpPort,
+      secure: this.config.smtpSecure,
+      auth: {
+        user: this.config.smtpUser,
+        pass: this.config.smtpPass,
+      },
+      connectionTimeout: SMTP_TIMEOUT_MS,
+      socketTimeout: SMTP_TIMEOUT_MS,
+    });
+  }
 
   async send(message: EmailMessage): Promise<boolean> {
     if (this.config.emailDryRun) {
@@ -36,8 +50,8 @@ export class NodemailerEmailSender implements EmailSenderPort {
           () => this.doSend(message),
           {
             timeoutMs: SMTP_TIMEOUT_MS,
-            retries: 0,
-            retryBackoffMs: 0,
+            retries: 3,
+            retryBackoffMs: 1000,
             idempotent: false,
           },
         );
@@ -56,19 +70,7 @@ export class NodemailerEmailSender implements EmailSenderPort {
   }
 
   private async doSend(message: EmailMessage): Promise<void> {
-    const transport = nodemailer.createTransport({
-      host: this.config.smtpHost,
-      port: this.config.smtpPort,
-      secure: this.config.smtpSecure,
-      auth: {
-        user: this.config.smtpUser,
-        pass: this.config.smtpPass,
-      },
-      connectionTimeout: SMTP_TIMEOUT_MS,
-      socketTimeout: SMTP_TIMEOUT_MS,
-    });
-
-    await transport.sendMail({
+    await this.transport.sendMail({
       from: this.config.smtpFrom,
       to: message.to,
       subject: message.subject,

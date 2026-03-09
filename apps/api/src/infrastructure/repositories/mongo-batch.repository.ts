@@ -7,6 +7,7 @@ import { BatchModel } from '../database/schemas/batch.schema';
 import type { BatchDocument } from '../database/schemas/batch.schema';
 import type { Weekday } from '@playconnect/contracts';
 import type { BatchStatus } from '@domain/batch/entities/batch.entity';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoBatchRepository implements BatchRepository {
@@ -26,12 +27,12 @@ export class MongoBatchRepository implements BatchRepository {
         status: batch.status,
         version: batch.audit.version,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
   async deleteById(id: string): Promise<void> {
-    await this.model.deleteOne({ _id: id }).exec();
+    await this.model.deleteOne({ _id: id }, { session: getTransactionSession() }).exec();
   }
 
   async findById(id: string): Promise<Batch | null> {

@@ -40,50 +40,42 @@ export class InitiateFeePaymentUseCase {
     const user = await this.userRepo.findById(input.parentUserId);
     if (!user) return err(ParentErrors.parentNotFound(input.parentUserId));
 
-    // Load fee due
-    const feeDue = await this.feeDueRepo.findByAcademyStudentMonth(
-      '', // We don't know the academy yet, use findById approach
-      '',
-      '',
-    ).catch(() => null);
+    // Load fee due by ID directly
+    const foundDue = await this.feeDueRepo.findById(input.feeDueId);
+    if (!foundDue) return err(ParentErrors.feeDueNotFound(input.feeDueId));
 
-    // We need to find the fee due by ID — let's search by iterating links
-    // Actually, we need a direct lookup. Let's load all links first.
+    // Verify parent has a link to this student
     const links = await this.linkRepo.findByParentUserId(input.parentUserId);
     if (links.length === 0) return err(ParentErrors.childNotLinked());
 
-    // Find fee due across linked academies
-    let foundDue = null;
-    let matchedLink = null;
-    for (const link of links) {
-      // We need to search fees for this student
-      // But we don't have a findById on FeeDueRepository...
-      // Let's search by loading all dues for each student
-      const dues = await this.feeDueRepo.listByStudentAndRange(
-        link.academyId,
-        link.studentId,
-        '2000-01',
-        '2099-12',
-      );
-      const match = dues.find((d) => d.id.toString() === input.feeDueId);
-      if (match) {
-        foundDue = match;
-        matchedLink = link;
-        break;
-      }
-    }
-
-    if (!foundDue || !matchedLink) return err(ParentErrors.feeDueNotFound(input.feeDueId));
+    const matchedLink = links.find(
+      (l) => l.academyId === foundDue.academyId && l.studentId === foundDue.studentId,
+    );
+    if (!matchedLink) return err(ParentErrors.feeDueNotFound(input.feeDueId));
     if (foundDue.status === 'PAID') return err(ParentErrors.feeDueAlreadyPaid());
 
     // Check for existing pending payment
     const existingPending = await this.feePaymentRepo.findPendingByFeeDueId(input.feeDueId);
     if (existingPending) return err(ParentErrors.paymentAlreadyPending());
 
-    // Create order with Cashfree
+    // Create order id and persist PENDING payment record BEFORE calling Cashfree
     const orderId = generateFeeOrderId();
     const idempotencyKey = randomUUID();
 
+    const payment = FeePayment.create({
+      id: randomUUID(),
+      academyId: matchedLink.academyId,
+      parentUserId: input.parentUserId,
+      studentId: matchedLink.studentId,
+      feeDueId: input.feeDueId,
+      monthKey: foundDue.monthKey,
+      orderId,
+      paymentSessionId: '',
+      amount: foundDue.amount,
+    });
+    await this.feePaymentRepo.save(payment);
+
+    // Call Cashfree API
     let cfResult;
     try {
       cfResult = await this.cashfreeGateway.createOrder({
@@ -100,24 +92,31 @@ export class InitiateFeePaymentUseCase {
         orderId,
         error: error instanceof Error ? error.message : 'Unknown',
       });
+      const failed = payment.markFailed('CASHFREE_CREATE_ORDER_FAILED');
+      await this.feePaymentRepo.save(failed);
       return err(ParentErrors.paymentProviderUnavailable());
     }
 
-    // Persist payment record
-    const payment = FeePayment.create({
-      id: randomUUID(),
-      academyId: matchedLink.academyId,
-      parentUserId: input.parentUserId,
-      studentId: matchedLink.studentId,
-      feeDueId: input.feeDueId,
-      monthKey: foundDue.monthKey,
-      orderId,
-      paymentSessionId: cfResult.paymentSessionId,
-      amount: foundDue.amount,
-    });
-
+    // Update payment with Cashfree details
     const withCfId = payment.setCfOrderId(cfResult.cfOrderId);
-    await this.feePaymentRepo.save(withCfId);
+    const withCfDetails = FeePayment.reconstitute(withCfId.id.toString(), {
+      academyId: withCfId.academyId,
+      parentUserId: withCfId.parentUserId,
+      studentId: withCfId.studentId,
+      feeDueId: withCfId.feeDueId,
+      monthKey: withCfId.monthKey,
+      orderId: withCfId.orderId,
+      cfOrderId: withCfId.cfOrderId,
+      paymentSessionId: cfResult.paymentSessionId,
+      amount: withCfId.amount,
+      currency: withCfId.currency,
+      status: withCfId.status,
+      failureReason: withCfId.failureReason,
+      paidAt: withCfId.paidAt,
+      providerPaymentId: withCfId.providerPaymentId,
+      audit: withCfId.audit,
+    });
+    await this.feePaymentRepo.save(withCfDetails);
 
     this.logger.info('Fee payment initiated', {
       feeDueId: input.feeDueId,

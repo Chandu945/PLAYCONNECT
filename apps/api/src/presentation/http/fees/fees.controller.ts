@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Param, Query, Inject, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Get, Put, Param, Query, Inject, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../common/guards/rbac.guard';
@@ -10,6 +10,7 @@ import type { ListPaidDuesUseCase } from '@application/fee/use-cases/list-paid-d
 import type { GetStudentFeesUseCase } from '@application/fee/use-cases/get-student-fees.usecase';
 import type { MarkFeePaidUseCase } from '@application/fee/use-cases/mark-fee-paid.usecase';
 import { FeesMonthQueryDto, StudentFeeRangeQueryDto } from './dto/fee.query';
+import { MarkFeePaidBodyDto } from './dto/mark-fee-paid.dto';
 import { mapResultToResponse } from '../common/result-mapper';
 import { LOGGER_PORT } from '@shared/logging/logger.port';
 import type { LoggerPort } from '@shared/logging/logger.port';
@@ -92,6 +93,7 @@ export class FeesController {
   async pay(
     @Param('studentId') studentId: string,
     @Param('month') month: string,
+    @Body() body: MarkFeePaidBodyDto,
     @CurrentUser() user: CurrentUserType,
     @Req() req: Request,
   ) {
@@ -100,6 +102,7 @@ export class FeesController {
       actorRole: user.role,
       studentId,
       monthKey: month,
+      paymentLabel: body.paymentLabel,
     });
 
     if (result.ok) {

@@ -4,6 +4,7 @@ import type { AppError } from '@shared/kernel';
 import type { BatchRepository } from '@domain/batch/ports/batch.repository';
 import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { StudentBatchRepository } from '@domain/batch/ports/student-batch.repository';
+import type { TransactionPort } from '../../common/transaction.port';
 import { BatchErrors } from '../../common/errors';
 import type { UserRole } from '@playconnect/contracts';
 
@@ -18,6 +19,7 @@ export class DeleteBatchUseCase {
     private readonly userRepo: UserRepository,
     private readonly batchRepo: BatchRepository,
     private readonly studentBatchRepo: StudentBatchRepository,
+    private readonly transaction: TransactionPort,
   ) {}
 
   async execute(input: DeleteBatchInput): Promise<Result<{ deleted: true }, AppError>> {
@@ -39,11 +41,11 @@ export class DeleteBatchUseCase {
       return err(BatchErrors.notInAcademy());
     }
 
-    // Cascade: unassign all students from this batch
-    await this.studentBatchRepo.deleteByBatchId(input.batchId);
-
-    // Delete the batch
-    await this.batchRepo.deleteById(input.batchId);
+    // Cascade: unassign all students from this batch, then delete batch atomically
+    await this.transaction.run(async () => {
+      await this.studentBatchRepo.deleteByBatchId(input.batchId);
+      await this.batchRepo.deleteById(input.batchId);
+    });
 
     return ok({ deleted: true as const });
   }

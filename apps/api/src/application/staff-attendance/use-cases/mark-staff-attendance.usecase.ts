@@ -9,6 +9,7 @@ import { canMarkStaffAttendance } from '@domain/staff-attendance/rules/staff-att
 import {
   validateLocalDate,
   validateAttendanceStatus,
+  validateDateRange,
 } from '@domain/attendance/rules/attendance.rules';
 import { StaffAttendanceErrors } from '../../common/errors';
 import type { StaffAttendanceViewStatus, UserRole } from '@playconnect/contracts';
@@ -49,6 +50,11 @@ export class MarkStaffAttendanceUseCase {
       return err(AppErrorClass.validation(dateCheck.reason!));
     }
 
+    const dateRangeCheck = validateDateRange(input.date);
+    if (!dateRangeCheck.valid) {
+      return err(AppErrorClass.validation(dateRangeCheck.reason!));
+    }
+
     const statusCheck = validateAttendanceStatus(input.status);
     if (!statusCheck.valid) {
       return err(AppErrorClass.validation(statusCheck.reason!));
@@ -75,14 +81,22 @@ export class MarkStaffAttendanceUseCase {
     // No holiday check — staff attendance is required even on holidays
 
     if (input.status === 'ABSENT') {
-      const record = StaffAttendance.create({
-        id: randomUUID(),
-        academyId: actor.academyId,
-        staffUserId: input.staffUserId,
-        date: input.date,
-        markedByUserId: input.actorUserId,
-      });
-      await this.staffAttendanceRepo.save(record);
+      // Check if an absent record already exists to avoid overwriting audit data
+      const existing = await this.staffAttendanceRepo.findAbsentByAcademyDateAndStaffIds(
+        actor.academyId,
+        input.date,
+        [input.staffUserId],
+      );
+      if (existing.length === 0) {
+        const record = StaffAttendance.create({
+          id: randomUUID(),
+          academyId: actor.academyId,
+          staffUserId: input.staffUserId,
+          date: input.date,
+          markedByUserId: input.actorUserId,
+        });
+        await this.staffAttendanceRepo.save(record);
+      }
     } else {
       // PRESENT: delete absent record if exists (idempotent)
       await this.staffAttendanceRepo.deleteByAcademyStaffDate(

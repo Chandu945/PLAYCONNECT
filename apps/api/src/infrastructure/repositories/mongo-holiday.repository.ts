@@ -5,6 +5,7 @@ import type { HolidayRepository } from '@domain/attendance/ports/holiday.reposit
 import { Holiday } from '@domain/attendance/entities/holiday.entity';
 import { HolidayModel } from '../database/schemas/holiday.schema';
 import type { HolidayDocument } from '../database/schemas/holiday.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoHolidayRepository implements HolidayRepository {
@@ -24,7 +25,7 @@ export class MongoHolidayRepository implements HolidayRepository {
         declaredByUserId: holiday.declaredByUserId,
         version: holiday.audit.version,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
@@ -34,7 +35,7 @@ export class MongoHolidayRepository implements HolidayRepository {
   }
 
   async deleteByAcademyAndDate(academyId: string, date: string): Promise<void> {
-    await this.model.deleteOne({ academyId, date });
+    await this.model.deleteOne({ academyId, date }, { session: getTransactionSession() });
   }
 
   async findByAcademyAndMonth(academyId: string, monthPrefix: string): Promise<Holiday[]> {

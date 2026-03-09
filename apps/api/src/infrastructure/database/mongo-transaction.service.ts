@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import type { Connection } from 'mongoose';
 import type { TransactionPort } from '@application/common/transaction.port';
+import { runInTransaction } from './transaction-context';
 
 @Injectable()
 export class MongoTransactionService implements TransactionPort {
@@ -11,7 +12,7 @@ export class MongoTransactionService implements TransactionPort {
     const session = await this.connection.startSession();
     try {
       session.startTransaction();
-      const result = await fn();
+      const result = await runInTransaction(session, fn);
       await session.commitTransaction();
       return result;
     } catch (error) {

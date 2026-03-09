@@ -6,6 +6,7 @@ import { Enquiry } from '@domain/enquiry/entities/enquiry.entity';
 import type { EnquirySource, ClosureReason, FollowUp } from '@domain/enquiry/entities/enquiry.entity';
 import { EnquiryModel } from '../database/schemas/enquiry.schema';
 import type { EnquiryDocument } from '../database/schemas/enquiry.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoEnquiryRepository implements EnquiryRepository {
@@ -41,7 +42,7 @@ export class MongoEnquiryRepository implements EnquiryRepository {
         createdBy: enquiry.createdBy,
         version: enquiry.audit.version,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 

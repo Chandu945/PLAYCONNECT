@@ -29,6 +29,7 @@ import { OwnerSignupUseCase } from '@application/identity/use-cases/owner-signup
 import { LoginUseCase } from '@application/identity/use-cases/login.usecase';
 import { RefreshUseCase } from '@application/identity/use-cases/refresh.usecase';
 import { LogoutUseCase } from '@application/identity/use-cases/logout.usecase';
+import { LogoutAllUseCase } from '@application/identity/use-cases/logout-all.usecase';
 import { RequestPasswordResetUseCase } from '@application/identity/use-cases/request-password-reset.usecase';
 import { ConfirmPasswordResetUseCase } from '@application/identity/use-cases/confirm-password-reset.usecase';
 import { GoogleLoginUseCase } from '@application/identity/use-cases/google-login.usecase';
@@ -103,6 +104,11 @@ import { AppConfigService } from '@shared/config/config.service';
     {
       provide: 'LOGOUT_USE_CASE',
       useFactory: (sessionRepo: SessionRepository) => new LogoutUseCase(sessionRepo),
+      inject: [SESSION_REPOSITORY],
+    },
+    {
+      provide: 'LOGOUT_ALL_USE_CASE',
+      useFactory: (sessionRepo: SessionRepository) => new LogoutAllUseCase(sessionRepo),
       inject: [SESSION_REPOSITORY],
     },
     {

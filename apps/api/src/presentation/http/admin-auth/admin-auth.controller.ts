@@ -53,6 +53,7 @@ export class AdminAuthController {
     const result = await this.refresh.execute({
       refreshToken: dto.refreshToken,
       deviceId: dto.deviceId,
+      userId: dto.userId,
     });
     return mapResultToResponse(result, req);
   }

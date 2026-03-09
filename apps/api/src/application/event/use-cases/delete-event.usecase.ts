@@ -4,6 +4,7 @@ import type { AppError } from '@shared/kernel';
 import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { EventRepository } from '@domain/event/ports/event.repository';
 import { EventErrors } from '../../common/errors';
+import type { AuditRecorderPort } from '../../audit/ports/audit-recorder.port';
 import type { UserRole } from '@playconnect/contracts';
 
 export interface DeleteEventInput {
@@ -16,6 +17,7 @@ export class DeleteEventUseCase {
   constructor(
     private readonly userRepo: UserRepository,
     private readonly eventRepo: EventRepository,
+    private readonly auditRecorder: AuditRecorderPort,
   ) {}
 
   async execute(input: DeleteEventInput): Promise<Result<{ deleted: true }, AppError>> {
@@ -31,6 +33,14 @@ export class DeleteEventUseCase {
     if (event.academyId !== actor.academyId) return err(EventErrors.notInAcademy());
 
     await this.eventRepo.delete(input.eventId);
+
+    await this.auditRecorder.record({
+      academyId: actor.academyId,
+      actorUserId: input.actorUserId,
+      action: 'EVENT_DELETED',
+      entityType: 'EVENT',
+      entityId: input.eventId,
+    });
 
     return ok({ deleted: true as const });
   }

@@ -53,6 +53,8 @@ export class RequestPasswordResetUseCase {
       }
     }
 
+    await this.challengeRepo.invalidateActiveByUserId(userId);
+
     const otp = this.otpGenerator.generate();
     const otpHash = await this.otpHasher.hash(otp);
 

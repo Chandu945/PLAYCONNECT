@@ -34,6 +34,10 @@ export class GetStudentFeesUseCase {
       return err(FeeErrors.invalidMonthKey());
     }
 
+    if (input.from > input.to) {
+      return err(FeeErrors.invalidMonthRange());
+    }
+
     const user = await this.userRepo.findById(input.actorUserId);
     if (!user || !user.academyId) return err(FeeErrors.academyRequired());
 

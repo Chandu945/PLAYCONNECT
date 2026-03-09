@@ -3,8 +3,13 @@ import type { NextRequest } from 'next/server';
 
 import { apiPost } from '@/infra/http/api-client';
 import { getSessionCookie, clearSessionCookie } from '@/infra/auth/session-cookie';
+import { isOriginValid } from '@/infra/auth/csrf';
 
 export async function POST(request: NextRequest) {
+  if (!isOriginValid(request)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const session = await getSessionCookie();
   const authHeader = request.headers.get('Authorization');
   const accessToken = authHeader?.replace('Bearer ', '');

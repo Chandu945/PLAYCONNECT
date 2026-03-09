@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SubscriptionPaymentsController } from './subscription-payments.controller';
+import { SubscriptionPaymentsTestController } from './subscription-payments-test.controller';
 import {
   SubscriptionPaymentModel,
   SubscriptionPaymentSchema,
@@ -60,7 +61,10 @@ const WEBHOOK_SIGNATURE_VERIFIER = Symbol('WEBHOOK_SIGNATURE_VERIFIER');
       { name: StudentModel.name, schema: StudentSchema },
     ]),
   ],
-  controllers: [SubscriptionPaymentsController],
+  controllers: [
+    SubscriptionPaymentsController,
+    ...(process.env['APP_ENV'] === 'development' ? [SubscriptionPaymentsTestController] : []),
+  ],
   providers: [
     { provide: SUBSCRIPTION_PAYMENT_REPOSITORY, useClass: MongoSubscriptionPaymentRepository },
     { provide: SUBSCRIPTION_REPOSITORY, useClass: MongoSubscriptionRepository },

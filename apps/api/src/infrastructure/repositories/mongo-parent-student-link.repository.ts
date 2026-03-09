@@ -5,6 +5,7 @@ import type { ParentStudentLinkRepository } from '@domain/parent/ports/parent-st
 import { ParentStudentLink } from '@domain/parent/entities/parent-student-link.entity';
 import { ParentStudentLinkModel } from '../database/schemas/parent-student-link.schema';
 import type { ParentStudentLinkDocument } from '../database/schemas/parent-student-link.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoParentStudentLinkRepository implements ParentStudentLinkRepository {
@@ -23,7 +24,7 @@ export class MongoParentStudentLinkRepository implements ParentStudentLinkReposi
         academyId: link.academyId,
         version: link.audit.version,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
@@ -51,7 +52,7 @@ export class MongoParentStudentLinkRepository implements ParentStudentLinkReposi
   }
 
   async deleteByParentAndStudent(parentUserId: string, studentId: string): Promise<void> {
-    await this.model.deleteOne({ parentUserId, studentId });
+    await this.model.deleteOne({ parentUserId, studentId }, { session: getTransactionSession() });
   }
 
   private toDomain(doc: Record<string, unknown>): ParentStudentLink {

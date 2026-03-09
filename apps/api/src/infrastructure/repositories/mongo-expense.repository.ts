@@ -6,6 +6,7 @@ import { Expense } from '@domain/expense/entities/expense.entity';
 import { ExpenseModel } from '../database/schemas/expense.schema';
 import type { ExpenseDocument } from '../database/schemas/expense.schema';
 import { formatLocalDate } from '@shared/date-utils';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoExpenseRepository implements ExpenseRepository {
@@ -27,7 +28,7 @@ export class MongoExpenseRepository implements ExpenseRepository {
         deletedBy: expense.softDelete.deletedBy,
         version: expense.audit.version,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 

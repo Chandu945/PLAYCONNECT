@@ -68,8 +68,6 @@ export class ApprovePaymentRequestUseCase {
     // Generate receipt number
     const academy = await this.academyRepo.findById(request.academyId);
     const prefix = academy?.receiptPrefix ?? DEFAULT_RECEIPT_PREFIX;
-    const count = await this.transactionLogRepo.countByAcademyAndPrefix(request.academyId, prefix);
-    const receiptNumber = generateReceiptNumber(prefix, count + 1);
 
     // Atomic: approve request + mark due paid + create transaction log
     const approved = request.approve(input.actorUserId, now);
@@ -79,34 +77,38 @@ export class ApprovePaymentRequestUseCase {
       paymentRequestId: request.id.toString(),
       paidAt: now,
     });
-    const txLog = TransactionLog.create({
-      id: randomUUID(),
-      academyId: request.academyId,
-      feeDueId: due.id.toString(),
-      paymentRequestId: request.id.toString(),
-      studentId: request.studentId,
-      monthKey: request.monthKey,
-      amount: request.amount,
-      source: 'STAFF_APPROVED',
-      collectedByUserId: request.staffUserId,
-      approvedByUserId: input.actorUserId,
-      receiptNumber,
-    });
-
-    const auditLog = AuditLog.create({
-      academyId: request.academyId,
-      actorUserId: input.actorUserId,
-      action: 'PAYMENT_REQUEST_APPROVED',
-      entityType: 'PAYMENT_REQUEST',
-      entityId: request.id.toString(),
-      context: sanitizeContext({
-        studentId: request.studentId,
-        monthKey: request.monthKey,
-        receiptNumber,
-      }),
-    });
 
     await this.transaction.run(async () => {
+      const count = await this.transactionLogRepo.countByAcademyAndPrefix(request.academyId, prefix);
+      const receiptNumber = generateReceiptNumber(prefix, count + 1);
+
+      const txLog = TransactionLog.create({
+        id: randomUUID(),
+        academyId: request.academyId,
+        feeDueId: due.id.toString(),
+        paymentRequestId: request.id.toString(),
+        studentId: request.studentId,
+        monthKey: request.monthKey,
+        amount: request.amount,
+        source: 'STAFF_APPROVED',
+        collectedByUserId: request.staffUserId,
+        approvedByUserId: input.actorUserId,
+        receiptNumber,
+      });
+
+      const auditLog = AuditLog.create({
+        academyId: request.academyId,
+        actorUserId: input.actorUserId,
+        action: 'PAYMENT_REQUEST_APPROVED',
+        entityType: 'PAYMENT_REQUEST',
+        entityId: request.id.toString(),
+        context: sanitizeContext({
+          studentId: request.studentId,
+          monthKey: request.monthKey,
+          receiptNumber,
+        }),
+      });
+
       await this.paymentRequestRepo.save(approved);
       await this.feeDueRepo.save(paidDue);
       await this.transactionLogRepo.save(txLog);

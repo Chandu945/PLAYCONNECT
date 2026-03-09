@@ -45,6 +45,12 @@ export class CreateExpenseUseCase {
 
     if (input.amount <= 0) return err(ExpenseErrors.invalidAmount());
 
+    // Reject future-dated expenses (compare in IST)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const todayIST = new Date(now.getTime() + istOffset).toISOString().slice(0, 10);
+    if (input.date > todayIST) return err(ExpenseErrors.invalidDate());
+
     const user = await this.userRepo.findById(input.actorUserId);
     if (!user || !user.academyId) return err(ExpenseErrors.academyRequired());
 

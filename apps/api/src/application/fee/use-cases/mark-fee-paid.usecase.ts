@@ -14,7 +14,7 @@ import { generateReceiptNumber } from '@domain/fee/rules/payment-request.rules';
 import { FeeErrors } from '../../common/errors';
 import type { FeeDueDto } from '../dtos/fee-due.dto';
 import { toFeeDueDto } from '../dtos/fee-due.dto';
-import type { UserRole } from '@playconnect/contracts';
+import type { UserRole, PaymentLabel } from '@playconnect/contracts';
 import { DEFAULT_RECEIPT_PREFIX } from '@playconnect/contracts';
 import { randomUUID } from 'crypto';
 
@@ -23,6 +23,7 @@ export interface MarkFeePaidInput {
   actorRole: UserRole;
   studentId: string;
   monthKey: string;
+  paymentLabel?: PaymentLabel;
 }
 
 export class MarkFeePaidUseCase {
@@ -61,25 +62,27 @@ export class MarkFeePaidUseCase {
     // Generate receipt number
     const academy = await this.academyRepo.findById(user.academyId);
     const prefix = academy?.receiptPrefix ?? DEFAULT_RECEIPT_PREFIX;
-    const count = await this.transactionLogRepo.countByAcademyAndPrefix(user.academyId, prefix);
-    const receiptNumber = generateReceiptNumber(prefix, count + 1);
 
-    const paid = due.markPaid(input.actorUserId, now);
-    const txLog = TransactionLog.create({
-      id: randomUUID(),
-      academyId: user.academyId,
-      feeDueId: due.id.toString(),
-      paymentRequestId: null,
-      studentId: input.studentId,
-      monthKey: input.monthKey,
-      amount: due.amount,
-      source: 'OWNER_DIRECT',
-      collectedByUserId: input.actorUserId,
-      approvedByUserId: input.actorUserId,
-      receiptNumber,
-    });
+    const paid = due.markPaid(input.actorUserId, now, input.paymentLabel);
 
     await this.transaction.run(async () => {
+      const count = await this.transactionLogRepo.countByAcademyAndPrefix(user.academyId, prefix);
+      const receiptNumber = generateReceiptNumber(prefix, count + 1);
+
+      const txLog = TransactionLog.create({
+        id: randomUUID(),
+        academyId: user.academyId,
+        feeDueId: due.id.toString(),
+        paymentRequestId: null,
+        studentId: input.studentId,
+        monthKey: input.monthKey,
+        amount: due.amount,
+        source: 'OWNER_DIRECT',
+        collectedByUserId: input.actorUserId,
+        approvedByUserId: input.actorUserId,
+        receiptNumber,
+      });
+
       await this.feeDueRepo.save(paid);
       await this.transactionLogRepo.save(txLog);
     });

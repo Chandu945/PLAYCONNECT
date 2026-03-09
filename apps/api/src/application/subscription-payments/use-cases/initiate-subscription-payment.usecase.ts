@@ -56,10 +56,23 @@ export class InitiateSubscriptionPaymentUseCase {
       return err(AppError.forbidden('Cannot initiate payment for a disabled academy'));
     }
 
-    // Check for existing PENDING payment
+    // Check for existing PENDING payment — expire stale ones
     const existingPending = await this.paymentRepo.findPendingByAcademyId(academyId);
     if (existingPending) {
-      return err(AppError.conflict('A payment is already in progress for this academy'));
+      const STALE_PAYMENT_TTL_MS = 30 * 60 * 1000; // 30 minutes
+      const now = this.clock.now();
+      const createdAt = existingPending.audit.createdAt;
+      if (now.getTime() - createdAt.getTime() > STALE_PAYMENT_TTL_MS) {
+        // Stale PENDING payment — mark as FAILED so a new one can proceed
+        const expired = existingPending.markFailed('EXPIRED_STALE');
+        await this.paymentRepo.save(expired);
+        this.logger.info('Expired stale PENDING payment', {
+          academyId,
+          orderId: existingPending.orderId,
+        });
+      } else {
+        return err(AppError.conflict('A payment is already in progress for this academy'));
+      }
     }
 
     // Load subscription
@@ -74,10 +87,23 @@ export class InitiateSubscriptionPaymentUseCase {
     const requiredTier = requiredTierForCount(activeStudentCount);
     const amountInr = priceForTier(requiredTier);
 
-    // Create order with Cashfree
+    // Create order id and persist PENDING payment record BEFORE calling Cashfree
     const orderId = generateOrderId();
     const idempotencyKey = randomUUID();
 
+    const payment = SubscriptionPayment.create({
+      id: randomUUID(),
+      academyId,
+      ownerUserId: actorUserId,
+      orderId,
+      paymentSessionId: '',
+      tierKey: requiredTier,
+      amountInr,
+      activeStudentCountAtPurchase: activeStudentCount,
+    });
+    await this.paymentRepo.save(payment);
+
+    // Call Cashfree API
     let cfResult;
     try {
       cfResult = await this.cashfreeGateway.createOrder({
@@ -94,23 +120,30 @@ export class InitiateSubscriptionPaymentUseCase {
         orderId,
         error: error instanceof Error ? error.message : 'Unknown',
       });
+      const failed = payment.markFailed('CASHFREE_CREATE_ORDER_FAILED');
+      await this.paymentRepo.save(failed);
       return err(new AppError('PAYMENT_PROVIDER_UNAVAILABLE', 'Payment provider is temporarily unavailable. Please try again.'));
     }
 
-    // Persist payment record
-    const payment = SubscriptionPayment.create({
-      id: randomUUID(),
-      academyId,
-      ownerUserId: actorUserId,
-      orderId,
-      paymentSessionId: cfResult.paymentSessionId,
-      tierKey: requiredTier,
-      amountInr,
-      activeStudentCountAtPurchase: activeStudentCount,
-    });
-
+    // Update payment with Cashfree details
     const withCfId = payment.setCfOrderId(cfResult.cfOrderId);
-    await this.paymentRepo.save(withCfId);
+    const withCfDetails = SubscriptionPayment.reconstitute(withCfId.id.toString(), {
+      academyId: withCfId.academyId,
+      ownerUserId: withCfId.ownerUserId,
+      orderId: withCfId.orderId,
+      cfOrderId: withCfId.cfOrderId,
+      paymentSessionId: cfResult.paymentSessionId,
+      tierKey: withCfId.tierKey,
+      amountInr: withCfId.amountInr,
+      currency: withCfId.currency,
+      activeStudentCountAtPurchase: withCfId.activeStudentCountAtPurchase,
+      status: withCfId.status,
+      failureReason: withCfId.failureReason,
+      paidAt: withCfId.paidAt,
+      providerPaymentId: withCfId.providerPaymentId,
+      audit: withCfId.audit,
+    });
+    await this.paymentRepo.save(withCfDetails);
 
     this.logger.info('Subscription payment initiated', {
       academyId,

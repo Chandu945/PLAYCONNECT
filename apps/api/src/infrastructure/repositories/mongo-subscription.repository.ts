@@ -6,6 +6,7 @@ import { Subscription } from '@domain/subscription/entities/subscription.entity'
 import { SubscriptionModel } from '../database/schemas/subscription.schema';
 import type { SubscriptionDocument } from '../database/schemas/subscription.schema';
 import type { TierKey } from '@playconnect/contracts';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoSubscriptionRepository implements SubscriptionRepository {
@@ -14,8 +15,14 @@ export class MongoSubscriptionRepository implements SubscriptionRepository {
   ) {}
 
   async save(subscription: Subscription): Promise<void> {
-    await this.model.findOneAndUpdate(
-      { _id: subscription.id.toString() },
+    const isNew = subscription.audit.version === 1;
+    const filter: Record<string, unknown> = { _id: subscription.id.toString() };
+    if (!isNew) {
+      filter.version = subscription.audit.version - 1;
+    }
+
+    const result = await this.model.findOneAndUpdate(
+      filter,
       {
         _id: subscription.id.toString(),
         academyId: subscription.academyId,
@@ -31,8 +38,12 @@ export class MongoSubscriptionRepository implements SubscriptionRepository {
         paymentReference: subscription.paymentReference,
         version: subscription.audit.version,
       },
-      { upsert: true },
+      { upsert: isNew, session: getTransactionSession() },
     );
+
+    if (!result && !isNew) {
+      throw new Error('Concurrent modification detected for Subscription');
+    }
   }
 
   async findByAcademyId(academyId: string): Promise<Subscription | null> {

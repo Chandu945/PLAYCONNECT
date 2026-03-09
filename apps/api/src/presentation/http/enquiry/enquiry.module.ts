@@ -21,6 +21,9 @@ import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { EnquiryRepository } from '@domain/enquiry/ports/enquiry.repository';
 import type { StudentRepository } from '@domain/student/ports/student.repository';
 import { STUDENT_REPOSITORY } from '@domain/student/ports/student.repository';
+import type { TransactionPort } from '@application/common/transaction.port';
+import { TRANSACTION_PORT } from '@application/common/transaction.port';
+import { MongoTransactionService } from '@infrastructure/database/mongo-transaction.service';
 
 @Module({
   imports: [
@@ -35,6 +38,7 @@ import { STUDENT_REPOSITORY } from '@domain/student/ports/student.repository';
   providers: [
     { provide: ENQUIRY_REPOSITORY, useClass: MongoEnquiryRepository },
     { provide: STUDENT_REPOSITORY, useClass: MongoStudentRepository },
+    { provide: TRANSACTION_PORT, useClass: MongoTransactionService },
     {
       provide: 'CREATE_ENQUIRY_USE_CASE',
       useFactory: (userRepo: UserRepository, enquiryRepo: EnquiryRepository) =>
@@ -79,9 +83,9 @@ import { STUDENT_REPOSITORY } from '@domain/student/ports/student.repository';
     },
     {
       provide: 'CONVERT_TO_STUDENT_USE_CASE',
-      useFactory: (userRepo: UserRepository, enquiryRepo: EnquiryRepository, studentRepo: StudentRepository) =>
-        new ConvertToStudentUseCase(userRepo, enquiryRepo, studentRepo),
-      inject: [USER_REPOSITORY, ENQUIRY_REPOSITORY, STUDENT_REPOSITORY],
+      useFactory: (userRepo: UserRepository, enquiryRepo: EnquiryRepository, studentRepo: StudentRepository, transaction: TransactionPort) =>
+        new ConvertToStudentUseCase(userRepo, enquiryRepo, studentRepo, transaction),
+      inject: [USER_REPOSITORY, ENQUIRY_REPOSITORY, STUDENT_REPOSITORY, TRANSACTION_PORT],
     },
   ],
 })

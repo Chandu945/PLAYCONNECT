@@ -5,6 +5,7 @@ import type { EventRepository, EventListFilter } from '@domain/event/ports/event
 import { CalendarEvent } from '@domain/event/entities/event.entity';
 import type { EventStatus, EventType, TargetAudience } from '@domain/event/entities/event.entity';
 import { EventModel } from '../database/schemas/event.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoEventRepository implements EventRepository {
@@ -30,7 +31,7 @@ export class MongoEventRepository implements EventRepository {
         status: event.status,
         createdBy: event.createdBy,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
@@ -97,7 +98,7 @@ export class MongoEventRepository implements EventRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.model.deleteOne({ _id: id }).exec();
+    await this.model.deleteOne({ _id: id }, { session: getTransactionSession() }).exec();
   }
 
   async countByAcademyAndMonth(

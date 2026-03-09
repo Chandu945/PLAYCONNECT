@@ -8,6 +8,7 @@ import { canDeleteStudent } from '@domain/student/rules/student.rules';
 import { StudentErrors } from '../../common/errors';
 import type { UserRole } from '@playconnect/contracts';
 import type { AuditRecorderPort } from '../../audit/ports/audit-recorder.port';
+import type { FeeDueRepository } from '@domain/fee/ports/fee-due.repository';
 
 export interface SoftDeleteStudentInput {
   actorUserId: string;
@@ -20,6 +21,7 @@ export class SoftDeleteStudentUseCase {
     private readonly userRepo: UserRepository,
     private readonly studentRepo: StudentRepository,
     private readonly auditRecorder: AuditRecorderPort,
+    private readonly feeDueRepo?: FeeDueRepository,
   ) {}
 
   async execute(input: SoftDeleteStudentInput): Promise<Result<{ id: string }, AppError>> {
@@ -76,6 +78,10 @@ export class SoftDeleteStudentUseCase {
     });
 
     await this.studentRepo.save(deleted);
+
+    if (this.feeDueRepo) {
+      await this.feeDueRepo.deleteUpcomingByStudent(actor.academyId, input.studentId);
+    }
 
     await this.auditRecorder.record({
       academyId: actor.academyId,

@@ -15,6 +15,8 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RbacGuard } from '../common/guards/rbac.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUser as CurrentUserType } from '@application/common/current-user';
 import { mapResultToResponse } from '../common/result-mapper';
@@ -42,7 +44,8 @@ export class SubscriptionPaymentsController {
   ) {}
 
   @Post('initiate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Roles('OWNER')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Initiate subscription payment (OWNER only)' })
@@ -52,7 +55,8 @@ export class SubscriptionPaymentsController {
   }
 
   @Get(':orderId/status')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @Roles('OWNER')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get payment status (OWNER only)' })
   async status(

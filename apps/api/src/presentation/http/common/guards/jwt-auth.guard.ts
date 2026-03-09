@@ -6,20 +6,31 @@ import {
   ForbiddenException,
   Inject,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import type { TokenService } from '@application/identity/ports/token-service.port';
 import { TOKEN_SERVICE } from '@application/identity/ports/token-service.port';
 import type { UserRepository } from '@domain/identity/ports/user.repository';
 import { USER_REPOSITORY } from '@domain/identity/ports/user.repository';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     @Inject(TOKEN_SERVICE) private readonly tokenService: TokenService,
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
+    private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<Request>();
     const authHeader = request.headers.authorization;
 

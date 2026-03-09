@@ -50,6 +50,10 @@ export class ChangeStudentStatusUseCase {
       return err(StudentErrors.notInAcademy());
     }
 
+    if (input.status === student.status) {
+      return ok(toStudentDto(student));
+    }
+
     const academyId = actor.academyId;
 
     const now = new Date();

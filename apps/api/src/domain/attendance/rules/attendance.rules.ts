@@ -43,6 +43,36 @@ export function validateAttendanceStatus(status: string): { valid: boolean; reas
   return { valid: true };
 }
 
+export function validateDateRange(value: string): { valid: boolean; reason?: string } {
+  // Ensure date is not in the future and not more than 30 days in the past (IST)
+  const now = new Date();
+  const todayStr =
+    String(now.getFullYear()) +
+    '-' +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(now.getDate()).padStart(2, '0');
+
+  if (value > todayStr) {
+    return { valid: false, reason: 'Date cannot be in the future' };
+  }
+
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const thirtyDaysAgoStr =
+    String(thirtyDaysAgo.getFullYear()) +
+    '-' +
+    String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(thirtyDaysAgo.getDate()).padStart(2, '0');
+
+  if (value < thirtyDaysAgoStr) {
+    return { valid: false, reason: 'Date cannot be more than 30 days in the past' };
+  }
+
+  return { valid: true };
+}
+
 export function validateHolidayReason(reason: string): { valid: boolean; reason?: string } {
   if (reason.length > 200) {
     return { valid: false, reason: 'Holiday reason must not exceed 200 characters' };

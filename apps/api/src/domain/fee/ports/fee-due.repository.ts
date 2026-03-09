@@ -6,6 +6,7 @@ export const FEE_DUE_REPOSITORY = Symbol('FEE_DUE_REPOSITORY');
 export interface FeeDueRepository {
   save(feeDue: FeeDue): Promise<void>;
   bulkSave(feeDues: FeeDue[]): Promise<void>;
+  findById(id: string): Promise<FeeDue | null>;
   bulkUpdateStatus(ids: string[], status: FeeDueStatus): Promise<void>;
   findByAcademyStudentMonth(
     academyId: string,

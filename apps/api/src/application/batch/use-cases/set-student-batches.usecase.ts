@@ -6,7 +6,7 @@ import type { StudentRepository } from '@domain/student/ports/student.repository
 import type { BatchRepository } from '@domain/batch/ports/batch.repository';
 import type { StudentBatchRepository } from '@domain/batch/ports/student-batch.repository';
 import { StudentBatch } from '@domain/batch/entities/student-batch.entity';
-import { StudentBatchErrors } from '../../common/errors';
+import { BatchErrors, StudentBatchErrors } from '../../common/errors';
 import type { BatchDto } from '../dtos/batch.dto';
 import { toBatchDto } from '../dtos/batch.dto';
 import type { UserRole } from '@playconnect/contracts';
@@ -58,6 +58,9 @@ export class SetStudentBatchesUseCase {
       const batch = batches[i];
       if (!batch || batch.academyId !== actor.academyId) {
         return err(StudentBatchErrors.batchNotInAcademy(uniqueBatchIds[i]!));
+      }
+      if (batch.status !== 'ACTIVE') {
+        return err(BatchErrors.notActive(uniqueBatchIds[i]!));
       }
     }
 

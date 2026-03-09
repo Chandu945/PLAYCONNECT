@@ -1,5 +1,6 @@
 import type { TierKey } from '@playconnect/contracts';
 import { TIER_TABLE } from '@domain/subscription/rules/subscription-tier.rules';
+import { randomUUID } from 'node:crypto';
 
 /**
  * Look up the price for a tier key. Throws if tier not found (programming error).
@@ -27,7 +28,7 @@ export function generateOrderId(): string {
     String(now.getFullYear()) +
     String(now.getMonth() + 1).padStart(2, '0') +
     String(now.getDate()).padStart(2, '0');
-  const random = Math.random().toString(36).substring(2, 10);
+  const random = randomUUID().replace(/-/g, '').substring(0, 12);
   return `pc_sub_${dateStr}_${random}`;
 }
 
@@ -46,22 +47,35 @@ export function computePaidDates(
   now: Date,
   trialEndAt: Date,
 ): { paidStartAt: Date; paidEndAt: Date } {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
   let paidStartAt: Date;
 
   if (now.getTime() <= trialEndAt.getTime()) {
     // Trial still active — start day after trial ends
-    paidStartAt = new Date(trialEndAt.getTime() + 24 * 60 * 60 * 1000);
-    paidStartAt.setHours(0, 0, 0, 0);
+    const dayAfterTrial = new Date(trialEndAt.getTime() + 24 * 60 * 60 * 1000);
+    const istDate = new Date(dayAfterTrial.getTime() + IST_OFFSET_MS);
+    const year = istDate.getUTCFullYear();
+    const month = istDate.getUTCMonth();
+    const day = istDate.getUTCDate();
+    paidStartAt = new Date(Date.UTC(year, month, day) - IST_OFFSET_MS);
   } else {
-    paidStartAt = new Date(now);
-    paidStartAt.setHours(0, 0, 0, 0);
+    const istDate = new Date(now.getTime() + IST_OFFSET_MS);
+    const year = istDate.getUTCFullYear();
+    const month = istDate.getUTCMonth();
+    const day = istDate.getUTCDate();
+    paidStartAt = new Date(Date.UTC(year, month, day) - IST_OFFSET_MS);
   }
 
-  // paidEndAt = paidStartAt + 1 month - 1 day
-  const paidEndAt = new Date(paidStartAt);
-  paidEndAt.setMonth(paidEndAt.getMonth() + 1);
-  paidEndAt.setDate(paidEndAt.getDate() - 1);
-  paidEndAt.setHours(23, 59, 59, 999);
+  // paidEndAt = paidStartAt + 1 month - 1 day, at IST 23:59:59.999
+  // Use UTC-based arithmetic to avoid server-local timezone issues
+  const startIST = new Date(paidStartAt.getTime() + IST_OFFSET_MS);
+  const y = startIST.getUTCFullYear();
+  const m = startIST.getUTCMonth();
+  const d = startIST.getUTCDate();
+  // Add 1 month, subtract 1 day, set to end of day in IST
+  const endDateIST = new Date(Date.UTC(y, m + 1, d - 1));
+  const paidEndAt = new Date(endDateIST.getTime() - IST_OFFSET_MS + 24 * 60 * 60 * 1000 - 1);
 
   return { paidStartAt, paidEndAt };
 }

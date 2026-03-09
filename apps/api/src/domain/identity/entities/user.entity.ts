@@ -168,6 +168,7 @@ export class User extends Entity<UserProps> {
     return User.reconstitute(this.id.toString(), {
       ...this.props,
       passwordHash: newHash,
+      tokenVersion: this.props.tokenVersion + 1,
       audit: updateAuditFields(this.props.audit),
     });
   }

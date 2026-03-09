@@ -6,14 +6,26 @@ import { FeeDue } from '@domain/fee/entities/fee-due.entity';
 import { FeeDueModel } from '../database/schemas/fee-due.schema';
 import type { FeeDueDocument } from '../database/schemas/fee-due.schema';
 import type { FeeDueStatus, PaidSource, PaymentLabel } from '@playconnect/contracts';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoFeeDueRepository implements FeeDueRepository {
   constructor(@InjectModel(FeeDueModel.name) private readonly model: Model<FeeDueDocument>) {}
 
+  async findById(id: string): Promise<FeeDue | null> {
+    const doc = await this.model.findById(id).lean().exec();
+    return doc ? this.toDomain(doc as unknown as Record<string, unknown>) : null;
+  }
+
   async save(feeDue: FeeDue): Promise<void> {
-    await this.model.findOneAndUpdate(
-      { _id: feeDue.id.toString() },
+    const isNew = feeDue.audit.version === 1;
+    const filter: Record<string, unknown> = { _id: feeDue.id.toString() };
+    if (!isNew) {
+      filter.version = feeDue.audit.version - 1;
+    }
+
+    const result = await this.model.findOneAndUpdate(
+      filter,
       {
         _id: feeDue.id.toString(),
         academyId: feeDue.academyId,
@@ -31,8 +43,12 @@ export class MongoFeeDueRepository implements FeeDueRepository {
         paymentRequestId: feeDue.paymentRequestId,
         version: feeDue.audit.version,
       },
-      { upsert: true },
+      { upsert: isNew, session: getTransactionSession() },
     );
+
+    if (!result && !isNew) {
+      throw new Error('Concurrent modification detected for FeeDue');
+    }
   }
 
   async bulkSave(feeDues: FeeDue[]): Promise<void> {
@@ -41,7 +57,7 @@ export class MongoFeeDueRepository implements FeeDueRepository {
       updateOne: {
         filter: { _id: fd.id.toString() } as Record<string, unknown>,
         update: {
-          $setOnInsert: { _id: fd.id.toString() },
+          $setOnInsert: { _id: fd.id.toString(), createdAt: new Date() },
           $set: {
             academyId: fd.academyId,
             studentId: fd.studentId,
@@ -57,17 +73,22 @@ export class MongoFeeDueRepository implements FeeDueRepository {
             approvedByUserId: fd.approvedByUserId,
             paymentRequestId: fd.paymentRequestId,
             version: fd.audit.version,
+            updatedAt: new Date(),
           },
         } as Record<string, unknown>,
         upsert: true,
       },
     }));
-    await this.model.bulkWrite(ops as never[]);
+    await this.model.bulkWrite(ops as never[], { session: getTransactionSession() });
   }
 
   async bulkUpdateStatus(ids: string[], status: FeeDueStatus): Promise<void> {
     if (ids.length === 0) return;
-    await this.model.updateMany({ _id: { $in: ids } }, { $set: { status } });
+    await this.model.updateMany(
+      { _id: { $in: ids } },
+      { $set: { status, updatedAt: new Date() }, $inc: { version: 1 } },
+      { session: getTransactionSession() },
+    );
   }
 
   async findByAcademyStudentMonth(
@@ -141,7 +162,7 @@ export class MongoFeeDueRepository implements FeeDueRepository {
   }
 
   async deleteUpcomingByStudent(academyId: string, studentId: string): Promise<number> {
-    const result = await this.model.deleteMany({ academyId, studentId, status: 'UPCOMING' });
+    const result = await this.model.deleteMany({ academyId, studentId, status: 'UPCOMING' }, { session: getTransactionSession() });
     return result.deletedCount;
   }
 

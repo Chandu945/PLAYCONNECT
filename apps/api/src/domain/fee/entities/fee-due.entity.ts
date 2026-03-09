@@ -121,14 +121,17 @@ export class FeeDue extends Entity<FeeDueProps> {
     });
   }
 
-  markPaid(userId: string, paidAt: Date): FeeDue {
+  markPaid(userId: string, paidAt: Date, paymentLabel: PaymentLabel = 'CASH'): FeeDue {
+    if (this.props.status === 'UPCOMING') {
+      throw new Error('Cannot mark an UPCOMING fee as paid');
+    }
     return FeeDue.reconstitute(this.id.toString(), {
       ...this.props,
       status: 'PAID',
       paidAt,
       paidByUserId: userId,
       paidSource: 'OWNER_DIRECT',
-      paymentLabel: 'CASH',
+      paymentLabel,
       audit: updateAuditFields(this.props.audit),
     });
   }
@@ -138,14 +141,18 @@ export class FeeDue extends Entity<FeeDueProps> {
     collectedByUserId: string;
     paymentRequestId: string;
     paidAt: Date;
+    paymentLabel?: PaymentLabel;
   }): FeeDue {
+    if (this.props.status === 'UPCOMING') {
+      throw new Error('Cannot mark an UPCOMING fee as paid');
+    }
     return FeeDue.reconstitute(this.id.toString(), {
       ...this.props,
       status: 'PAID',
       paidAt: params.paidAt,
       paidByUserId: params.collectedByUserId,
       paidSource: 'STAFF_APPROVED',
-      paymentLabel: 'CASH',
+      paymentLabel: params.paymentLabel ?? 'CASH',
       collectedByUserId: params.collectedByUserId,
       approvedByUserId: params.approvedByUserId,
       paymentRequestId: params.paymentRequestId,
@@ -154,6 +161,9 @@ export class FeeDue extends Entity<FeeDueProps> {
   }
 
   markPaidByParentOnline(parentUserId: string, paidAt: Date): FeeDue {
+    if (this.props.status === 'UPCOMING') {
+      throw new Error('Cannot mark an UPCOMING fee as paid');
+    }
     return FeeDue.reconstitute(this.id.toString(), {
       ...this.props,
       status: 'PAID',

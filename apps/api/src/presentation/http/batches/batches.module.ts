@@ -17,6 +17,9 @@ import { USER_REPOSITORY } from '@domain/identity/ports/user.repository';
 import { STUDENT_REPOSITORY } from '@domain/student/ports/student.repository';
 import { STUDENT_BATCH_REPOSITORY } from '@domain/batch/ports/student-batch.repository';
 import { FILE_STORAGE_PORT } from '@application/common/ports/file-storage.port';
+import { TRANSACTION_PORT } from '@application/common/transaction.port';
+import type { TransactionPort } from '@application/common/transaction.port';
+import { MongoTransactionService } from '@infrastructure/database/mongo-transaction.service';
 import { CreateBatchUseCase } from '@application/batch/use-cases/create-batch.usecase';
 import { UpdateBatchUseCase } from '@application/batch/use-cases/update-batch.usecase';
 import { ListBatchesUseCase } from '@application/batch/use-cases/list-batches.usecase';
@@ -47,6 +50,7 @@ import type { FileStoragePort } from '@application/common/ports/file-storage.por
     { provide: STUDENT_REPOSITORY, useClass: MongoStudentRepository },
     { provide: STUDENT_BATCH_REPOSITORY, useClass: MongoStudentBatchRepository },
     { provide: FILE_STORAGE_PORT, useClass: CloudinaryStorageService },
+    { provide: TRANSACTION_PORT, useClass: MongoTransactionService },
     {
       provide: 'CREATE_BATCH_USE_CASE',
       useFactory: (userRepo: UserRepository, batchRepo: BatchRepository) =>
@@ -110,8 +114,9 @@ import type { FileStoragePort } from '@application/common/ports/file-storage.por
         userRepo: UserRepository,
         batchRepo: BatchRepository,
         studentBatchRepo: StudentBatchRepository,
-      ) => new DeleteBatchUseCase(userRepo, batchRepo, studentBatchRepo),
-      inject: [USER_REPOSITORY, BATCH_REPOSITORY, STUDENT_BATCH_REPOSITORY],
+        transaction: TransactionPort,
+      ) => new DeleteBatchUseCase(userRepo, batchRepo, studentBatchRepo, transaction),
+      inject: [USER_REPOSITORY, BATCH_REPOSITORY, STUDENT_BATCH_REPOSITORY, TRANSACTION_PORT],
     },
     {
       provide: 'UPLOAD_BATCH_PHOTO_USE_CASE',

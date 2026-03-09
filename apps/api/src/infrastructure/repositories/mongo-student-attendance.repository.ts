@@ -5,6 +5,7 @@ import type { StudentAttendanceRepository } from '@domain/attendance/ports/stude
 import { StudentAttendance } from '@domain/attendance/entities/student-attendance.entity';
 import { StudentAttendanceModel } from '../database/schemas/student-attendance.schema';
 import type { StudentAttendanceDocument } from '../database/schemas/student-attendance.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoStudentAttendanceRepository implements StudentAttendanceRepository {
@@ -28,7 +29,7 @@ export class MongoStudentAttendanceRepository implements StudentAttendanceReposi
         markedByUserId: record.markedByUserId,
         version: record.audit.version,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
@@ -37,7 +38,7 @@ export class MongoStudentAttendanceRepository implements StudentAttendanceReposi
     studentId: string,
     date: string,
   ): Promise<void> {
-    await this.model.deleteOne({ academyId, studentId, date });
+    await this.model.deleteOne({ academyId, studentId, date }, { session: getTransactionSession() });
   }
 
   async findByAcademyStudentDate(
@@ -85,7 +86,7 @@ export class MongoStudentAttendanceRepository implements StudentAttendanceReposi
   }
 
   async deleteByAcademyAndDate(academyId: string, date: string): Promise<void> {
-    await this.model.deleteMany({ academyId, date });
+    await this.model.deleteMany({ academyId, date }, { session: getTransactionSession() });
   }
 
   async countAbsentByAcademyAndDate(academyId: string, date: string): Promise<number> {

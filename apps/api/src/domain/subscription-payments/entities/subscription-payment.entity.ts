@@ -59,6 +59,9 @@ export class SubscriptionPayment extends Entity<SubscriptionPaymentProps> {
   }
 
   markSuccess(providerPaymentId: string, paidAt: Date): SubscriptionPayment {
+    if (this.props.status !== 'PENDING') {
+      throw new Error(`Cannot mark ${this.props.status} subscription payment as SUCCESS`);
+    }
     return SubscriptionPayment.reconstitute(this.id.toString(), {
       ...this.props,
       status: 'SUCCESS',
@@ -69,6 +72,9 @@ export class SubscriptionPayment extends Entity<SubscriptionPaymentProps> {
   }
 
   markFailed(failureReason: string): SubscriptionPayment {
+    if (this.props.status === 'SUCCESS') {
+      throw new Error('Cannot mark a SUCCESS subscription payment as FAILED');
+    }
     return SubscriptionPayment.reconstitute(this.id.toString(), {
       ...this.props,
       status: 'FAILED',

@@ -57,6 +57,13 @@ class InMemoryPaymentRepo {
     return null;
   }
 
+  async saveWithStatusPrecondition(payment: SubscriptionPayment, expectedStatus: string): Promise<boolean> {
+    const existing = this.payments.get(payment.id.toString());
+    if (!existing || existing.status !== expectedStatus) return false;
+    this.payments.set(payment.id.toString(), payment);
+    return true;
+  }
+
   clear(): void {
     this.payments.clear();
   }

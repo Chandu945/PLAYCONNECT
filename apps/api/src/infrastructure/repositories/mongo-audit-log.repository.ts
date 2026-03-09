@@ -6,13 +6,14 @@ import { AuditLog } from '@domain/audit/entities/audit-log.entity';
 import { AuditLogModel } from '../database/schemas/audit-log.schema';
 import type { AuditLogDocument } from '../database/schemas/audit-log.schema';
 import type { AuditActionType, AuditEntityType, Paginated } from '@playconnect/contracts';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoAuditLogRepository implements AuditLogRepository {
   constructor(@InjectModel(AuditLogModel.name) private readonly model: Model<AuditLogDocument>) {}
 
   async save(log: AuditLog): Promise<void> {
-    await this.model.create({
+    const doc = {
       _id: log.id.toString(),
       academyId: log.academyId,
       actorUserId: log.actorUserId,
@@ -21,7 +22,13 @@ export class MongoAuditLogRepository implements AuditLogRepository {
       entityId: log.entityId,
       context: log.context,
       createdAt: log.createdAt,
-    });
+    };
+    const session = getTransactionSession();
+    if (session) {
+      await this.model.create([doc], { session });
+    } else {
+      await this.model.create(doc);
+    }
   }
 
   async listByAcademy(academyId: string, filter: AuditLogFilter): Promise<Paginated<AuditLog>> {

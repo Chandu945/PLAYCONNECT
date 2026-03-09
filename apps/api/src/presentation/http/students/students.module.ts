@@ -140,8 +140,9 @@ import { MongoStudentAttendanceRepository } from '@infrastructure/repositories/m
         userRepo: UserRepository,
         studentRepo: StudentRepository,
         audit: AuditRecorderPort,
-      ) => new SoftDeleteStudentUseCase(userRepo, studentRepo, audit),
-      inject: [USER_REPOSITORY, STUDENT_REPOSITORY, AUDIT_RECORDER_PORT],
+        feeDueRepo: FeeDueRepository,
+      ) => new SoftDeleteStudentUseCase(userRepo, studentRepo, audit, feeDueRepo),
+      inject: [USER_REPOSITORY, STUDENT_REPOSITORY, AUDIT_RECORDER_PORT, FEE_DUE_REPOSITORY],
     },
     {
       provide: 'SET_STUDENT_BATCHES_USE_CASE',

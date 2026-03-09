@@ -5,6 +5,7 @@ import type { StaffAttendanceRepository } from '@domain/staff-attendance/ports/s
 import { StaffAttendance } from '@domain/staff-attendance/entities/staff-attendance.entity';
 import { StaffAttendanceModel } from '../database/schemas/staff-attendance.schema';
 import type { StaffAttendanceDocument } from '../database/schemas/staff-attendance.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoStaffAttendanceRepository implements StaffAttendanceRepository {
@@ -28,7 +29,7 @@ export class MongoStaffAttendanceRepository implements StaffAttendanceRepository
         markedByUserId: record.markedByUserId,
         version: record.audit.version,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
@@ -37,7 +38,7 @@ export class MongoStaffAttendanceRepository implements StaffAttendanceRepository
     staffUserId: string,
     date: string,
   ): Promise<void> {
-    await this.model.deleteOne({ academyId, staffUserId, date });
+    await this.model.deleteOne({ academyId, staffUserId, date }, { session: getTransactionSession() });
   }
 
   async findAbsentByAcademyAndDate(academyId: string, date: string): Promise<StaffAttendance[]> {

@@ -65,10 +65,12 @@ export class GetStudentMonthlyAttendanceUseCase {
 
     const absentDates = absentRecords.map((r) => r.date);
     const holidayDates = holidays.map((h) => h.date);
+    const holidayDateSet = new Set(holidayDates);
     const daysInMonth = getDaysInMonth(input.month);
     const absentCount = absentDates.length;
     const holidayCount = holidayDates.length;
-    const presentCount = daysInMonth - absentCount - holidayCount;
+    const overlapCount = absentDates.filter((d) => holidayDateSet.has(d)).length;
+    const presentCount = daysInMonth - absentCount - holidayCount + overlapCount;
 
     return ok({
       studentId: input.studentId,

@@ -9,6 +9,7 @@ import { AuthErrors } from '../../common/errors';
 export interface RefreshInput {
   refreshToken: string;
   deviceId: string;
+  userId: string;
 }
 
 export interface RefreshOutput {
@@ -24,7 +25,7 @@ export class RefreshUseCase {
   ) {}
 
   async execute(input: RefreshInput): Promise<Result<RefreshOutput, AppError>> {
-    const session = await this.sessionRepo.findActiveByDeviceId(input.deviceId);
+    const session = await this.sessionRepo.findActiveByDeviceId(input.userId, input.deviceId);
     if (!session || session.isRevoked() || session.isExpired()) {
       return err(AuthErrors.invalidRefreshToken());
     }
@@ -39,16 +40,21 @@ export class RefreshUseCase {
       return err(AuthErrors.invalidRefreshToken());
     }
 
-    // Rotate: issue new refresh token and update hash
+    // Rotate: issue new refresh token and update hash (CAS to prevent race condition)
     const newRefreshToken = this.tokenService.generateRefreshToken();
     const newHash = this.tokenService.hashRefreshToken(newRefreshToken);
 
     const refreshTtlMs = 30 * 24 * 60 * 60 * 1000; // 30 days
-    await this.sessionRepo.updateRefreshToken(
+    const updated = await this.sessionRepo.updateRefreshToken(
       session.id.toString(),
       newHash,
       new Date(Date.now() + refreshTtlMs),
+      session.refreshTokenHash,
     );
+    if (!updated) {
+      // Another concurrent request already rotated the token
+      return err(AuthErrors.invalidRefreshToken());
+    }
 
     const user = await this.userRepo.findById(session.userId);
     if (!user) {

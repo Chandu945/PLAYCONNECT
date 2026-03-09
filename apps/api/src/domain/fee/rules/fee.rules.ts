@@ -24,8 +24,8 @@ export function isEligibleForDue(
   // If joining year-month is after the target month, not eligible
   if (joinYear > year! || (joinYear === year! && joinMonth > month!)) return false;
 
-  // If same month but joined after the 1st, not eligible (mid-month join)
-  if (joinYear === year! && joinMonth === month! && joinDay > 1) return false;
+  // If same month but joined after the 15th, not eligible (late-month join)
+  if (joinYear === year! && joinMonth === month! && joinDay > 15) return false;
 
   return true;
 }

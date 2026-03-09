@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ParentController } from './parent.controller';
 import { FeePaymentWebhookController } from './fee-payment-webhook.controller';
+import { FeePaymentTestController } from './fee-payment-test.controller';
 import { AuthModule } from '../auth/auth.module';
 import { AcademyOnboardingModule } from '../academy-onboarding/academy-onboarding.module';
 
@@ -108,7 +109,11 @@ const FEE_WEBHOOK_SIGNATURE_VERIFIER = Symbol('FEE_WEBHOOK_SIGNATURE_VERIFIER');
       { name: HolidayModel.name, schema: HolidaySchema },
     ]),
   ],
-  controllers: [ParentController, FeePaymentWebhookController],
+  controllers: [
+    ParentController,
+    FeePaymentWebhookController,
+    ...(process.env['APP_ENV'] === 'development' ? [FeePaymentTestController] : []),
+  ],
   providers: [
     // Repositories
     { provide: PARENT_STUDENT_LINK_REPOSITORY, useClass: MongoParentStudentLinkRepository },

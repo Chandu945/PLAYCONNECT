@@ -60,6 +60,9 @@ export class InviteParentUseCase {
     let isExistingUser = false;
 
     if (existingUser) {
+      if (existingUser.role !== 'PARENT') {
+        return err(AuthErrors.duplicateEmail());
+      }
       parentUserId = existingUser.id.toString();
       isExistingUser = true;
     } else {

@@ -7,6 +7,7 @@ import type { SubscriptionPaymentStatus } from '@domain/subscription-payments/en
 import { SubscriptionPaymentModel } from '../database/schemas/subscription-payment.schema';
 import type { SubscriptionPaymentDocument } from '../database/schemas/subscription-payment.schema';
 import type { TierKey } from '@playconnect/contracts';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoSubscriptionPaymentRepository implements SubscriptionPaymentRepository {
@@ -35,8 +36,35 @@ export class MongoSubscriptionPaymentRepository implements SubscriptionPaymentRe
         providerPaymentId: payment.providerPaymentId,
         version: payment.audit.version,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
+  }
+
+  async saveWithStatusPrecondition(
+    payment: SubscriptionPayment,
+    expectedStatus: string,
+  ): Promise<boolean> {
+    const result = await this.model.findOneAndUpdate(
+      { _id: payment.id.toString(), status: expectedStatus },
+      {
+        academyId: payment.academyId,
+        ownerUserId: payment.ownerUserId,
+        orderId: payment.orderId,
+        cfOrderId: payment.cfOrderId,
+        paymentSessionId: payment.paymentSessionId,
+        tierKey: payment.tierKey,
+        amountInr: payment.amountInr,
+        currency: payment.currency,
+        activeStudentCountAtPurchase: payment.activeStudentCountAtPurchase,
+        status: payment.status,
+        failureReason: payment.failureReason,
+        paidAt: payment.paidAt,
+        providerPaymentId: payment.providerPaymentId,
+        version: payment.audit.version,
+      },
+      { session: getTransactionSession() },
+    );
+    return result !== null;
   }
 
   async findByOrderId(orderId: string): Promise<SubscriptionPayment | null> {

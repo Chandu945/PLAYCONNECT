@@ -6,6 +6,7 @@ import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { EnquiryRepository } from '@domain/enquiry/ports/enquiry.repository';
 import type { StudentRepository } from '@domain/student/ports/student.repository';
 import { Student } from '@domain/student/entities/student.entity';
+import type { TransactionPort } from '../../common/transaction.port';
 import { EnquiryErrors } from '../../common/errors';
 import { toEnquiryDetail } from './get-enquiry-detail.usecase';
 import type { EnquiryDetailOutput } from './get-enquiry-detail.usecase';
@@ -35,6 +36,7 @@ export class ConvertToStudentUseCase {
     private readonly userRepo: UserRepository,
     private readonly enquiryRepo: EnquiryRepository,
     private readonly studentRepo: StudentRepository,
+    private readonly transaction: TransactionPort,
   ) {}
 
   async execute(input: ConvertToStudentInput): Promise<Result<ConvertToStudentOutput, AppError>> {
@@ -82,10 +84,12 @@ export class ConvertToStudentUseCase {
       addressText: enquiry.address,
     });
 
-    await this.studentRepo.save(student);
-
     const closed = enquiry.close('CONVERTED', studentId);
-    await this.enquiryRepo.save(closed);
+
+    await this.transaction.run(async () => {
+      await this.studentRepo.save(student);
+      await this.enquiryRepo.save(closed);
+    });
 
     return ok({
       enquiry: toEnquiryDetail(closed),

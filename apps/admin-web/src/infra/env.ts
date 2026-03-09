@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const serverSchema = z.object({
   API_BASE_URL: z.string().url(),
+  COOKIE_SECRET: z.string().min(32, 'COOKIE_SECRET must be at least 32 characters'),
 });
 
 const publicSchema = z.object({
@@ -14,6 +15,7 @@ export function serverEnv() {
   if (cachedServerEnv) return cachedServerEnv;
   cachedServerEnv = serverSchema.parse({
     API_BASE_URL: process.env.API_BASE_URL,
+    COOKIE_SECRET: process.env.COOKIE_SECRET,
   });
   return cachedServerEnv;
 }

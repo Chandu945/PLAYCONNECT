@@ -5,6 +5,7 @@ import type { StudentBatchRepository } from '@domain/batch/ports/student-batch.r
 import { StudentBatch } from '@domain/batch/entities/student-batch.entity';
 import { StudentBatchModel } from '../database/schemas/student-batch.schema';
 import type { StudentBatchDocument } from '../database/schemas/student-batch.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoStudentBatchRepository implements StudentBatchRepository {
@@ -13,7 +14,8 @@ export class MongoStudentBatchRepository implements StudentBatchRepository {
   ) {}
 
   async replaceForStudent(studentId: string, assignments: StudentBatch[]): Promise<void> {
-    await this.model.deleteMany({ studentId }).exec();
+    const session = getTransactionSession();
+    await this.model.deleteMany({ studentId }, { session }).exec();
 
     if (assignments.length > 0) {
       const docs = assignments.map((a) => ({
@@ -23,7 +25,7 @@ export class MongoStudentBatchRepository implements StudentBatchRepository {
         academyId: a.academyId,
         assignedAt: a.assignedAt,
       }));
-      await this.model.insertMany(docs);
+      await this.model.insertMany(docs, { session });
     }
   }
 
@@ -38,7 +40,7 @@ export class MongoStudentBatchRepository implements StudentBatchRepository {
   }
 
   async deleteByBatchId(batchId: string): Promise<number> {
-    const result = await this.model.deleteMany({ batchId }).exec();
+    const result = await this.model.deleteMany({ batchId }, { session: getTransactionSession() }).exec();
     return result.deletedCount;
   }
 

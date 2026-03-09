@@ -5,6 +5,7 @@ import type { SessionRepository } from '@domain/identity/ports/session.repositor
 import { Session } from '@domain/identity/entities/session.entity';
 import { SessionModel } from '../database/schemas/session.schema';
 import type { SessionDocument } from '../database/schemas/session.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoSessionRepository implements SessionRepository {
@@ -27,7 +28,7 @@ export class MongoSessionRepository implements SessionRepository {
           _id: session.id.toString(),
         },
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
@@ -36,8 +37,8 @@ export class MongoSessionRepository implements SessionRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
-  async findActiveByDeviceId(deviceId: string): Promise<Session | null> {
-    const doc = await this.model.findOne({ deviceId, revokedAt: null }).lean().exec();
+  async findActiveByDeviceId(userId: string, deviceId: string): Promise<Session | null> {
+    const doc = await this.model.findOne({ userId, deviceId, revokedAt: null }).lean().exec();
     return doc ? this.toDomain(doc) : null;
   }
 
@@ -45,6 +46,7 @@ export class MongoSessionRepository implements SessionRepository {
     await this.model.updateMany(
       { userId, deviceId, revokedAt: null },
       { $set: { revokedAt: new Date() } },
+      { session: getTransactionSession() },
     );
   }
 
@@ -53,12 +55,17 @@ export class MongoSessionRepository implements SessionRepository {
     await this.model.updateMany(
       { userId: { $in: userIds }, revokedAt: null },
       { $set: { revokedAt: new Date() } },
+      { session: getTransactionSession() },
     );
   }
 
-  async updateRefreshToken(sessionId: string, newHash: string, expiresAt: Date): Promise<void> {
-    await this.model.updateOne(
-      { _id: sessionId },
+  async updateRefreshToken(sessionId: string, newHash: string, expiresAt: Date, expectedCurrentHash?: string): Promise<boolean> {
+    const filter: Record<string, unknown> = { _id: sessionId };
+    if (expectedCurrentHash) {
+      filter.refreshTokenHash = expectedCurrentHash;
+    }
+    const result = await this.model.updateOne(
+      filter,
       {
         $set: {
           refreshTokenHash: newHash,
@@ -66,7 +73,9 @@ export class MongoSessionRepository implements SessionRepository {
           lastRotatedAt: new Date(),
         },
       },
+      { session: getTransactionSession() },
     );
+    return result.modifiedCount > 0;
   }
 
   private toDomain(doc: Record<string, unknown>): Session {

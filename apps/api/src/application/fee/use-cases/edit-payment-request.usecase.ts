@@ -7,6 +7,7 @@ import type { PaymentRequestRepository } from '@domain/fee/ports/payment-request
 import { PaymentRequestErrors } from '../../common/errors';
 import type { PaymentRequestDto } from '../dtos/payment-request.dto';
 import { toPaymentRequestDto } from '../dtos/payment-request.dto';
+import { validateStaffNotes } from '@domain/fee/rules/payment-request.rules';
 import type { UserRole } from '@playconnect/contracts';
 import type { AuditRecorderPort } from '../../audit/ports/audit-recorder.port';
 
@@ -29,6 +30,9 @@ export class EditPaymentRequestUseCase {
     if (input.actorRole !== 'STAFF') {
       return err(PaymentRequestErrors.cancelNotAllowed());
     }
+
+    const notesCheck = validateStaffNotes(input.staffNotes);
+    if (!notesCheck.valid) return err(PaymentRequestErrors.invalidNotes(notesCheck.reason!));
 
     const user = await this.userRepo.findById(input.actorUserId);
     if (!user || !user.academyId) return err(PaymentRequestErrors.academyRequired());

@@ -11,4 +11,9 @@ export class RefreshDto {
   @IsString()
   @IsNotEmpty()
   deviceId!: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  userId!: string;
 }

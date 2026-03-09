@@ -61,6 +61,9 @@ export class FeePayment extends Entity<FeePaymentProps> {
   }
 
   markSuccess(providerPaymentId: string, paidAt: Date): FeePayment {
+    if (this.props.status !== 'PENDING') {
+      throw new Error(`Cannot mark ${this.props.status} fee payment as SUCCESS`);
+    }
     return FeePayment.reconstitute(this.id.toString(), {
       ...this.props,
       status: 'SUCCESS',
@@ -71,6 +74,9 @@ export class FeePayment extends Entity<FeePaymentProps> {
   }
 
   markFailed(failureReason: string): FeePayment {
+    if (this.props.status === 'SUCCESS') {
+      throw new Error('Cannot mark a SUCCESS fee payment as FAILED');
+    }
     return FeePayment.reconstitute(this.id.toString(), {
       ...this.props,
       status: 'FAILED',

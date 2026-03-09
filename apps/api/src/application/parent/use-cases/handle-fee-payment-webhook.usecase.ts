@@ -107,8 +107,14 @@ export class HandleFeePaymentWebhookUseCase {
         receiptNumber,
       });
 
+      const transitioned = await this.feePaymentRepo.saveWithStatusPrecondition(updated, 'PENDING');
+      if (!transitioned) {
+        // Another concurrent webhook already processed this payment — idempotent success
+        this.logger.info('Fee payment already transitioned from PENDING — skipping', { orderId });
+        return ok(undefined);
+      }
+
       await this.transaction.run(async () => {
-        await this.feePaymentRepo.save(updated);
         await this.feeDueRepo.save(paidDue);
         await this.transactionLogRepo.save(txLog);
       });
@@ -127,15 +133,8 @@ export class HandleFeePaymentWebhookUseCase {
     return ok(undefined);
   }
 
-  private async loadFeeDueById(feeDueId: string, academyId: string, studentId: string) {
-    // Search across months for this specific fee due
-    const dues = await this.feeDueRepo.listByStudentAndRange(
-      academyId,
-      studentId,
-      '2000-01',
-      '2099-12',
-    );
-    return dues.find((d) => d.id.toString() === feeDueId) ?? null;
+  private async loadFeeDueById(feeDueId: string, _academyId: string, _studentId: string) {
+    return this.feeDueRepo.findById(feeDueId);
   }
 }
 

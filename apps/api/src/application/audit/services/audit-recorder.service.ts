@@ -24,6 +24,10 @@ export class AuditRecorderService implements AuditRecorderPort {
       entityId: params.entityId,
       context: sanitized,
     });
-    await this.auditLogRepo.save(log);
+    try {
+      await this.auditLogRepo.save(log);
+    } catch (error) {
+      console.error('Failed to save audit log', error);
+    }
   }
 }

@@ -5,6 +5,7 @@ import type { ExpenseCategoryRepository } from '@domain/expense/ports/expense-ca
 import { ExpenseCategory } from '@domain/expense/entities/expense-category.entity';
 import { ExpenseCategoryModel } from '../database/schemas/expense-category.schema';
 import type { ExpenseCategoryDocument } from '../database/schemas/expense-category.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoExpenseCategoryRepository implements ExpenseCategoryRepository {
@@ -22,7 +23,7 @@ export class MongoExpenseCategoryRepository implements ExpenseCategoryRepository
         name: category.name,
         createdBy: category.createdBy,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
@@ -45,7 +46,7 @@ export class MongoExpenseCategoryRepository implements ExpenseCategoryRepository
   }
 
   async deleteById(id: string): Promise<void> {
-    await this.model.deleteOne({ _id: id });
+    await this.model.deleteOne({ _id: id }, { session: getTransactionSession() });
   }
 
   private toDomain(doc: Record<string, unknown>): ExpenseCategory {

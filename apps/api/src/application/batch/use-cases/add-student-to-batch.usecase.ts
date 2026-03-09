@@ -44,6 +44,10 @@ export class AddStudentToBatchUseCase {
       return err(BatchErrors.notInAcademy());
     }
 
+    if (batch.status !== 'ACTIVE') {
+      return err(BatchErrors.notActive(input.batchId));
+    }
+
     const student = await this.studentRepo.findById(input.studentId);
     if (!student || student.isDeleted()) {
       return err(StudentBatchErrors.studentNotFound(input.studentId));

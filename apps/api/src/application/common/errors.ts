@@ -31,6 +31,7 @@ export const BatchErrors = {
   notAllowed: () => AppError.forbidden('Only owners and staff can create or update batches'),
   readNotAllowed: () => AppError.forbidden('Only owners and staff can view batches'),
   deleteNotAllowed: () => AppError.forbidden('Only owners can delete batches'),
+  notActive: (id: string) => AppError.validation(`Batch '${id}' is not active`),
 } as const;
 
 export const StudentErrors = {
@@ -72,6 +73,7 @@ export const FeeErrors = {
   markPaidNotAllowed: () => AppError.forbidden('Only owners can mark fees as paid'),
   viewNotAllowed: () => AppError.forbidden('Only owners and staff can view fees'),
   invalidMonthKey: () => AppError.validation('Invalid month key format. Expected YYYY-MM'),
+  invalidMonthRange: () => AppError.validation('"from" month must not be after "to" month'),
   dashboardNotAllowed: () => AppError.forbidden('Only owners can view the dashboard'),
   reportsNotAllowed: () => AppError.forbidden('Only owners can view reports'),
 } as const;
@@ -92,6 +94,7 @@ export const PaymentRequestErrors = {
   createNotAllowed: () => AppError.forbidden('Only staff can create payment requests'),
   reviewNotAllowed: () => AppError.forbidden('Only owners can approve or reject payment requests'),
   cancelNotAllowed: () => AppError.forbidden('Only staff can cancel payment requests'),
+  invalidNotes: (reason: string) => AppError.validation(reason),
   viewNotAllowed: () => AppError.forbidden('Only owners and staff can view payment requests'),
   rejectionReasonRequired: () => AppError.validation('Rejection reason is required'),
 } as const;

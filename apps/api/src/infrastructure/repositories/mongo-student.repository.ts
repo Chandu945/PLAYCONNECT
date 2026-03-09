@@ -10,6 +10,7 @@ import { Student } from '@domain/student/entities/student.entity';
 import { StudentModel } from '../database/schemas/student.schema';
 import type { StudentDocument } from '../database/schemas/student.schema';
 import type { Gender, StudentStatus } from '@playconnect/contracts';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoStudentRepository implements StudentRepository {
@@ -64,7 +65,7 @@ export class MongoStudentRepository implements StudentRepository {
         deletedAt: student.softDelete.deletedAt,
         deletedBy: student.softDelete.deletedBy,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
@@ -118,7 +119,7 @@ export class MongoStudentRepository implements StudentRepository {
   async findByIds(ids: string[]): Promise<Student[]> {
     if (ids.length === 0) return [];
     const docs = await this.model
-      .find({ _id: { $in: ids } })
+      .find({ _id: { $in: ids }, deletedAt: null })
       .lean()
       .exec();
     return docs.map((doc) => this.toDomain(doc as unknown as Record<string, unknown>));

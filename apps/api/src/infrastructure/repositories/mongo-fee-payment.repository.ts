@@ -6,6 +6,7 @@ import { FeePayment } from '@domain/parent/entities/fee-payment.entity';
 import type { FeePaymentStatus } from '@domain/parent/entities/fee-payment.entity';
 import { FeePaymentModel } from '../database/schemas/fee-payment.schema';
 import type { FeePaymentDocument } from '../database/schemas/fee-payment.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoFeePaymentRepository implements FeePaymentRepository {
@@ -35,8 +36,35 @@ export class MongoFeePaymentRepository implements FeePaymentRepository {
         providerPaymentId: payment.providerPaymentId,
         version: payment.audit.version,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
+  }
+
+  async saveWithStatusPrecondition(
+    payment: FeePayment,
+    expectedStatus: string,
+  ): Promise<boolean> {
+    const result = await this.model.findOneAndUpdate(
+      { _id: payment.id.toString(), status: expectedStatus },
+      {
+        academyId: payment.academyId,
+        parentUserId: payment.parentUserId,
+        studentId: payment.studentId,
+        feeDueId: payment.feeDueId,
+        monthKey: payment.monthKey,
+        orderId: payment.orderId,
+        cfOrderId: payment.cfOrderId,
+        paymentSessionId: payment.paymentSessionId,
+        amount: payment.amount,
+        currency: payment.currency,
+        status: payment.status,
+        failureReason: payment.failureReason,
+        paidAt: payment.paidAt,
+        providerPaymentId: payment.providerPaymentId,
+        version: payment.audit.version,
+      },
+    );
+    return result !== null;
   }
 
   async findByOrderId(orderId: string): Promise<FeePayment | null> {

@@ -6,6 +6,8 @@ import {
   ConflictException,
   NotFoundException,
   InternalServerErrorException,
+  ServiceUnavailableException,
+  HttpException,
 } from '@nestjs/common';
 import type { Result } from '@shared/kernel';
 import type { AppError } from '@shared/kernel';
@@ -19,6 +21,9 @@ const ERROR_STATUS_MAP: Record<string, HttpStatus> = {
   NOT_FOUND: HttpStatus.NOT_FOUND,
   CONFLICT: HttpStatus.CONFLICT,
   ACADEMY_SETUP_REQUIRED: HttpStatus.CONFLICT,
+  SUBSCRIPTION_BLOCKED: HttpStatus.FORBIDDEN,
+  PAYMENT_PROVIDER_UNAVAILABLE: HttpStatus.SERVICE_UNAVAILABLE,
+  COOLDOWN_ACTIVE: HttpStatus.TOO_MANY_REQUESTS,
 };
 
 function throwMappedError(error: AppError): never {
@@ -34,6 +39,10 @@ function throwMappedError(error: AppError): never {
       throw new NotFoundException(error.message);
     case HttpStatus.CONFLICT:
       throw new ConflictException(error.message);
+    case HttpStatus.TOO_MANY_REQUESTS:
+      throw new HttpException(error.message, HttpStatus.TOO_MANY_REQUESTS);
+    case HttpStatus.SERVICE_UNAVAILABLE:
+      throw new ServiceUnavailableException(error.message);
     default:
       throw new InternalServerErrorException(error.message);
   }

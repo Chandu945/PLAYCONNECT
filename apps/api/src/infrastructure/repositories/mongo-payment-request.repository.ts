@@ -6,6 +6,7 @@ import { PaymentRequest } from '@domain/fee/entities/payment-request.entity';
 import { PaymentRequestModel } from '../database/schemas/payment-request.schema';
 import type { PaymentRequestDocument } from '../database/schemas/payment-request.schema';
 import type { PaymentRequestStatus } from '@playconnect/contracts';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoPaymentRequestRepository implements PaymentRequestRepository {
@@ -32,7 +33,7 @@ export class MongoPaymentRequestRepository implements PaymentRequestRepository {
         rejectionReason: request.rejectionReason,
         version: request.audit.version,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 

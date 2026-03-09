@@ -19,6 +19,9 @@ export const AUDIT_ACTION_TYPES = [
   'FEE_PAYMENT_INITIATED',
   'FEE_PAYMENT_COMPLETED',
   'FEE_PAYMENT_FAILED',
+  'EVENT_CREATED',
+  'EVENT_UPDATED',
+  'EVENT_DELETED',
 ] as const;
 export type AuditActionType = (typeof AUDIT_ACTION_TYPES)[number];
 
@@ -31,5 +34,6 @@ export const AUDIT_ENTITY_TYPES = [
   'EXPENSE',
   'PARENT_STUDENT_LINK',
   'FEE_PAYMENT',
+  'EVENT',
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];

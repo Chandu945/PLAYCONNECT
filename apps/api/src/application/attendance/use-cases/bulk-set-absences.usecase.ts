@@ -7,7 +7,7 @@ import type { StudentAttendanceRepository } from '@domain/attendance/ports/stude
 import type { HolidayRepository } from '@domain/attendance/ports/holiday.repository';
 import type { StudentRepository } from '@domain/student/ports/student.repository';
 import type { UserRepository } from '@domain/identity/ports/user.repository';
-import { canMarkAttendance, validateLocalDate } from '@domain/attendance/rules/attendance.rules';
+import { canMarkAttendance, validateLocalDate, validateDateRange } from '@domain/attendance/rules/attendance.rules';
 import { AttendanceErrors } from '../../common/errors';
 import type { UserRole } from '@playconnect/contracts';
 import type { AuditRecorderPort } from '../../audit/ports/audit-recorder.port';
@@ -43,6 +43,11 @@ export class BulkSetAbsencesUseCase {
     const dateCheck = validateLocalDate(input.date);
     if (!dateCheck.valid) {
       return err(AppErrorClass.validation(dateCheck.reason!));
+    }
+
+    const dateRangeCheck = validateDateRange(input.date);
+    if (!dateRangeCheck.valid) {
+      return err(AppErrorClass.validation(dateRangeCheck.reason!));
     }
 
     const actor = await this.userRepo.findById(input.actorUserId);

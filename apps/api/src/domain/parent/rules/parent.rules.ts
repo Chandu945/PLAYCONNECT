@@ -1,4 +1,5 @@
 import type { UserRole } from '@playconnect/contracts';
+import { randomUUID } from 'node:crypto';
 
 export function canInviteParent(role: UserRole): { allowed: boolean; reason?: string } {
   if (role !== 'OWNER') {
@@ -27,6 +28,6 @@ export function generateFeeOrderId(): string {
     String(now.getFullYear()) +
     String(now.getMonth() + 1).padStart(2, '0') +
     String(now.getDate()).padStart(2, '0');
-  const random = Math.random().toString(36).substring(2, 10);
+  const random = randomUUID().replace(/-/g, '').substring(0, 12);
   return `FEE_${dateStr}_${random}`;
 }

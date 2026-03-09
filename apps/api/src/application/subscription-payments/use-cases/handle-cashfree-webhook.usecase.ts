@@ -81,7 +81,12 @@ export class HandleCashfreeWebhookUseCase {
       );
 
       const saveAndActivate = async () => {
-        await this.paymentRepo.save(updated);
+        const transitioned = await this.paymentRepo.saveWithStatusPrecondition(updated, 'PENDING');
+        if (!transitioned) {
+          // Another concurrent webhook already processed this payment — idempotent success
+          this.logger.info('Payment already transitioned from PENDING — skipping', { orderId });
+          return;
+        }
         await this.activateSubscription(payment.academyId, payment.tierKey, orderId, cfPaymentId, now);
       };
 
@@ -119,7 +124,14 @@ export class HandleCashfreeWebhookUseCase {
       return;
     }
 
-    const { paidStartAt, paidEndAt } = computePaidDates(now, subscription.trialEndAt);
+    let effectiveNow = now;
+    // If subscription has an active paid period that hasn't ended yet,
+    // extend from the day after paidEndAt instead of from now
+    if (subscription.paidEndAt && subscription.paidEndAt.getTime() > now.getTime()) {
+      effectiveNow = new Date(subscription.paidEndAt.getTime() + 24 * 60 * 60 * 1000);
+    }
+
+    const { paidStartAt, paidEndAt } = computePaidDates(effectiveNow, subscription.trialEndAt);
 
     const paymentRef = cfPaymentId ? `${orderId}/${cfPaymentId}` : orderId;
 

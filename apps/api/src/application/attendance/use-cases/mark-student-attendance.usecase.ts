@@ -11,6 +11,7 @@ import {
   canMarkAttendance,
   validateLocalDate,
   validateAttendanceStatus,
+  validateDateRange,
 } from '@domain/attendance/rules/attendance.rules';
 import { AttendanceErrors } from '../../common/errors';
 import type { StudentAttendanceStatus, UserRole } from '@playconnect/contracts';
@@ -51,6 +52,11 @@ export class MarkStudentAttendanceUseCase {
     const dateCheck = validateLocalDate(input.date);
     if (!dateCheck.valid) {
       return err(AppErrorClass.validation(dateCheck.reason!));
+    }
+
+    const dateRangeCheck = validateDateRange(input.date);
+    if (!dateRangeCheck.valid) {
+      return err(AppErrorClass.validation(dateRangeCheck.reason!));
     }
 
     const statusCheck = validateAttendanceStatus(input.status);

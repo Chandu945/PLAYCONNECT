@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 import { apiPost } from '@/infra/http/api-client';
 import {
@@ -6,13 +7,18 @@ import {
   setSessionCookie,
   clearSessionCookie,
 } from '@/infra/auth/session-cookie';
+import { isOriginValid } from '@/infra/auth/csrf';
 
 type BackendRefreshResponse = {
   accessToken: string;
   refreshToken: string;
 };
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  if (!isOriginValid(request)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const session = await getSessionCookie();
   if (!session) {
     return NextResponse.json({ error: 'No session' }, { status: 401 });

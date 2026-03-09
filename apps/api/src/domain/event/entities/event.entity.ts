@@ -100,8 +100,10 @@ export function deriveEventStatus(startDate: Date, endDate: Date | null): EventS
   const todayIST = new Date(now.getTime() + istOffset);
   const todayStr = todayIST.toISOString().slice(0, 10);
 
-  const startStr = startDate.toISOString().slice(0, 10);
-  const endStr = endDate ? endDate.toISOString().slice(0, 10) : startStr;
+  const startIST = new Date(startDate.getTime() + istOffset);
+  const startStr = startIST.toISOString().slice(0, 10);
+  const endIST = endDate ? new Date(endDate.getTime() + istOffset) : null;
+  const endStr = endIST ? endIST.toISOString().slice(0, 10) : startStr;
 
   if (todayStr < startStr) return 'UPCOMING';
   if (todayStr > endStr) return 'COMPLETED';

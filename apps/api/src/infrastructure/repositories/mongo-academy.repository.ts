@@ -6,6 +6,7 @@ import { Academy } from '@domain/academy/entities/academy.entity';
 import type { Address, InstituteInfo } from '@domain/academy/entities/academy.entity';
 import { AcademyModel } from '../database/schemas/academy.schema';
 import type { AcademyDocument } from '../database/schemas/academy.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoAcademyRepository implements AcademyRepository {
@@ -28,7 +29,7 @@ export class MongoAcademyRepository implements AcademyRepository {
         deletedAt: academy.softDelete.deletedAt,
         deletedBy: academy.softDelete.deletedBy,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 

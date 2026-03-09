@@ -12,6 +12,7 @@ import { OwnerSignupUseCase } from '@application/identity/use-cases/owner-signup
 import { LoginUseCase } from '@application/identity/use-cases/login.usecase';
 import { RefreshUseCase } from '@application/identity/use-cases/refresh.usecase';
 import { LogoutUseCase } from '@application/identity/use-cases/logout.usecase';
+import { LogoutAllUseCase } from '@application/identity/use-cases/logout-all.usecase';
 import { RequestPasswordResetUseCase } from '@application/identity/use-cases/request-password-reset.usecase';
 import { ConfirmPasswordResetUseCase } from '@application/identity/use-cases/confirm-password-reset.usecase';
 import { OwnerSignupDto } from './dto/owner-signup.dto';
@@ -41,6 +42,7 @@ export class AuthController {
     @Inject('LOGIN_USE_CASE') private readonly login: LoginUseCase,
     @Inject('REFRESH_USE_CASE') private readonly refresh: RefreshUseCase,
     @Inject('LOGOUT_USE_CASE') private readonly logout: LogoutUseCase,
+    @Inject('LOGOUT_ALL_USE_CASE') private readonly logoutAll: LogoutAllUseCase,
     @Inject('REQUEST_PASSWORD_RESET_USE_CASE')
     private readonly requestPasswordReset: RequestPasswordResetUseCase,
     @Inject('CONFIRM_PASSWORD_RESET_USE_CASE')
@@ -99,6 +101,7 @@ export class AuthController {
     const result = await this.refresh.execute({
       refreshToken: dto.refreshToken,
       deviceId: dto.deviceId,
+      userId: dto.userId,
     });
 
     if (!result.ok) {
@@ -120,6 +123,21 @@ export class AuthController {
     const result = await this.logout.execute({
       userId: user.userId,
       deviceId: dto.deviceId,
+    });
+
+    return mapResultToResponse(result, req);
+  }
+
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Logout from all devices (revoke all sessions)' })
+  async logoutAllHandler(
+    @CurrentUser() user: CurrentUserType,
+    @Req() req: Request,
+  ) {
+    const result = await this.logoutAll.execute({
+      userId: user.userId,
     });
 
     return mapResultToResponse(result, req);

@@ -17,6 +17,7 @@ out/
 .env.staging
 .env.production
 .env.development.local
+.env.test
 .env.test.local
 .env.staging.local
 .env.production.local

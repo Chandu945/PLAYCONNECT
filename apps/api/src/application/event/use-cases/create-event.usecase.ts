@@ -8,6 +8,7 @@ import type { EventRepository } from '@domain/event/ports/event.repository';
 import { CalendarEvent, deriveEventStatus } from '@domain/event/entities/event.entity';
 import type { EventType, TargetAudience } from '@domain/event/entities/event.entity';
 import { EventErrors } from '../../common/errors';
+import type { AuditRecorderPort } from '../../audit/ports/audit-recorder.port';
 import type { UserRole } from '@playconnect/contracts';
 
 export interface CreateEventInput {
@@ -48,6 +49,7 @@ export class CreateEventUseCase {
   constructor(
     private readonly userRepo: UserRepository,
     private readonly eventRepo: EventRepository,
+    private readonly auditRecorder: AuditRecorderPort,
   ) {}
 
   async execute(input: CreateEventInput): Promise<Result<CreateEventOutput, AppError>> {
@@ -112,6 +114,14 @@ export class CreateEventUseCase {
     });
 
     await this.eventRepo.save(event);
+
+    await this.auditRecorder.record({
+      academyId: actor.academyId,
+      actorUserId: input.actorUserId,
+      action: 'EVENT_CREATED',
+      entityType: 'EVENT',
+      entityId: event.id.toString(),
+    });
 
     return ok({
       id: event.id.toString(),

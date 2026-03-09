@@ -41,6 +41,7 @@ function makeDeps(overrides: Record<string, unknown> = {}) {
     paymentRepo: {
       findByOrderId: jest.fn().mockResolvedValue(makePendingPayment()),
       save: jest.fn().mockResolvedValue(undefined),
+      saveWithStatusPrecondition: jest.fn().mockResolvedValue(true),
     },
     subscriptionRepo: {
       findByAcademyId: jest.fn().mockResolvedValue(makeSubscription()),
@@ -98,11 +99,11 @@ describe('HandleCashfreeWebhookUseCase', () => {
     );
 
     expect(result.ok).toBe(true);
-    expect(deps.paymentRepo.save).toHaveBeenCalledTimes(1);
+    expect(deps.paymentRepo.saveWithStatusPrecondition).toHaveBeenCalledTimes(1);
     expect(deps.subscriptionRepo.save).toHaveBeenCalledTimes(1);
 
     // Verify payment was marked SUCCESS
-    const savedPayment = deps.paymentRepo.save.mock.calls[0][0];
+    const savedPayment = deps.paymentRepo.saveWithStatusPrecondition.mock.calls[0][0];
     expect(savedPayment.status).toBe('SUCCESS');
 
     // Verify subscription was activated with TIER_0_50

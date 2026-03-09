@@ -5,6 +5,7 @@ import type { PasswordResetChallengeRepository } from '@domain/identity/ports/pa
 import { PasswordResetChallenge } from '@domain/identity/entities/password-reset-challenge.entity';
 import { PasswordResetChallengeModel } from '../database/schemas/password-reset-challenge.schema';
 import type { PasswordResetChallengeDocument } from '../database/schemas/password-reset-challenge.schema';
+import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
 export class MongoPasswordResetChallengeRepository implements PasswordResetChallengeRepository {
@@ -26,7 +27,7 @@ export class MongoPasswordResetChallengeRepository implements PasswordResetChall
         usedAt: challenge.usedAt,
         createdAt: challenge.createdAt,
       },
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
@@ -44,12 +45,20 @@ export class MongoPasswordResetChallengeRepository implements PasswordResetChall
     return doc ? this.toDomain(doc) : null;
   }
 
+  async invalidateActiveByUserId(userId: string): Promise<void> {
+    await this.model.updateMany(
+      { userId, usedAt: null, expiresAt: { $gt: new Date() } },
+      { $set: { usedAt: new Date() } },
+      { session: getTransactionSession() },
+    );
+  }
+
   async markUsed(challengeId: string): Promise<void> {
-    await this.model.updateOne({ _id: challengeId }, { $set: { usedAt: new Date() } });
+    await this.model.updateOne({ _id: challengeId }, { $set: { usedAt: new Date() } }, { session: getTransactionSession() });
   }
 
   async incrementAttempts(challengeId: string): Promise<void> {
-    await this.model.updateOne({ _id: challengeId }, { $inc: { attempts: 1 } });
+    await this.model.updateOne({ _id: challengeId }, { $inc: { attempts: 1 } }, { session: getTransactionSession() });
   }
 
   private toDomain(doc: Record<string, unknown>): PasswordResetChallenge {

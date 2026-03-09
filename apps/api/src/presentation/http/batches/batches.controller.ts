@@ -14,6 +14,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
@@ -228,6 +229,10 @@ export class BatchesController {
     @CurrentUser() user: CurrentUserType,
     @Req() req: Request,
   ) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+
     const result = await this.uploadBatchPhoto.execute({
       actorUserId: user.userId,
       actorRole: user.role,

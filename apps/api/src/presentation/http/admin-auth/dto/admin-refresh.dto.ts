@@ -11,4 +11,9 @@ export class AdminRefreshDto {
   @IsString()
   @IsNotEmpty()
   deviceId!: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  userId!: string;
 }

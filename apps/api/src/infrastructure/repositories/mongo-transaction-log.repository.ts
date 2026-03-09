@@ -6,6 +6,11 @@ import { TransactionLog } from '@domain/fee/entities/transaction-log.entity';
 import { TransactionLogModel } from '../database/schemas/transaction-log.schema';
 import type { TransactionLogDocument } from '../database/schemas/transaction-log.schema';
 import type { PaidSource } from '@playconnect/contracts';
+import { getTransactionSession } from '../database/transaction-context';
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 @Injectable()
 export class MongoTransactionLogRepository implements TransactionLogRepository {
@@ -37,7 +42,7 @@ export class MongoTransactionLogRepository implements TransactionLogRepository {
     await this.model.findOneAndUpdate(
       { _id: log.id.toString() },
       doc,
-      { upsert: true },
+      { upsert: true, session: getTransactionSession() },
     );
   }
 
@@ -65,7 +70,7 @@ export class MongoTransactionLogRepository implements TransactionLogRepository {
   async countByAcademyAndPrefix(academyId: string, prefix: string): Promise<number> {
     return this.model.countDocuments({
       academyId,
-      receiptNumber: { $regex: `^${prefix}-` },
+      receiptNumber: { $regex: `^${escapeRegex(prefix)}-` },
     });
   }
 

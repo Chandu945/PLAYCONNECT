@@ -18,5 +18,5 @@ export class UpdateExpenseDto {
   @IsOptional()
   @IsString()
   @MaxLength(500)
-  notes?: string;
+  notes?: string | null;
 }

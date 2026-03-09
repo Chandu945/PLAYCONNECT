@@ -1,6 +1,12 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply plugin: "com.google.gms.google-services"
+
+// Vector Icons — point to hoisted monorepo node_modules
+project.ext.vectoricons = [
+    iconFontsDir: "../../../../node_modules/react-native-vector-icons/Fonts"
+]
 apply from: file("../../../../node_modules/react-native-vector-icons/fonts.gradle")
 
 /**

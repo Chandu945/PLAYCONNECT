@@ -92,6 +92,10 @@ export const envSchema = z
     CLOUDINARY_API_KEY: z.string().default(''),
     CLOUDINARY_API_SECRET: z.string().default(''),
 
+    // Firebase (Push Notifications)
+    FIREBASE_PROJECT_ID: z.string().default(''),
+    FIREBASE_SERVICE_ACCOUNT_JSON: z.string().default(''),
+
     // Cashfree Payment Gateway
     CASHFREE_CLIENT_ID: z.string().default(''),
     CASHFREE_CLIENT_SECRET: z.string().default(''),

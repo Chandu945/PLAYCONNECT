@@ -185,6 +185,14 @@ export class AppConfigService {
     return this.config.CLOUDINARY_API_SECRET;
   }
 
+  get firebaseProjectId(): string {
+    return this.config.FIREBASE_PROJECT_ID;
+  }
+
+  get firebaseServiceAccountJson(): string {
+    return this.config.FIREBASE_SERVICE_ACCOUNT_JSON;
+  }
+
   get cashfreeClientId(): string {
     return this.config.CASHFREE_CLIENT_ID;
   }

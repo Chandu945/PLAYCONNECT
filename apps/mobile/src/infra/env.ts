@@ -22,7 +22,7 @@ const ENV_MAP: Record<AppEnv, EnvConfig> = {
     APP_ENV: 'staging',
   },
   production: {
-    API_BASE_URL: 'https://api.playconnect.in',
+    API_BASE_URL: 'https://playconnect-8g17.onrender.com',
     APP_ENV: 'production',
   },
 };

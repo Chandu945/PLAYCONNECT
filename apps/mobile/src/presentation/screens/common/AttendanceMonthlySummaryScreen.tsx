@@ -26,7 +26,7 @@ export function AttendanceMonthlySummaryScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
-  const { month } = route.params;
+  const month = route.params?.month ?? '';
 
   const [items, setItems] = useState<MonthlySummaryItem[]>([]);
   const [page, setPage] = useState(1);
@@ -140,7 +140,7 @@ export function AttendanceMonthlySummaryScreen() {
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
-  }, [loadingMore]);
+  }, [loadingMore, colors, styles]);
 
   return (
     <View style={styles.screen}>

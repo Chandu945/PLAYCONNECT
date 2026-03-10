@@ -102,6 +102,7 @@ export function OwnerSignupScreen() {
               error={fieldErrors['fullName']}
               placeholder="Enter your full name"
               autoCapitalize="words"
+              maxLength={100}
               testID="signup-name"
             />
 
@@ -112,6 +113,7 @@ export function OwnerSignupScreen() {
               error={fieldErrors['email']}
               placeholder="you@example.com"
               keyboardType="email-address"
+              maxLength={100}
               testID="signup-email"
             />
 
@@ -122,6 +124,7 @@ export function OwnerSignupScreen() {
               error={fieldErrors['phoneNumber']}
               placeholder="+919876543210"
               keyboardType="phone-pad"
+              maxLength={16}
               testID="signup-phone"
             />
 
@@ -132,6 +135,7 @@ export function OwnerSignupScreen() {
               error={fieldErrors['password']}
               placeholder="Min 8 characters"
               secureTextEntry
+              maxLength={64}
               testID="signup-password"
             />
 

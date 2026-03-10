@@ -16,8 +16,14 @@ export class MongoPaymentRequestRepository implements PaymentRequestRepository {
   ) {}
 
   async save(request: PaymentRequest): Promise<void> {
-    await this.model.findOneAndUpdate(
-      { _id: request.id.toString() },
+    const isNew = request.audit.version === 1;
+    const filter: Record<string, unknown> = { _id: request.id.toString() };
+    if (!isNew) {
+      filter['version'] = request.audit.version - 1;
+    }
+
+    const result = await this.model.findOneAndUpdate(
+      filter,
       {
         _id: request.id.toString(),
         academyId: request.academyId,
@@ -33,8 +39,12 @@ export class MongoPaymentRequestRepository implements PaymentRequestRepository {
         rejectionReason: request.rejectionReason,
         version: request.audit.version,
       },
-      { upsert: true, session: getTransactionSession() },
+      { upsert: isNew, session: getTransactionSession() },
     );
+
+    if (!result && !isNew) {
+      throw new Error('Concurrent modification detected for PaymentRequest');
+    }
   }
 
   async findById(id: string): Promise<PaymentRequest | null> {

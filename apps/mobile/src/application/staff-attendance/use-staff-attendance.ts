@@ -40,6 +40,8 @@ export function useStaffAttendance(
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
   const mountedRef = useRef(true);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   const load = useCallback(
     async (targetPage: number, append: boolean) => {
@@ -97,7 +99,7 @@ export function useStaffAttendance(
         }),
       );
 
-      const currentItem = items.find((i) => i.staffUserId === staffUserId);
+      const currentItem = itemsRef.current.find((i) => i.staffUserId === staffUserId);
       if (!currentItem) return;
 
       const newStatus: StaffAttendanceStatus =
@@ -119,7 +121,7 @@ export function useStaffAttendance(
         },
       );
     },
-    [items, staffAttendanceApi, date],
+    [staffAttendanceApi, date],
   );
 
   useEffect(() => {

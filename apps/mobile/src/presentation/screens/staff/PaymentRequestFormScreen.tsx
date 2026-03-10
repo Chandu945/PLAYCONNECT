@@ -25,7 +25,11 @@ export function PaymentRequestFormScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const route = useRoute<Route>();
   const navigation = useNavigation();
-  const { studentId, monthKey, amount, requestId, existingNotes } = route.params;
+  const studentId = route.params?.studentId ?? '';
+  const monthKey = route.params?.monthKey ?? '';
+  const amount = route.params?.amount ?? 0;
+  const requestId = route.params?.requestId;
+  const existingNotes = route.params?.existingNotes;
   const isEditMode = !!requestId;
 
   const [staffNotes, setStaffNotes] = useState(existingNotes ?? '');

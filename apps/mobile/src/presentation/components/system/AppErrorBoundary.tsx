@@ -71,9 +71,22 @@ export class AppErrorBoundary extends Component<Props, State> {
 }
 
 /**
- * Placeholder error capture function.
- * Replace with Sentry.captureException or similar when a provider is configured.
+ * Error capture function. Logs structured error data for diagnostics.
+ * Replace the body with Sentry.captureException(error, { extra: context })
+ * once a crash-reporting provider is configured.
  */
-export function captureError(_error: unknown, _context?: Record<string, unknown>): void {
-  // No-op: placeholder for future error tracking integration
+export function captureError(error: unknown, context?: Record<string, unknown>): void {
+  try {
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    // __DEV__ is always defined in React Native
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.error('[AppErrorBoundary]', message, { stack, ...context });
+    }
+    // Production: queue for future reporting service
+    // Sentry.captureException(error, { extra: context });
+  } catch {
+    // Swallow to prevent infinite error loops in the error boundary
+  }
 }

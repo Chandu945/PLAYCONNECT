@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -135,7 +135,7 @@ export function ChildDetailScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
-  const { studentId } = route.params;
+  const studentId = route.params?.studentId ?? '';
 
   const [attendance, setAttendance] = useState<ChildAttendanceSummary | null>(null);
   const [fees, setFees] = useState<ChildFeeDue[]>([]);
@@ -172,6 +172,17 @@ export function ChildDetailScreen() {
     return () => { mountedRef.current = false; };
   }, [load]);
 
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      load();
+    }, [load]),
+  );
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     load();
@@ -192,7 +203,7 @@ export function ChildDetailScreen() {
       : 0;
   const attendancePct =
     totalDays > 0
-      ? Math.round((attendance!.presentCount / (totalDays - attendance!.holidayCount || 1)) * 100)
+      ? Math.round((attendance!.presentCount / ((totalDays - attendance!.holidayCount) || 1)) * 100)
       : 0;
 
   const totalDue = fees

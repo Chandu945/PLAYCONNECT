@@ -309,6 +309,8 @@ export function StudentActionMenu({
 function StatusChangeModal({
   visible, student, onClose, onChanged,
 }: { visible: boolean; student: StudentListItem; onClose: () => void; onChanged: () => void }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [selectedStatus, setSelectedStatus] = useState<StudentStatus | ''>('');
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);

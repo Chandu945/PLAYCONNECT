@@ -80,7 +80,9 @@ export function FeePaymentScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const route = useRoute<RouteProp<FeePaymentRouteParams, 'FeePayment'>>();
   const navigation = useNavigation();
-  const { feeDueId, monthKey, amount } = route.params;
+  const feeDueId = route.params?.feeDueId ?? '';
+  const monthKey = route.params?.monthKey ?? '';
+  const amount = route.params?.amount ?? 0;
   const convenienceFee = Math.round(amount * CONVENIENCE_FEE_RATE);
   const totalAmount = amount + convenienceFee;
 

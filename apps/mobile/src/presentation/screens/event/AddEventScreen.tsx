@@ -5,6 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { InlineError } from '../../components/ui/InlineError';
 import type { EventType, TargetAudience } from '../../../domain/event/event.types';
+import { isValidDate } from '../../../domain/common/date-utils';
 import * as eventApi from '../../../infra/event/event-api';
 import { spacing, fontSizes, fontWeights, radius } from '../../theme';
 import type { Colors } from '../../theme';
@@ -51,8 +52,12 @@ export function AddEventScreen() {
       Alert.alert('Validation', 'Event title is required');
       return;
     }
-    if (!startDate.trim()) {
-      Alert.alert('Validation', 'Start date is required');
+    if (!startDate.trim() || !isValidDate(startDate.trim())) {
+      Alert.alert('Validation', 'Enter a valid start date (YYYY-MM-DD)');
+      return;
+    }
+    if (endDate.trim() && !isValidDate(endDate.trim())) {
+      Alert.alert('Validation', 'Enter a valid end date (YYYY-MM-DD)');
       return;
     }
     if (!isAllDay && !startTime.trim()) {
@@ -100,6 +105,7 @@ export function AddEventScreen() {
         value={title}
         onChangeText={setTitle}
         placeholder="e.g. Annual Sports Day"
+        maxLength={100}
         testID="input-title"
       />
 
@@ -123,6 +129,7 @@ export function AddEventScreen() {
         value={description}
         onChangeText={setDescription}
         placeholder="Event details..."
+        maxLength={500}
         testID="input-description"
       />
 
@@ -138,6 +145,7 @@ export function AddEventScreen() {
         value={startDate}
         onChangeText={setStartDate}
         placeholder="2026-03-15"
+        maxLength={10}
         testID="input-startDate"
       />
 
@@ -146,6 +154,7 @@ export function AddEventScreen() {
         value={endDate}
         onChangeText={setEndDate}
         placeholder="2026-03-15"
+        maxLength={10}
         testID="input-endDate"
       />
 
@@ -156,6 +165,7 @@ export function AddEventScreen() {
             value={startTime}
             onChangeText={setStartTime}
             placeholder="09:00"
+            maxLength={5}
             testID="input-startTime"
           />
           <Input
@@ -163,6 +173,7 @@ export function AddEventScreen() {
             value={endTime}
             onChangeText={setEndTime}
             placeholder="17:00"
+            maxLength={5}
             testID="input-endTime"
           />
         </>
@@ -175,6 +186,7 @@ export function AddEventScreen() {
         value={location}
         onChangeText={setLocation}
         placeholder="Academy Ground, Hyderabad"
+        maxLength={200}
         testID="input-location"
       />
 

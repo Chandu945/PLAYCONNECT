@@ -13,16 +13,36 @@ export class LocalFileStorageService implements FileStoragePort {
     buffer: Buffer,
     _mimeType: string,
   ): Promise<string> {
-    const dir = path.join(this.baseDir, folder);
+    // Sanitize folder and filename to prevent path traversal
+    const safeFolder = folder.split('/').map((s) => path.basename(s)).join('/');
+    const safeFilename = path.basename(filename);
+
+    const dir = path.join(this.baseDir, safeFolder);
+    const filePath = path.join(dir, safeFilename);
+
+    // Ensure resolved path is within baseDir
+    const resolved = path.resolve(filePath);
+    if (!resolved.startsWith(this.baseDir)) {
+      throw new Error('Invalid file path');
+    }
+
     await fs.mkdir(dir, { recursive: true });
-    const filePath = path.join(dir, filename);
     await fs.writeFile(filePath, buffer);
-    return `/uploads/${folder}/${filename}`;
+    return `/uploads/${safeFolder}/${safeFilename}`;
   }
 
   async delete(fileUrl: string): Promise<void> {
     if (!fileUrl.startsWith('/uploads/')) return;
-    const filePath = path.join(process.cwd(), fileUrl);
+
+    // Sanitize to prevent path traversal
+    const relative = fileUrl.replace(/^\/uploads\//, '');
+    const safePath = relative.split('/').map((s) => path.basename(s)).join('/');
+    const filePath = path.join(this.baseDir, safePath);
+
+    // Ensure resolved path is within baseDir
+    const resolved = path.resolve(filePath);
+    if (!resolved.startsWith(this.baseDir)) return;
+
     try {
       await fs.unlink(filePath);
     } catch {

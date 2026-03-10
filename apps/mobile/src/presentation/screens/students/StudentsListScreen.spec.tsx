@@ -16,6 +16,7 @@ const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => ({ navigate: mockNavigate }),
+  useFocusEffect: jest.fn(),
 }));
 
 const mockListStudents = studentApi.listStudents as jest.Mock;

@@ -5,10 +5,10 @@ config();
 // Enforce timezone before anything else
 process.env['TZ'] ||= 'Asia/Kolkata';
 
-import * as path from 'path';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './shared/errors/global-exception.filter';
 import { RequestIdInterceptor } from './shared/logging/request-id.interceptor';
@@ -30,9 +30,6 @@ async function bootstrap() {
     rawBody: true,
   });
 
-  // Serve uploaded files
-  app.useStaticAssets(path.resolve(process.cwd(), 'uploads'), { prefix: '/uploads' });
-
   // Enable graceful shutdown hooks (onModuleDestroy, beforeApplicationShutdown, onApplicationShutdown)
   app.enableShutdownHooks();
 
@@ -45,9 +42,13 @@ async function bootstrap() {
   // Security
   app.use(helmet());
 
-  // CORS — reflect request origin; Nginx handles restriction in production
+  // Request body size limits
+  app.use(json({ limit: '1mb' }));
+  app.use(urlencoded({ limit: '1mb', extended: true }));
+
+  // CORS — whitelist specific origins
   app.enableCors({
-    origin: true,
+    origin: config.corsAllowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],

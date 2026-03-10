@@ -20,4 +20,5 @@ export type AuditLogsQuery = {
   from?: string;
   to?: string;
   action?: AuditActionType;
+  entityType?: AuditEntityType;
 };

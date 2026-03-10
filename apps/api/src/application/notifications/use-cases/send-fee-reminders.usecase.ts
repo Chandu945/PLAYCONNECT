@@ -156,7 +156,12 @@ export class SendFeeRemindersUseCase {
             body: `${dueCount} fee reminder(s) sent to students for dues on ${targetDueDate}.`,
             data: { type: 'FEE_REMINDER', academyId },
           })
-          .catch(() => {});
+          .catch((pushErr) => {
+            this.logger.warn('Failed to send push notification to owner', {
+              academyId,
+              error: pushErr instanceof Error ? pushErr.message : String(pushErr),
+            });
+          });
       }
     }
 

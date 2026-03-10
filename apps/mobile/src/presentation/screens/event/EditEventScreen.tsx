@@ -36,23 +36,31 @@ export function EditEventScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const navigation = useNavigation();
   const route = useRoute<EditRoute>();
-  const { event } = route.params;
+  const event = route.params?.event;
 
-  const [title, setTitle] = useState(event.title);
-  const [description, setDescription] = useState(event.description ?? '');
-  const [eventType, setEventType] = useState<EventType | ''>(event.eventType as EventType ?? '');
-  const [startDate, setStartDate] = useState(event.startDate);
-  const [endDate, setEndDate] = useState(event.endDate ?? '');
-  const [startTime, setStartTime] = useState(event.startTime ?? '');
-  const [endTime, setEndTime] = useState(event.endTime ?? '');
-  const [isAllDay, setIsAllDay] = useState(event.isAllDay);
-  const [location, setLocation] = useState(event.location ?? '');
+  const [title, setTitle] = useState(event?.title ?? '');
+  const [description, setDescription] = useState(event?.description ?? '');
+  const [eventType, setEventType] = useState<EventType | ''>(event?.eventType as EventType ?? '');
+  const [startDate, setStartDate] = useState(event?.startDate ?? '');
+  const [endDate, setEndDate] = useState(event?.endDate ?? '');
+  const [startTime, setStartTime] = useState(event?.startTime ?? '');
+  const [endTime, setEndTime] = useState(event?.endTime ?? '');
+  const [isAllDay, setIsAllDay] = useState(event?.isAllDay ?? false);
+  const [location, setLocation] = useState(event?.location ?? '');
   const [targetAudience, setTargetAudience] = useState<TargetAudience | ''>(
-    event.targetAudience as TargetAudience ?? '',
+    event?.targetAudience as TargetAudience ?? '',
   );
 
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  if (!event?.id) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: colors.textSecondary }}>Event data unavailable</Text>
+      </View>
+    );
+  }
 
   const handleSubmit = useCallback(async () => {
     if (!title.trim()) {

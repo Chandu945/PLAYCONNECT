@@ -52,8 +52,18 @@ export function BatchDetailScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const navigation = useNavigation<Nav>();
   const route = useRoute<DetailRoute>();
-  const { batch } = route.params;
+  const batch = route.params?.batch;
   const { user } = useAuth();
+
+  if (!batch?.id) {
+    return (
+      <View style={styles.screen}>
+        <Text style={{ textAlign: 'center', marginTop: 40, color: colors.textSecondary }}>
+          Batch data unavailable
+        </Text>
+      </View>
+    );
+  }
   const isOwner = user?.role === 'OWNER';
 
   const [students, setStudents] = useState<StudentListItem[]>([]);
@@ -228,7 +238,7 @@ export function BatchDetailScreen() {
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
-  }, [loadingMore]);
+  }, [loadingMore, colors, styles]);
 
   const renderHeader = useCallback(
     () => (

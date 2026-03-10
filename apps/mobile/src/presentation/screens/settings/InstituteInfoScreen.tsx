@@ -184,6 +184,7 @@ export function InstituteInfoScreen() {
             value={accountHolderName}
             onChangeText={setAccountHolderName}
             placeholder="Account holder name"
+            maxLength={100}
             testID="bank-holder-name"
           />
 
@@ -194,6 +195,7 @@ export function InstituteInfoScreen() {
             onChangeText={setAccountNumber}
             placeholder="9-18 digit account number"
             keyboardType="numeric"
+            maxLength={18}
             testID="bank-account-number"
           />
 
@@ -204,6 +206,7 @@ export function InstituteInfoScreen() {
             onChangeText={setIfscCode}
             placeholder="e.g. SBIN0001234"
             autoCapitalize="characters"
+            maxLength={11}
             testID="bank-ifsc"
           />
 
@@ -213,6 +216,7 @@ export function InstituteInfoScreen() {
             value={bankName}
             onChangeText={setBankName}
             placeholder="Bank name"
+            maxLength={100}
             testID="bank-name"
           />
 
@@ -222,6 +226,7 @@ export function InstituteInfoScreen() {
             value={branchName}
             onChangeText={setBranchName}
             placeholder="Branch name"
+            maxLength={100}
             testID="bank-branch"
           />
         </View>
@@ -234,6 +239,7 @@ export function InstituteInfoScreen() {
           onChangeText={setUpiId}
           placeholder="e.g. academy@upi"
           autoCapitalize="none"
+          maxLength={50}
           testID="upi-id"
         />
 

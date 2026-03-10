@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
+import type { AppStateStatus } from 'react-native';
 import type { AuthUser, AcademySetupRequest } from '../../domain/auth/auth.types';
 import type { SubscriptionInfo } from '../../domain/subscription/subscription.types';
 import type { AppError } from '../../domain/common/errors';
@@ -13,7 +15,7 @@ import { authApi } from '../../infra/auth/auth-api';
 import { tokenStore } from '../../infra/auth/token-store';
 import { deviceIdStore } from '../../infra/auth/device-id';
 import { subscriptionApi } from '../../infra/subscription/subscription-api';
-import { accessTokenStore, registerAuthFailureHandler } from '../../infra/http/api-client';
+import { accessTokenStore, getAccessToken, registerAuthFailureHandler } from '../../infra/http/api-client';
 
 export type AuthPhase =
   | 'initializing'
@@ -137,6 +139,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mountedRef.current = false;
     };
   }, [resolvePhase]);
+
+  // When app returns from background, silently re-refresh the access token
+  // so the user is never forced to re-login after backgrounding
+  useEffect(() => {
+    const handleAppState = (nextState: AppStateStatus) => {
+      if (nextState === 'active' && state.phase === 'ready' && !getAccessToken()) {
+        // Access token was lost (JS engine suspended) — silently restore
+        restoreSessionUseCase(deps)
+          .then((result) => {
+            if (!mountedRef.current) return;
+            if (!result.ok) {
+              setState({ phase: 'unauthenticated', user: null, subscription: null });
+            }
+            // Token is now refreshed in-memory via restoreSessionUseCase
+          })
+          .catch(() => {
+            // Token refresh failed silently — user will need to re-login on next API call
+          });
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppState);
+    return () => subscription.remove();
+  }, [state.phase]);
 
   const login = useCallback(
     async (identifier: string, password: string): Promise<AppError | null> => {

@@ -96,6 +96,9 @@ export const envSchema = z
     FIREBASE_PROJECT_ID: z.string().default(''),
     FIREBASE_SERVICE_ACCOUNT_JSON: z.string().default(''),
 
+    // CORS
+    CORS_ALLOWED_ORIGINS: z.string().default('http://localhost:3000,http://localhost:8081'),
+
     // Cashfree Payment Gateway
     CASHFREE_CLIENT_ID: z.string().default(''),
     CASHFREE_CLIENT_SECRET: z.string().default(''),
@@ -139,6 +142,13 @@ export const envSchema = z
         code: z.ZodIssueCode.custom,
         path: ['SMTP_HOST'],
         message: 'SMTP_HOST must not be localhost in production/staging',
+      });
+    }
+    if (val.CORS_ALLOWED_ORIGINS.includes('localhost')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['CORS_ALLOWED_ORIGINS'],
+        message: 'CORS_ALLOWED_ORIGINS must not include localhost in production/staging',
       });
     }
   });

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { spacing, fontSizes, fontWeights, radius, shadows } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+import { getTodayIST } from '../../../domain/common/date-utils';
 
 type DayStatus = 'present' | 'absent' | 'holiday' | 'future' | 'empty';
 
@@ -14,12 +15,6 @@ type Props = {
 };
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-function getTodayIST(): string {
-  const now = new Date();
-  const ist = new Date(now.getTime() + (330 - now.getTimezoneOffset()) * 60000);
-  return ist.toISOString().slice(0, 10);
-}
 
 function buildCalendarGrid(
   month: string,

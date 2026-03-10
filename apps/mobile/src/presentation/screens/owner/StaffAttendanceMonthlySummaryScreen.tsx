@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import type { RouteProp } from '@react-navigation/native';
 import { useRoute } from '@react-navigation/native';
 import type { StaffStackParamList } from '../../navigation/StaffStack';
@@ -23,7 +23,7 @@ export function StaffAttendanceMonthlySummaryScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const route = useRoute<Route>();
-  const { month } = route.params;
+  const month = route.params?.month ?? '';
 
   const [items, setItems] = useState<MonthlyStaffSummaryItem[]>([]);
   const [page, setPage] = useState(1);
@@ -31,6 +31,7 @@ export function StaffAttendanceMonthlySummaryScreen() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const mountedRef = useRef(true);
 
   const load = useCallback(
@@ -83,6 +84,12 @@ export function StaffAttendanceMonthlySummaryScreen() {
     };
   }, [load]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load(1, false);
+    setRefreshing(false);
+  }, [load]);
+
   const renderItem = useCallback(
     ({ item }: { item: MonthlyStaffSummaryItem }) => (
       <View
@@ -113,7 +120,7 @@ export function StaffAttendanceMonthlySummaryScreen() {
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
-  }, [loadingMore]);
+  }, [loadingMore, colors, styles]);
 
   return (
     <View style={styles.screen}>
@@ -121,7 +128,7 @@ export function StaffAttendanceMonthlySummaryScreen() {
 
       {error && <InlineError message={error.message} onRetry={() => load(1, false)} />}
 
-      {loading ? (
+      {loading && !refreshing ? (
         <View style={styles.skeletons}>
           <SkeletonTile />
           <SkeletonTile />
@@ -137,6 +144,7 @@ export function StaffAttendanceMonthlySummaryScreen() {
           onEndReached={fetchMore}
           onEndReachedThreshold={0.3}
           ListFooterComponent={renderFooter}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           contentContainerStyle={styles.listContent}
           testID="staff-monthly-summary-list"
         />

@@ -64,9 +64,13 @@ export class BulkSetAbsencesUseCase {
     // Validate unique IDs
     const uniqueIds = [...new Set(input.absentStudentIds)];
 
+    // Batch-fetch all students to avoid N+1 queries
+    const students = await this.studentRepo.findByIds(uniqueIds);
+    const studentMap = new Map(students.map((s) => [s.id.toString(), s]));
+
     // Validate all students belong to academy and are ACTIVE
     for (const studentId of uniqueIds) {
-      const student = await this.studentRepo.findById(studentId);
+      const student = studentMap.get(studentId);
       if (!student || student.isDeleted()) {
         return err(AttendanceErrors.studentNotFound(studentId));
       }

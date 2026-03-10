@@ -66,7 +66,8 @@ export function onForegroundMessage(
 ): () => void {
   try {
     const messaging = getMessaging();
-    return messaging().onMessage(async (remoteMessage) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return messaging().onMessage(async (remoteMessage: any) => {
       handler(parseRemoteMessage(remoteMessage));
     });
   } catch {
@@ -79,7 +80,8 @@ export function onNotificationOpenedApp(
 ): () => void {
   try {
     const messaging = getMessaging();
-    return messaging().onNotificationOpenedApp((remoteMessage) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return messaging().onNotificationOpenedApp((remoteMessage: any) => {
       handler(parseRemoteMessage(remoteMessage));
     });
   } catch {

@@ -124,7 +124,11 @@ export class AttendanceController {
 
       // Fire-and-forget push to parents of absent students
       if (dto.absentStudentIds.length > 0) {
-        this.notifyParentsOfAbsence(dto.absentStudentIds, query.date).catch(() => {});
+        this.notifyParentsOfAbsence(dto.absentStudentIds, query.date).catch((pushErr) => {
+          this.logger.warn('Push notification to parents failed', {
+            error: pushErr instanceof Error ? pushErr.message : String(pushErr),
+          });
+        });
       }
     }
 
@@ -304,7 +308,12 @@ export class AttendanceController {
           body: `${studentName} was marked absent on ${date}.`,
           data: { type: 'ATTENDANCE', studentId, date },
         })
-        .catch(() => {});
+        .catch((pushErr) => {
+          this.logger.warn('Push notification to parent failed', {
+            studentId,
+            error: pushErr instanceof Error ? pushErr.message : String(pushErr),
+          });
+        });
     }
   }
 }

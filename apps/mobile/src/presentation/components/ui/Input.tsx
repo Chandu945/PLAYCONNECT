@@ -14,6 +14,9 @@ type InputProps = {
   secureTextEntry?: boolean;
   keyboardType?: TextInputProps['keyboardType'];
   autoCapitalize?: TextInputProps['autoCapitalize'];
+  maxLength?: number;
+  editable?: boolean;
+  returnKeyType?: TextInputProps['returnKeyType'];
   testID?: string;
 };
 
@@ -26,6 +29,9 @@ export function Input({
   secureTextEntry,
   keyboardType,
   autoCapitalize = 'none',
+  maxLength,
+  editable,
+  returnKeyType,
   testID,
 }: InputProps) {
   const { colors } = useTheme();
@@ -42,6 +48,9 @@ export function Input({
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
+        maxLength={maxLength}
+        editable={editable}
+        returnKeyType={returnKeyType}
         accessibilityLabel={label}
         testID={testID}
       />

@@ -6,6 +6,7 @@ const STATUS_MAP: Record<number, AppErrorCode> = {
   403: 'FORBIDDEN',
   404: 'NOT_FOUND',
   409: 'CONFLICT',
+  429: 'RATE_LIMITED',
 };
 
 /**
@@ -18,6 +19,7 @@ const SAFE_MESSAGES: Record<AppErrorCode, string> = {
   FORBIDDEN: 'You do not have permission for this action.',
   NOT_FOUND: 'The requested resource was not found.',
   CONFLICT: 'This action conflicts with the current state.',
+  RATE_LIMITED: 'Too many requests. Please wait a moment and try again.',
   NETWORK: 'Unable to connect. Please check your internet.',
   UNKNOWN: 'Something went wrong. Please try again later.',
 };

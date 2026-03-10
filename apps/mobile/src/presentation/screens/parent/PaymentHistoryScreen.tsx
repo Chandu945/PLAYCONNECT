@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   FlatList,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getPaymentHistoryUseCase } from '../../../application/parent/use-cases/get-payment-history.usecase';
 import { parentApi } from '../../../infra/parent/parent-api';
@@ -17,7 +18,7 @@ import type { Colors } from '../../theme';
 import { formatMonthShort, formatCurrency, formatDate } from '../../utils/format';
 import { useTheme } from '../../context/ThemeContext';
 
-function getSourceConfig(source: string) {
+function getSourceConfig(source: string, colors: Colors) {
   switch (source) {
     case 'PARENT_ONLINE':
       return { label: 'Online', icon: 'cellphone', color: colors.primary, bg: colors.primarySoft };
@@ -37,10 +38,12 @@ export function PaymentHistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const mountedRef = useRef(true);
 
   const load = useCallback(async () => {
     setError(null);
     const result = await getPaymentHistoryUseCase({ parentApi });
+    if (!mountedRef.current) return;
     if (result.ok) {
       setItems(result.value);
     } else {
@@ -51,8 +54,21 @@ export function PaymentHistoryScreen() {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     load();
+    return () => { mountedRef.current = false; };
   }, [load]);
+
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      load();
+    }, [load]),
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -62,7 +78,7 @@ export function PaymentHistoryScreen() {
   const totalPaid = items.reduce((sum, item) => sum + item.amount, 0);
 
   const renderItem = useCallback(({ item }: { item: PaymentHistoryItem }) => {
-    const src = getSourceConfig(item.source);
+    const src = getSourceConfig(item.source, colors);
 
     return (
       <View style={styles.card}>
@@ -100,7 +116,7 @@ export function PaymentHistoryScreen() {
         </View>
       </View>
     );
-  }, []);
+  }, [colors, styles]);
 
   if (loading) {
     return (

@@ -13,12 +13,14 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { MoreStackParamList } from '../../navigation/MoreStack';
+import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
 import type { ExpenseCategory } from '../../../domain/expense/expense.types';
 import { expenseCategoryListSchema } from '../../../domain/expense/expense.schemas';
 import { saveExpenseUseCase } from '../../../application/expense/use-cases/save-expense.usecase';
 import { deleteExpenseUseCase } from '../../../application/expense/use-cases/delete-expense.usecase';
 import * as expenseApi from '../../../infra/expense/expense-api';
 import { Screen } from '../../components/ui/Screen';
+import { isValidDate } from '../../../domain/common/date-utils';
 import { spacing, fontSizes, fontWeights, radius } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -54,6 +56,12 @@ export function ExpenseFormScreen() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [addingCategory, setAddingCategory] = useState(false);
   const mountedRef = useRef(true);
+
+  const initialRef = useRef({ amount, date, categoryId });
+  const isDirty = amount !== initialRef.current.amount ||
+    date !== initialRef.current.date ||
+    categoryId !== initialRef.current.categoryId;
+  useUnsavedChangesWarning(isDirty && !saving);
 
   const loadCategories = useCallback(async () => {
     const result = await expenseApi.listCategories();
@@ -97,8 +105,8 @@ export function ExpenseFormScreen() {
       return;
     }
     const parsedAmount = parseFloat(amount);
-    if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      Alert.alert('Validation', 'Date must be in YYYY-MM-DD format');
+    if (!isValidDate(date)) {
+      Alert.alert('Validation', 'Enter a valid date (YYYY-MM-DD)');
       return;
     }
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -192,6 +200,7 @@ export function ExpenseFormScreen() {
           value={date}
           onChangeText={setDate}
           placeholder="2026-03-06"
+          maxLength={10}
           testID="expense-date-input"
         />
 
@@ -205,6 +214,7 @@ export function ExpenseFormScreen() {
             onChangeText={setAmount}
             keyboardType="numeric"
             placeholder="0"
+            maxLength={10}
             testID="expense-amount-input"
           />
         </View>
@@ -218,6 +228,7 @@ export function ExpenseFormScreen() {
           placeholder="Add notes..."
           multiline
           numberOfLines={3}
+          maxLength={500}
           testID="expense-notes-input"
         />
 
@@ -277,6 +288,7 @@ export function ExpenseFormScreen() {
               onChangeText={setNewCategoryName}
               placeholder="Category name"
               autoFocus
+              maxLength={50}
               testID="new-category-input"
             />
             <TouchableOpacity

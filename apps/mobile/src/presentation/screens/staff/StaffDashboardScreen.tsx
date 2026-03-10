@@ -29,17 +29,12 @@ import { SkeletonTile } from '../../components/ui/SkeletonTile';
 import { spacing, fontSizes, fontWeights, radius, shadows } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+import { getTodayIST } from '../../../domain/common/date-utils';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<StaffTabParamList, 'Dashboard'>,
   NativeStackNavigationProp<MoreStackParamList>
 >;
-
-function getTodayIST(): string {
-  const now = new Date();
-  const ist = new Date(now.getTime() + (330 - now.getTimezoneOffset()) * 60000);
-  return ist.toISOString().slice(0, 10);
-}
 
 type DashboardData = {
   attendance: DailyReportResult | null;
@@ -53,13 +48,6 @@ export function StaffDashboardScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const navigation = useNavigation<Nav>();
   const { showFAB, hideFAB } = useFAB();
-
-  useFocusEffect(
-    useCallback(() => {
-      showFAB();
-      return () => hideFAB();
-    }, [showFAB, hideFAB]),
-  );
 
   const [data, setData] = useState<DashboardData>({
     attendance: null,
@@ -85,7 +73,7 @@ export function StaffDashboardScreen() {
 
     setData({
       attendance: attendanceRes.ok ? attendanceRes.value : null,
-      pendingRequests: requestsRes.ok ? requestsRes.value : [],
+      pendingRequests: requestsRes.ok ? requestsRes.value.data : [],
       eventSummary: eventsRes.ok ? eventsRes.value : null,
       enquirySummary: enquiryRes.ok ? enquiryRes.value : null,
     });
@@ -99,6 +87,19 @@ export function StaffDashboardScreen() {
       mountedRef.current = false;
     };
   }, [load]);
+
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      showFAB();
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+      } else {
+        load();
+      }
+      return () => hideFAB();
+    }, [showFAB, hideFAB, load]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

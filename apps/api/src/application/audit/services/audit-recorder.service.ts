@@ -1,11 +1,15 @@
 import type { AuditRecorderPort } from '../ports/audit-recorder.port';
 import type { AuditLogRepository } from '@domain/audit/ports/audit-log.repository';
 import type { AuditActionType, AuditEntityType } from '@playconnect/contracts';
+import type { LoggerPort } from '@shared/logging/logger.port';
 import { AuditLog } from '@domain/audit/entities/audit-log.entity';
 import { sanitizeContext } from '@domain/audit/rules/audit.rules';
 
 export class AuditRecorderService implements AuditRecorderPort {
-  constructor(private readonly auditLogRepo: AuditLogRepository) {}
+  constructor(
+    private readonly auditLogRepo: AuditLogRepository,
+    private readonly logger: LoggerPort,
+  ) {}
 
   async record(params: {
     academyId: string;
@@ -27,7 +31,13 @@ export class AuditRecorderService implements AuditRecorderPort {
     try {
       await this.auditLogRepo.save(log);
     } catch (error) {
-      console.error('Failed to save audit log', error);
+      this.logger.error('Failed to save audit log', {
+        action: params.action,
+        entityType: params.entityType,
+        entityId: params.entityId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
     }
   }
 }

@@ -116,7 +116,7 @@ export const darkColors: Colors = {
   transparent: 'transparent',
 };
 
-export type Colors = typeof lightColors;
+export type Colors = { [K in keyof typeof lightColors]: string };
 
 /** @deprecated Use `useTheme()` hook instead. Kept for backward compatibility during migration. */
 export const colors = lightColors;

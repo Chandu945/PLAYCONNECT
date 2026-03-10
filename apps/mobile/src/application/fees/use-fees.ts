@@ -6,6 +6,7 @@ import {
   type ListUnpaidDuesApiPort,
 } from './use-cases/list-unpaid-dues.usecase';
 import { listPaidDuesUseCase, type ListPaidDuesApiPort } from './use-cases/list-paid-dues.usecase';
+import { getCurrentMonthIST } from '../../domain/common/date-utils';
 
 export type FeesApiPort = ListUnpaidDuesApiPort & ListPaidDuesApiPort;
 
@@ -18,15 +19,6 @@ type UseFeesResult = {
   setMonth: (m: string) => void;
   refetch: () => void;
 };
-
-function getCurrentMonthIST(): string {
-  const now = new Date();
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const ist = new Date(now.getTime() + istOffset + now.getTimezoneOffset() * 60 * 1000);
-  const y = ist.getFullYear();
-  const m = String(ist.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
-}
 
 export { getCurrentMonthIST };
 
@@ -42,12 +34,27 @@ export function useFees(feesApi: FeesApiPort): UseFeesResult {
     setLoading(true);
     setError(null);
 
-    const [unpaidResult, paidResult] = await Promise.all([
+    const [unpaidSettled, paidSettled] = await Promise.allSettled([
       listUnpaidDuesUseCase({ feesApi }, month),
       listPaidDuesUseCase({ feesApi }, month),
     ]);
 
     if (!mountedRef.current) return;
+
+    // Handle rejected promises (network failures, unexpected throws)
+    if (unpaidSettled.status === 'rejected') {
+      setError({ code: 'NETWORK', message: 'Failed to load unpaid dues.' });
+      setLoading(false);
+      return;
+    }
+    if (paidSettled.status === 'rejected') {
+      setError({ code: 'NETWORK', message: 'Failed to load paid dues.' });
+      setLoading(false);
+      return;
+    }
+
+    const unpaidResult = unpaidSettled.value;
+    const paidResult = paidSettled.value;
 
     if (!unpaidResult.ok) {
       setError(unpaidResult.error);

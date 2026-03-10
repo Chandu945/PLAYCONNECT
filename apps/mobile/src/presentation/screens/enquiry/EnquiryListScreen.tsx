@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { MoreStackParamList } from '../../navigation/MoreStack';
@@ -54,6 +54,17 @@ export function EnquiryListScreen() {
     status,
     debouncedSearch || undefined,
     followUpToday || undefined,
+  );
+
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      refetch();
+    }, [refetch]),
   );
 
   const [refreshing, setRefreshing] = useState(false);

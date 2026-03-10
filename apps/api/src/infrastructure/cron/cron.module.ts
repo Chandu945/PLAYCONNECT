@@ -17,6 +17,8 @@ import { AUDIT_LOG_REPOSITORY } from '@domain/audit/ports/audit-log.repository';
 import type { AuditLogRepository } from '@domain/audit/ports/audit-log.repository';
 import { AUDIT_RECORDER_PORT } from '@application/audit/ports/audit-recorder.port';
 import { AuditRecorderService } from '@application/audit/services/audit-recorder.service';
+import type { LoggerPort } from '@shared/logging/logger.port';
+import { LOGGER_PORT } from '@shared/logging/logger.port';
 import { RunMonthlyDuesEngineUseCase } from '@application/fee/use-cases/run-monthly-dues-engine.usecase';
 import type { AcademyRepository } from '@domain/academy/ports/academy.repository';
 import type { StudentRepository } from '@domain/student/ports/student.repository';
@@ -39,8 +41,9 @@ import type { FeeDueRepository } from '@domain/fee/ports/fee-due.repository';
     { provide: AUDIT_LOG_REPOSITORY, useClass: MongoAuditLogRepository },
     {
       provide: AUDIT_RECORDER_PORT,
-      useFactory: (repo: AuditLogRepository) => new AuditRecorderService(repo),
-      inject: [AUDIT_LOG_REPOSITORY],
+      useFactory: (repo: AuditLogRepository, logger: LoggerPort) =>
+        new AuditRecorderService(repo, logger),
+      inject: [AUDIT_LOG_REPOSITORY, LOGGER_PORT],
     },
     {
       provide: 'RUN_MONTHLY_DUES_ENGINE_USE_CASE',

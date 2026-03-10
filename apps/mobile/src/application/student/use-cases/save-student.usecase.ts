@@ -4,6 +4,7 @@ import type {
   CreateStudentRequest,
   UpdateStudentRequest,
 } from '../../../domain/student/student.types';
+import { isValidDate } from '../../../domain/common/date-utils';
 
 export type SaveStudentApiPort = {
   createStudent(req: CreateStudentRequest): Promise<Result<unknown, AppError>>;
@@ -29,8 +30,8 @@ export function validateStudentForm(
     errors['fullName'] = 'Full name is required';
   }
 
-  if (fields['dateOfBirth'] && !DATE_RE.test(fields['dateOfBirth'])) {
-    errors['dateOfBirth'] = 'Date of birth must be YYYY-MM-DD';
+  if (fields['dateOfBirth'] && !isValidDate(fields['dateOfBirth'])) {
+    errors['dateOfBirth'] = 'Enter a valid date (YYYY-MM-DD)';
   }
 
   if (!fields['gender']) {
@@ -53,8 +54,8 @@ export function validateStudentForm(
     errors['guardianEmail'] = 'Invalid email format';
   }
 
-  if (fields['joiningDate'] && !DATE_RE.test(fields['joiningDate'])) {
-    errors['joiningDate'] = 'Joining date must be YYYY-MM-DD';
+  if (fields['joiningDate'] && !isValidDate(fields['joiningDate'])) {
+    errors['joiningDate'] = 'Enter a valid date (YYYY-MM-DD)';
   }
 
   if (mode === 'create') {

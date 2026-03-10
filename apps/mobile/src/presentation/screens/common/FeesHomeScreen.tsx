@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { FeesStackParamList } from '../../navigation/FeesStack';
@@ -53,6 +53,7 @@ export function FeesHomeScreen() {
 
   const [selectedSegment, setSelectedSegment] = useState(0);
   const { unpaidItems, paidItems, loading, error, month, setMonth, refetch } = useFees(feesApiRef);
+
   const [studentNameMap, setStudentNameMap] = useState<Record<string, string>>({});
   const [searchActive, setSearchActive] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -61,6 +62,37 @@ export function FeesHomeScreen() {
   const mountedRef = useRef(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<TextInput>(null);
+
+  const loadStudentNames = useCallback(async () => {
+    const result = await listStudents({}, 1, 100);
+    if (!mountedRef.current) return;
+    if (result.ok) {
+      const map: Record<string, string> = {};
+      for (const s of result.value.data) {
+        map[s.id] = s.fullName;
+      }
+      setStudentNameMap(map);
+    }
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // Refresh fees + student names each time screen gains focus
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        loadStudentNames();
+        return;
+      }
+      refetch();
+      loadStudentNames();
+    }, [refetch, loadStudentNames]),
+  );
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -89,22 +121,6 @@ export function FeesHomeScreen() {
       return name && name.toLowerCase().includes(searchLower);
     });
   }, [paidItems, debouncedSearch, studentNameMap]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    (async () => {
-      const result = await listStudents({}, 1, 100);
-      if (!mountedRef.current) return;
-      if (result.ok) {
-        const map: Record<string, string> = {};
-        for (const s of result.value.data) {
-          map[s.id] = s.fullName;
-        }
-        setStudentNameMap(map);
-      }
-    })();
-    return () => { mountedRef.current = false; };
-  }, []);
 
   const goToPrev = useCallback(() => {
     setMonth(addMonths(month, -1));

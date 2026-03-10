@@ -33,7 +33,7 @@ export class PaymentRequestModel {
   @Prop({ required: true })
   staffNotes!: string;
 
-  @Prop({ required: true, default: 'PENDING' })
+  @Prop({ required: true, default: 'PENDING', enum: ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] })
   status!: string;
 
   @Prop({ type: String, default: null })
@@ -52,5 +52,6 @@ export class PaymentRequestModel {
 export const PaymentRequestSchema = SchemaFactory.createForClass(PaymentRequestModel);
 
 PaymentRequestSchema.index({ academyId: 1, status: 1 });
+PaymentRequestSchema.index({ academyId: 1, monthKey: 1 });
 PaymentRequestSchema.index({ feeDueId: 1, status: 1 });
 PaymentRequestSchema.index({ staffUserId: 1, academyId: 1 });

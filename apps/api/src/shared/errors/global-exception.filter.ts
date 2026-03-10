@@ -4,6 +4,7 @@ import {
   type ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import type { ErrorEnvelope } from './error.types';
@@ -12,6 +13,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger('GlobalExceptionFilter');
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<Request>();
@@ -39,6 +42,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
 
       error = this.getErrorName(statusCode);
+    }
+
+    // Log unexpected (500) errors server-side for debugging
+    if (statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      this.logger.error(
+        `Unhandled exception: ${request.method} ${request.url}`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
     }
 
     // Never leak stack traces in production

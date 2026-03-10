@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, FlatList, TextInput, Text, StyleSheet } from 'react-native';
+import { View, FlatList, TextInput, Text, StyleSheet, RefreshControl } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import type { AppError } from '../../../domain/common/errors';
 import type { PaymentRequestItem } from '../../../domain/fees/payment-requests.types';
 import { listPaymentRequestsUseCase } from '../../../application/fees/use-cases/list-payment-requests.usecase';
@@ -38,10 +39,11 @@ export function PendingApprovalsScreen({ onActionComplete }: PendingApprovalsScr
   const [acting, setActing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const mountedRef = useRef(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     setError(null);
 
     const result = await listPaymentRequestsUseCase({ paymentRequestsApi: requestsApi }, 'PENDING');
@@ -54,6 +56,7 @@ export function PendingApprovalsScreen({ onActionComplete }: PendingApprovalsScr
       setError(result.error);
     }
     setLoading(false);
+    setRefreshing(false);
   }, []);
 
   useEffect(() => {
@@ -63,6 +66,18 @@ export function PendingApprovalsScreen({ onActionComplete }: PendingApprovalsScr
       mountedRef.current = false;
     };
   }, [load]);
+
+  // Refresh data each time screen regains focus (tab switch, navigation back)
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      load();
+    }, [load]),
+  );
 
   const handleAction = useCallback(async () => {
     if (!actionTarget) return;
@@ -110,7 +125,12 @@ export function PendingApprovalsScreen({ onActionComplete }: PendingApprovalsScr
 
   const keyExtractor = useCallback((item: PaymentRequestItem) => item.id, []);
 
-  if (loading) {
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    load(true);
+  }, [load]);
+
+  if (loading && !refreshing) {
     return (
       <View style={styles.content} testID="skeleton-container">
         <SkeletonTile />
@@ -137,6 +157,7 @@ export function PendingApprovalsScreen({ onActionComplete }: PendingApprovalsScr
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           testID="pending-approvals-list"
         />
       )}
@@ -151,6 +172,7 @@ export function PendingApprovalsScreen({ onActionComplete }: PendingApprovalsScr
             placeholder="Enter reason for rejection..."
             multiline
             numberOfLines={3}
+            maxLength={300}
             testID="rejection-reason-input"
           />
         </View>

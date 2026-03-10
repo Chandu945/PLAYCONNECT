@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,10 +26,12 @@ export function ParentProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   const load = useCallback(async () => {
     setError(null);
     const result = await getParentProfileUseCase({ parentApi });
+    if (!mountedRef.current) return;
     if (result.ok) {
       setFullName(result.value.fullName);
       setEmail(result.value.email);
@@ -41,7 +43,9 @@ export function ParentProfileScreen() {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     load();
+    return () => { mountedRef.current = false; };
   }, [load]);
 
   const handleSave = useCallback(async () => {

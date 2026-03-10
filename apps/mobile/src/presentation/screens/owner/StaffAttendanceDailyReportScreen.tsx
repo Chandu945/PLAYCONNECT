@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import type { RouteProp } from '@react-navigation/native';
 import { useRoute } from '@react-navigation/native';
 import type { StaffStackParamList } from '../../navigation/StaffStack';
@@ -22,11 +22,12 @@ export function StaffAttendanceDailyReportScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const route = useRoute<Route>();
-  const { date } = route.params;
+  const date = route.params?.date ?? '';
 
   const [report, setReport] = useState<DailyStaffReportResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AppError | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const mountedRef = useRef(true);
 
   const load = useCallback(async () => {
@@ -51,6 +52,12 @@ export function StaffAttendanceDailyReportScreen() {
     return () => {
       mountedRef.current = false;
     };
+  }, [load]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
   }, [load]);
 
   const renderAbsentItem = useCallback(
@@ -89,35 +96,37 @@ export function StaffAttendanceDailyReportScreen() {
   if (!report) return null;
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.content}>
-        <Text style={styles.dateLabel}>{report.date}</Text>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
+      <Text style={styles.dateLabel}>{report.date}</Text>
 
-        <View style={styles.countsRow}>
-          <View style={styles.countBox}>
-            <Text style={styles.countNumber}>{report.presentCount}</Text>
-            <Text style={styles.countLabel}>Present</Text>
-          </View>
-          <View style={styles.countBox}>
-            <Text style={[styles.countNumber, styles.absentCount]}>{report.absentCount}</Text>
-            <Text style={styles.countLabel}>Absent</Text>
-          </View>
+      <View style={styles.countsRow}>
+        <View style={styles.countBox}>
+          <Text style={styles.countNumber}>{report.presentCount}</Text>
+          <Text style={styles.countLabel}>Present</Text>
         </View>
-
-        {report.absentStaff.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>Absent Staff</Text>
-            <FlatList
-              data={report.absentStaff}
-              renderItem={renderAbsentItem}
-              keyExtractor={keyExtractor}
-              scrollEnabled={false}
-              testID="absent-staff-list"
-            />
-          </>
-        )}
+        <View style={styles.countBox}>
+          <Text style={[styles.countNumber, styles.absentCount]}>{report.absentCount}</Text>
+          <Text style={styles.countLabel}>Absent</Text>
+        </View>
       </View>
-    </View>
+
+      {report.absentStaff.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Absent Staff</Text>
+          <FlatList
+            data={report.absentStaff}
+            renderItem={renderAbsentItem}
+            keyExtractor={keyExtractor}
+            scrollEnabled={false}
+            testID="absent-staff-list"
+          />
+        </>
+      )}
+    </ScrollView>
   );
 }
 

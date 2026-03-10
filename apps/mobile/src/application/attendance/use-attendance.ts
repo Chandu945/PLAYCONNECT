@@ -12,6 +12,7 @@ import {
   markAttendanceUseCase,
   type MarkAttendanceApiPort,
 } from './use-cases/mark-attendance.usecase';
+import { getTodayIST } from '../../domain/common/date-utils';
 
 export type AttendanceApiPort = DailyAttendanceApiPort & MarkAttendanceApiPort;
 
@@ -30,16 +31,6 @@ type UseAttendanceResult = {
 
 const PAGE_SIZE = 50;
 
-function getTodayIST(): string {
-  const now = new Date();
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const ist = new Date(now.getTime() + istOffset + now.getTimezoneOffset() * 60 * 1000);
-  const y = ist.getFullYear();
-  const m = String(ist.getMonth() + 1).padStart(2, '0');
-  const d = String(ist.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
 export { getTodayIST };
 
 export function useAttendance(
@@ -56,6 +47,8 @@ export function useAttendance(
   const [error, setError] = useState<AppError | null>(null);
   const [isHoliday, setIsHoliday] = useState(false);
   const mountedRef = useRef(true);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   const load = useCallback(
     async (targetPage: number, append: boolean) => {
@@ -118,7 +111,7 @@ export function useAttendance(
         }),
       );
 
-      const currentItem = items.find((i) => i.studentId === studentId);
+      const currentItem = itemsRef.current.find((i) => i.studentId === studentId);
       if (!currentItem) return;
 
       const newStatus: AttendanceStatus = currentItem.status === 'ABSENT' ? 'PRESENT' : 'ABSENT';
@@ -135,7 +128,7 @@ export function useAttendance(
         }
       });
     },
-    [isHoliday, items, attendanceApi, date],
+    [isHoliday, attendanceApi, date],
   );
 
   useEffect(() => {

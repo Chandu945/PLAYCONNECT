@@ -1,16 +1,24 @@
 import { AuditRecorderService } from './audit-recorder.service';
 import type { AuditLogRepository } from '@domain/audit/ports/audit-log.repository';
+import type { LoggerPort } from '@shared/logging/logger.port';
 
 describe('AuditRecorderService', () => {
   let service: AuditRecorderService;
   let repo: jest.Mocked<AuditLogRepository>;
+  let logger: jest.Mocked<LoggerPort>;
 
   beforeEach(() => {
     repo = {
       save: jest.fn(),
       listByAcademy: jest.fn(),
     } as jest.Mocked<AuditLogRepository>;
-    service = new AuditRecorderService(repo);
+    logger = {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+    } as unknown as jest.Mocked<LoggerPort>;
+    service = new AuditRecorderService(repo, logger);
   });
 
   it('should call repo.save with a created AuditLog', async () => {

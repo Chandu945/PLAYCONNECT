@@ -119,7 +119,7 @@ export function EventListScreen() {
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
-  }, [loadingMore]);
+  }, [loadingMore, colors, styles]);
 
   return (
     <View style={styles.screen}>

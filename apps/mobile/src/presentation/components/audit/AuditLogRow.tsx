@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { AppCard } from '../ui/AppCard';
 import { fontSizes, fontWeights, radius, spacing } from '../../theme';
@@ -43,7 +43,7 @@ type AuditLogRowProps = {
   testID?: string;
 };
 
-export function AuditLogRow({ item, testID }: AuditLogRowProps) {
+function AuditLogRowComponent({ item, testID }: AuditLogRowProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const contextEntries = item.context
@@ -80,6 +80,8 @@ export function AuditLogRow({ item, testID }: AuditLogRowProps) {
     </AppCard>
   );
 }
+
+export const AuditLogRow = memo(AuditLogRowComponent);
 
 const makeStyles = (colors: Colors) => StyleSheet.create({
   row: {

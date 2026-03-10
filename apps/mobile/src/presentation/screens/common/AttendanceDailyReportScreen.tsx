@@ -22,7 +22,7 @@ export function AttendanceDailyReportScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const route = useRoute<Route>();
-  const { date } = route.params;
+  const date = route.params?.date ?? '';
 
   const [report, setReport] = useState<DailyReportResult | null>(null);
   const [loading, setLoading] = useState(true);

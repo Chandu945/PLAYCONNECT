@@ -33,7 +33,7 @@ export function EnquiryDetailScreen() {
   const route = useRoute<Route>();
   const { user } = useAuth();
   const isOwner = user?.role === 'OWNER';
-  const { enquiryId } = route.params;
+  const enquiryId = route.params?.enquiryId ?? '';
 
   const [enquiry, setEnquiry] = useState<EnquiryDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -231,6 +231,8 @@ function InfoRow({ label, value, valueStyle }: { label: string; value: string; v
 function AddFollowUpModal({
   visible, enquiryId, onClose, onSaved,
 }: { visible: boolean; enquiryId: string; onClose: () => void; onSaved: () => void }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [date, setDate] = useState('');
   const [notes, setNotes] = useState('');
   const [nextDate, setNextDate] = useState('');
@@ -288,6 +290,8 @@ function AddFollowUpModal({
 function CloseEnquiryModal({
   visible, enquiryId, onClose, onClosed,
 }: { visible: boolean; enquiryId: string; onClose: () => void; onClosed: () => void }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [reason, setReason] = useState<ClosureReason | ''>('');
   const [saving, setSaving] = useState(false);
 
@@ -355,6 +359,8 @@ function CloseEnquiryModal({
 function ConvertToStudentModal({
   visible, enquiryId, onClose, onConverted,
 }: { visible: boolean; enquiryId: string; onClose: () => void; onConverted: () => void }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [joiningDate, setJoiningDate] = useState('');
   const [monthlyFee, setMonthlyFee] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');

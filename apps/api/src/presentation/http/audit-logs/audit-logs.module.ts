@@ -11,6 +11,8 @@ import { ListAuditLogsUseCase } from '@application/audit/use-cases/list-audit-lo
 import { USER_REPOSITORY } from '@domain/identity/ports/user.repository';
 import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { AuditLogRepository } from '@domain/audit/ports/audit-log.repository';
+import type { LoggerPort } from '@shared/logging/logger.port';
+import { LOGGER_PORT } from '@shared/logging/logger.port';
 
 @Module({
   imports: [
@@ -22,8 +24,9 @@ import type { AuditLogRepository } from '@domain/audit/ports/audit-log.repositor
     { provide: AUDIT_LOG_REPOSITORY, useClass: MongoAuditLogRepository },
     {
       provide: AUDIT_RECORDER_PORT,
-      useFactory: (repo: AuditLogRepository) => new AuditRecorderService(repo),
-      inject: [AUDIT_LOG_REPOSITORY],
+      useFactory: (repo: AuditLogRepository, logger: LoggerPort) =>
+        new AuditRecorderService(repo, logger),
+      inject: [AUDIT_LOG_REPOSITORY, LOGGER_PORT],
     },
     {
       provide: 'LIST_AUDIT_LOGS_USE_CASE',

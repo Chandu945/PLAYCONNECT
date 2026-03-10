@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { ScrollView, View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { InlineError } from '../../components/ui/InlineError';
 import { BatchMultiSelect } from '../../components/batches/BatchMultiSelect';
+import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
 import {
   validateStudentForm,
   saveStudentUseCase,
@@ -82,6 +83,12 @@ export function StudentFormScreen() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const initialRef = useRef({ fullName, monthlyFee, joiningDate });
+  const isDirty = fullName !== initialRef.current.fullName ||
+    monthlyFee !== initialRef.current.monthlyFee ||
+    joiningDate !== initialRef.current.joiningDate;
+  useUnsavedChangesWarning(isDirty && !submitting);
 
   useEffect(() => {
     if (mode === 'edit' && student?.id) {
@@ -251,6 +258,8 @@ export function StudentFormScreen() {
         value={fullName}
         onChangeText={setFullName}
         error={fieldErrors['fullName']}
+        maxLength={100}
+        autoCapitalize="words"
         testID="input-fullName"
       />
 
@@ -258,6 +267,8 @@ export function StudentFormScreen() {
         label="Father Name"
         value={fatherName}
         onChangeText={setFatherName}
+        maxLength={100}
+        autoCapitalize="words"
         testID="input-fatherName"
       />
 
@@ -265,6 +276,8 @@ export function StudentFormScreen() {
         label="Mother Name"
         value={motherName}
         onChangeText={setMotherName}
+        maxLength={100}
+        autoCapitalize="words"
         testID="input-motherName"
       />
 
@@ -274,6 +287,7 @@ export function StudentFormScreen() {
         onChangeText={setDateOfBirth}
         error={fieldErrors['dateOfBirth']}
         placeholder="2010-01-01"
+        maxLength={10}
         testID="input-dateOfBirth"
       />
 
@@ -284,6 +298,7 @@ export function StudentFormScreen() {
         error={fieldErrors['aadhaarNumber']}
         keyboardType="numeric"
         placeholder="12-digit number"
+        maxLength={12}
         testID="input-aadhaarNumber"
       />
 
@@ -291,6 +306,7 @@ export function StudentFormScreen() {
         label="Caste"
         value={caste}
         onChangeText={setCaste}
+        maxLength={50}
         testID="input-caste"
       />
 
@@ -323,6 +339,7 @@ export function StudentFormScreen() {
         onChangeText={setWhatsappNumber}
         keyboardType="phone-pad"
         placeholder="919876543210"
+        maxLength={15}
         testID="input-whatsappNumber"
       />
 
@@ -332,6 +349,7 @@ export function StudentFormScreen() {
         onChangeText={setMobileNumber}
         keyboardType="phone-pad"
         placeholder="919876543210"
+        maxLength={15}
         testID="input-mobileNumber"
       />
 
@@ -340,6 +358,7 @@ export function StudentFormScreen() {
         value={addressText}
         onChangeText={setAddressText}
         placeholder="456 Park Lane, Mumbai"
+        maxLength={300}
         testID="input-addressText"
       />
 
@@ -351,6 +370,8 @@ export function StudentFormScreen() {
         value={guardianName}
         onChangeText={setGuardianName}
         error={fieldErrors['guardianName']}
+        maxLength={100}
+        autoCapitalize="words"
         testID="input-guardianName"
       />
 
@@ -361,6 +382,7 @@ export function StudentFormScreen() {
         error={fieldErrors['guardianMobile']}
         placeholder="+919876543210"
         keyboardType="phone-pad"
+        maxLength={16}
         testID="input-guardianMobile"
       />
 
@@ -370,6 +392,7 @@ export function StudentFormScreen() {
         onChangeText={setGuardianEmail}
         error={fieldErrors['guardianEmail']}
         keyboardType="email-address"
+        maxLength={100}
         testID="input-guardianEmail"
       />
 
@@ -381,6 +404,7 @@ export function StudentFormScreen() {
         label="School Name"
         value={schoolName}
         onChangeText={setSchoolName}
+        maxLength={100}
         testID="input-schoolName"
       />
 
@@ -388,6 +412,7 @@ export function StudentFormScreen() {
         label="Roll Number"
         value={rollNumber}
         onChangeText={setRollNumber}
+        maxLength={20}
         testID="input-rollNumber"
       />
 
@@ -395,6 +420,7 @@ export function StudentFormScreen() {
         label="Standard / Class"
         value={standard}
         onChangeText={setStandard}
+        maxLength={20}
         testID="input-standard"
       />
 
@@ -405,6 +431,7 @@ export function StudentFormScreen() {
         error={fieldErrors['password']}
         secureTextEntry
         placeholder="Min 6 characters"
+        maxLength={64}
         testID="input-password"
       />
 
@@ -417,6 +444,7 @@ export function StudentFormScreen() {
         onChangeText={setJoiningDate}
         error={fieldErrors['joiningDate']}
         placeholder="2024-01-01"
+        maxLength={10}
         testID="input-joiningDate"
       />
 
@@ -427,6 +455,7 @@ export function StudentFormScreen() {
           onChangeText={setMonthlyFee}
           error={fieldErrors['monthlyFee']}
           keyboardType="numeric"
+          maxLength={8}
           testID="input-monthlyFee"
         />
       )}

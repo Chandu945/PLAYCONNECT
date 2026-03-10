@@ -85,7 +85,7 @@ function AuditLogsContent() {
       );
     }
     return null;
-  }, [loadingMore, hasMore, items.length, fetchMore]);
+  }, [loadingMore, hasMore, items.length, fetchMore, colors, styles]);
 
   return (
     <View style={styles.screen} testID="audit-logs-screen">
@@ -103,7 +103,7 @@ function AuditLogsContent() {
         <AuditFiltersPanel
           filters={filters}
           onChange={setFilters}
-          onApply={applyFilters}
+          onApply={() => { applyFilters(); setShowFilters(false); }}
           onClear={clearFilters}
         />
       )}

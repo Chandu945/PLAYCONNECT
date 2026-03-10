@@ -102,7 +102,11 @@ export class PaymentRequestsController {
             });
           }
         })
-        .catch(() => {});
+        .catch((pushErr) => {
+          this.logger.warn('Push notification failed', {
+            error: pushErr instanceof Error ? pushErr.message : String(pushErr),
+          });
+        });
     }
 
     return mapResultToResponse(result, req);
@@ -202,7 +206,11 @@ export class PaymentRequestsController {
             body: `Your payment request for ${result.value.studentName ?? 'a student'} (${result.value.monthKey}) has been approved.`,
             data: { type: 'PAYMENT_UPDATE', requestId: id },
           })
-          .catch(() => {});
+          .catch((pushErr) => {
+          this.logger.warn('Push notification failed', {
+            error: pushErr instanceof Error ? pushErr.message : String(pushErr),
+          });
+        });
       }
     }
 
@@ -240,7 +248,11 @@ export class PaymentRequestsController {
             body: `Your payment request for ${result.value.studentName ?? 'a student'} (${result.value.monthKey}) was rejected: ${dto.reason}`,
             data: { type: 'PAYMENT_UPDATE', requestId: id },
           })
-          .catch(() => {});
+          .catch((pushErr) => {
+          this.logger.warn('Push notification failed', {
+            error: pushErr instanceof Error ? pushErr.message : String(pushErr),
+          });
+        });
       }
     }
 

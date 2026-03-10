@@ -5,6 +5,7 @@ export type AppErrorCode =
   | 'FORBIDDEN'
   | 'NETWORK'
   | 'CONFLICT'
+  | 'RATE_LIMITED'
   | 'UNKNOWN';
 
 export type AppError = {

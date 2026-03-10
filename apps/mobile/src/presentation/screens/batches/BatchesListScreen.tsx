@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { BatchesStackParamList } from '../../navigation/BatchesStack';
 import type { BatchListItem } from '../../../domain/batch/batch.types';
@@ -51,6 +51,17 @@ export function BatchesListScreen() {
     debouncedSearch || undefined,
   );
 
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      refetch();
+    }, [refetch]),
+  );
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refetch();
@@ -84,7 +95,7 @@ export function BatchesListScreen() {
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
-  }, [loadingMore]);
+  }, [loadingMore, colors, styles]);
 
   return (
     <View style={styles.screen}>

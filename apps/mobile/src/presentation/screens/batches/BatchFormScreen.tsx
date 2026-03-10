@@ -85,6 +85,7 @@ export function BatchFormScreen() {
           value={batchName}
           onChangeText={setBatchName}
           error={fieldErrors['batchName']}
+          maxLength={50}
           testID="input-batchName"
         />
 

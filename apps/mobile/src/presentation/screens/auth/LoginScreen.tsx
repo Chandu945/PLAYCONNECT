@@ -88,6 +88,7 @@ export function LoginScreen() {
               error={fieldErrors['identifier']}
               placeholder="Enter email or phone"
               keyboardType="email-address"
+              maxLength={100}
               testID="login-identifier"
             />
 
@@ -98,6 +99,7 @@ export function LoginScreen() {
               error={fieldErrors['password']}
               placeholder="Enter password"
               secureTextEntry
+              maxLength={64}
               testID="login-password"
             />
 

@@ -9,10 +9,12 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { MoreStackParamList } from '../../navigation/MoreStack';
 import type { EnquirySource } from '../../../domain/enquiry/enquiry.types';
 import * as enquiryApi from '../../../infra/enquiry/enquiry-api';
+import { isValidDate } from '../../../domain/common/date-utils';
 import { Screen } from '../../components/ui/Screen';
 import { spacing, fontSizes, fontWeights, radius } from '../../theme';
 import type { Colors } from '../../theme';
@@ -45,6 +47,9 @@ export function AddEnquiryScreen() {
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const isDirty = !!(prospectName || mobileNumber);
+  useUnsavedChangesWarning(isDirty && !saving);
+
   const handleSave = async () => {
     if (!prospectName.trim()) {
       Alert.alert('Validation', 'Prospect name is required');
@@ -52,6 +57,10 @@ export function AddEnquiryScreen() {
     }
     if (!mobileNumber.trim() || !/^\d{10,15}$/.test(mobileNumber.trim())) {
       Alert.alert('Validation', 'Valid mobile number (10-15 digits) is required');
+      return;
+    }
+    if (nextFollowUpDate.trim() && !isValidDate(nextFollowUpDate.trim())) {
+      Alert.alert('Validation', 'Follow-up date must be a valid date (YYYY-MM-DD)');
       return;
     }
 
@@ -93,6 +102,7 @@ export function AddEnquiryScreen() {
           value={prospectName}
           onChangeText={setProspectName}
           placeholder="Full name"
+          maxLength={100}
           testID="prospect-name"
         />
 
@@ -102,6 +112,7 @@ export function AddEnquiryScreen() {
           value={guardianName}
           onChangeText={setGuardianName}
           placeholder="Parent/Guardian name"
+          maxLength={100}
           testID="guardian-name"
         />
 
@@ -112,6 +123,7 @@ export function AddEnquiryScreen() {
           onChangeText={setMobileNumber}
           placeholder="10-15 digits"
           keyboardType="phone-pad"
+          maxLength={15}
           testID="mobile-number"
         />
 
@@ -122,6 +134,7 @@ export function AddEnquiryScreen() {
           onChangeText={setWhatsappNumber}
           placeholder="If different from mobile"
           keyboardType="phone-pad"
+          maxLength={15}
           testID="whatsapp-number"
         />
 
@@ -133,6 +146,7 @@ export function AddEnquiryScreen() {
           placeholder="Email address"
           keyboardType="email-address"
           autoCapitalize="none"
+          maxLength={100}
           testID="email"
         />
 
@@ -142,6 +156,7 @@ export function AddEnquiryScreen() {
           value={address}
           onChangeText={setAddress}
           placeholder="Address"
+          maxLength={300}
           testID="address"
         />
 
@@ -154,6 +169,7 @@ export function AddEnquiryScreen() {
           value={interestedIn}
           onChangeText={setInterestedIn}
           placeholder="e.g. Cricket Coaching - Morning Batch"
+          maxLength={200}
           testID="interested-in"
         />
 
@@ -181,6 +197,7 @@ export function AddEnquiryScreen() {
           placeholder="Initial notes about the enquiry"
           multiline
           numberOfLines={3}
+          maxLength={500}
           testID="notes"
         />
 
@@ -193,6 +210,7 @@ export function AddEnquiryScreen() {
           value={nextFollowUpDate}
           onChangeText={setNextFollowUpDate}
           placeholder="2026-03-10"
+          maxLength={10}
           testID="next-followup-date"
         />
 

@@ -30,7 +30,8 @@ export function AddStudentToBatchScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const route = useRoute<AddRoute>();
-  const { batchId, existingStudentIds } = route.params;
+  const batchId = route.params?.batchId ?? '';
+  const existingStudentIds = route.params?.existingStudentIds ?? [];
 
   const [students, setStudents] = useState<StudentListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,7 +154,7 @@ export function AddStudentToBatchScreen() {
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
-  }, [loadingMore]);
+  }, [loadingMore, colors, styles]);
 
   return (
     <View style={styles.screen}>

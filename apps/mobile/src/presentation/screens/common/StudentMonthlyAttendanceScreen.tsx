@@ -23,7 +23,8 @@ export function StudentMonthlyAttendanceScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const route = useRoute<Route>();
-  const { studentId, month } = route.params;
+  const studentId = route.params?.studentId ?? '';
+  const month = route.params?.month ?? '';
 
   const [detail, setDetail] = useState<StudentMonthlyDetail | null>(null);
   const [loading, setLoading] = useState(true);

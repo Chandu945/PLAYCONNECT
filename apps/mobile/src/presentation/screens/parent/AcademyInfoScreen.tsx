@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Screen } from '../../components/ui/Screen';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -67,10 +67,12 @@ export function AcademyInfoScreen() {
   const [info, setInfo] = useState<AcademyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   const load = useCallback(async () => {
     setError(null);
     const result = await getAcademyInfoUseCase({ parentApi });
+    if (!mountedRef.current) return;
     if (result.ok) {
       setInfo(result.value);
     } else {
@@ -80,7 +82,9 @@ export function AcademyInfoScreen() {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     load();
+    return () => { mountedRef.current = false; };
   }, [load]);
 
   if (loading) {

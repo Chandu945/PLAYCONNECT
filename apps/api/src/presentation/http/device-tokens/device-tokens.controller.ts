@@ -6,23 +6,34 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, MaxLength, IsIn } from 'class-validator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUser as CurrentUserType } from '@application/common/current-user';
 import type { DeviceTokenRepository } from '@domain/notification/ports/device-token.repository';
 import { DEVICE_TOKEN_REPOSITORY } from '@domain/notification/ports/device-token.repository';
-import { Inject } from '@nestjs/common';
 import type { Request } from 'express';
 import { getRequestId } from '@shared/logging/request-id.interceptor';
 
 class RegisterTokenDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(512)
   fcmToken!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsIn(['android', 'ios', 'web'])
   platform!: string;
 }
 
 class UnregisterTokenDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(512)
   fcmToken!: string;
 }
 

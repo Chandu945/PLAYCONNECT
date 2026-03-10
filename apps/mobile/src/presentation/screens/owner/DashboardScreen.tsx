@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -25,11 +25,17 @@ export function DashboardScreen() {
   const { data, loading, error, refetch } = useOwnerDashboard(DEFAULT_RANGE, dashboardApi);
   const { showFAB, hideFAB } = useFAB();
 
+  const isFirstFocus = useRef(true);
   useFocusEffect(
     useCallback(() => {
       showFAB();
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+      } else {
+        refetch();
+      }
       return () => hideFAB();
-    }, [showFAB, hideFAB]),
+    }, [showFAB, hideFAB, refetch]),
   );
 
   const [refreshing, setRefreshing] = useState(false);

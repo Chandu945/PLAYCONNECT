@@ -83,7 +83,7 @@ export function ReceiptScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const rowStyles = useMemo(() => makeRowStyles(colors), [colors]);
   const route = useRoute<RouteProp<ReceiptRouteParams, 'Receipt'>>();
-  const { feeDueId } = route.params;
+  const feeDueId = route.params?.feeDueId ?? '';
 
   const [receipt, setReceipt] = useState<ReceiptInfo | null>(null);
   const [loading, setLoading] = useState(true);

@@ -8,6 +8,8 @@ import { RequestIdInterceptor } from '../src/shared/logging/request-id.intercept
 import { createGlobalValidationPipe } from '../src/shared/validation/validation.pipe';
 import { AppConfigModule } from '../src/shared/config/config.module';
 import { LoggingModule } from '../src/shared/logging/logging.module';
+import type { LoggerPort } from '../src/shared/logging/logger.port';
+import { LOGGER_PORT } from '../src/shared/logging/logger.port';
 import { AuditLogsController } from '../src/presentation/http/audit-logs/audit-logs.controller';
 import { StudentsController } from '../src/presentation/http/students/students.controller';
 import { USER_REPOSITORY } from '../src/domain/identity/ports/user.repository';
@@ -84,8 +86,9 @@ describe('Audit Logs Endpoints (e2e)', () => {
         { provide: TOKEN_SERVICE, useValue: tokenService },
         {
           provide: AUDIT_RECORDER_PORT,
-          useFactory: (repo: AuditLogRepository) => new AuditRecorderService(repo),
-          inject: [AUDIT_LOG_REPOSITORY],
+          useFactory: (repo: AuditLogRepository, logger: LoggerPort) =>
+            new AuditRecorderService(repo, logger),
+          inject: [AUDIT_LOG_REPOSITORY, LOGGER_PORT],
         },
         {
           provide: 'LIST_AUDIT_LOGS_USE_CASE',

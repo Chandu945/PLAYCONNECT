@@ -51,7 +51,7 @@ export function EventDetailScreen() {
   const STATUS_COLORS = useMemo(() => getStatusColors(colors), [colors]);
   const navigation = useNavigation<Nav>();
   const route = useRoute<DetailRoute>();
-  const { eventId } = route.params;
+  const eventId = route.params?.eventId ?? '';
   const { user } = useAuth();
   const isOwner = user?.role === 'OWNER';
 

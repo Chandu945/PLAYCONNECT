@@ -21,7 +21,7 @@ export class SubscriptionTierCronService {
     private readonly logger: LoggerPort,
   ) {}
 
-  @Cron('10 0 * * *', { timeZone: 'Asia/Kolkata' })
+  @Cron('30 0 * * *', { timeZone: 'Asia/Kolkata' })
   async handleTierRecomputation(): Promise<void> {
     if (!this.config.subscriptionTierCronEnabled) {
       this.logger.debug('Subscription tier cron: disabled, skipping');

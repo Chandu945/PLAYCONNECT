@@ -212,4 +212,10 @@ export class AppConfigService {
   get cashfreeBaseUrl(): string {
     return this.config.CASHFREE_BASE_URL;
   }
+
+  get corsAllowedOrigins(): string[] {
+    return this.config.CORS_ALLOWED_ORIGINS.split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
+  }
 }

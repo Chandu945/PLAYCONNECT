@@ -4,6 +4,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react-nativ
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate, goBack: jest.fn() }),
+  useFocusEffect: jest.fn(),
 }));
 
 jest.mock('../../../infra/batch/batch-api', () => ({

@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Animated,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { StudentsStackParamList } from '../../navigation/StudentsStack';
@@ -68,6 +68,7 @@ export function StudentsListScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionMenuStudent, setActionMenuStudent] = useState<StudentListItem | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<TextInput>(null);
   const fabScale = useRef(new Animated.Value(1)).current;
 
@@ -78,6 +79,7 @@ export function StudentsListScreen() {
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
     };
   }, [searchText]);
 
@@ -94,6 +96,17 @@ export function StudentsListScreen() {
   const { items, loading, loadingMore, error, refetch, fetchMore } = useStudents(
     filters,
     studentsApi,
+  );
+
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      refetch();
+    }, [refetch]),
   );
 
   const activeFilterCount =
@@ -122,7 +135,8 @@ export function StudentsListScreen() {
 
   const openSearch = useCallback(() => {
     setSearchActive(true);
-    setTimeout(() => searchInputRef.current?.focus(), 100);
+    if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    focusTimerRef.current = setTimeout(() => searchInputRef.current?.focus(), 100);
   }, []);
 
   const closeSearch = useCallback(() => {
@@ -151,7 +165,7 @@ export function StudentsListScreen() {
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
-  }, [loadingMore]);
+  }, [loadingMore, colors, styles]);
 
   const handleFabPressIn = () => {
     Animated.spring(fabScale, { toValue: 0.9, useNativeDriver: true }).start();

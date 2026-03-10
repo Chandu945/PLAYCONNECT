@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { ParentHomeStackParamList } from '../../navigation/ParentHomeStack';
@@ -112,6 +112,17 @@ export function ChildrenListScreen() {
     load();
     return () => { mountedRef.current = false; };
   }, [load]);
+
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      load();
+    }, [load]),
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

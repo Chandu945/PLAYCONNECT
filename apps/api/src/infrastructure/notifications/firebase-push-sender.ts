@@ -23,7 +23,15 @@ export class FirebasePushSender implements PushSenderPort, OnModuleInit {
 
     const serviceAccountJson = this.config.firebaseServiceAccountJson;
     if (serviceAccountJson) {
-      const serviceAccount = JSON.parse(serviceAccountJson);
+      let serviceAccount: Record<string, unknown>;
+      try {
+        serviceAccount = JSON.parse(serviceAccountJson) as Record<string, unknown>;
+      } catch (parseError) {
+        this.logger.error(
+          `Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+        );
+        return;
+      }
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });

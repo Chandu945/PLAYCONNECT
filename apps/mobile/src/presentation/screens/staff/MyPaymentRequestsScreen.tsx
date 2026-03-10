@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
+import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { FeesStackParamList } from '../../navigation/FeesStack';
@@ -30,10 +30,11 @@ export function MyPaymentRequestsScreen() {
   const [cancelTarget, setCancelTarget] = useState<PaymentRequestItem | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const mountedRef = useRef(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     setError(null);
 
     const result = await listPaymentRequestsUseCase({ paymentRequestsApi: requestsApi });
@@ -46,6 +47,7 @@ export function MyPaymentRequestsScreen() {
       setError(result.error);
     }
     setLoading(false);
+    setRefreshing(false);
   }, []);
 
   useEffect(() => {
@@ -102,7 +104,12 @@ export function MyPaymentRequestsScreen() {
 
   const keyExtractor = useCallback((item: PaymentRequestItem) => item.id, []);
 
-  if (loading) {
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    load(true);
+  }, [load]);
+
+  if (loading && !refreshing) {
     return (
       <View style={styles.content} testID="skeleton-container">
         <SkeletonTile />
@@ -129,6 +136,7 @@ export function MyPaymentRequestsScreen() {
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           testID="my-requests-list"
         />
       )}

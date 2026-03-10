@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import type { RouteProp } from '@react-navigation/native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { FeesStackParamList } from '../../navigation/FeesStack';
 import type { AppError } from '../../../domain/common/errors';
@@ -42,7 +42,7 @@ export function StudentFeeDetailScreen() {
   const { user } = useAuth();
   const isOwner = user?.role === 'OWNER';
   const isStaff = user?.role === 'STAFF';
-  const { studentId } = route.params;
+  const studentId = route.params?.studentId ?? '';
 
   const [items, setItems] = useState<FeeDueItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,11 +71,17 @@ export function StudentFeeDetailScreen() {
 
   useEffect(() => {
     mountedRef.current = true;
-    load();
     return () => {
       mountedRef.current = false;
     };
-  }, [load]);
+  }, []);
+
+  // Refresh each time screen gains focus (e.g. after payment action)
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const handleRowPress = useCallback(
     (item: FeeDueItem) => {

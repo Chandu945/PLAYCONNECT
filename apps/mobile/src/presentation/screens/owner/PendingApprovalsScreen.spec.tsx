@@ -4,6 +4,10 @@ import { PendingApprovalsScreen } from './PendingApprovalsScreen';
 import * as paymentRequestsApi from '../../../infra/fees/payment-requests-api';
 import { ok, err } from '../../../domain/common/result';
 
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: jest.fn(),
+}));
+
 jest.mock('../../../infra/fees/payment-requests-api', () => ({
   listPaymentRequests: jest.fn(),
   createPaymentRequest: jest.fn(),

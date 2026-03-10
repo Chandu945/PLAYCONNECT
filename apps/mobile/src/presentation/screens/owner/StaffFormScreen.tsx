@@ -1,11 +1,12 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
+import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
 import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { StaffStackParamList } from '../../navigation/StaffStack';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { InlineError } from '../../components/ui/InlineError';
+import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
 import {
   validateCreateStaffForm,
   validateUpdateStaffForm,
@@ -22,6 +23,17 @@ import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 
 type FormRoute = RouteProp<StaffStackParamList, 'StaffForm'>;
+
+const GENDER_OPTIONS: { label: string; value: 'MALE' | 'FEMALE' }[] = [
+  { label: 'Male', value: 'MALE' },
+  { label: 'Female', value: 'FEMALE' },
+];
+
+const SALARY_FREQ_OPTIONS: { label: string; value: SalaryFrequency }[] = [
+  { label: 'Monthly', value: 'MONTHLY' },
+  { label: 'Weekly', value: 'WEEKLY' },
+  { label: 'Daily', value: 'DAILY' },
+];
 
 const createApi = { createStaff };
 const updateApi = { updateStaff };
@@ -58,6 +70,12 @@ export function StaffFormScreen() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const initialRef = useRef({ fullName, email, phoneNumber });
+  const isDirty = fullName !== initialRef.current.fullName ||
+    email !== initialRef.current.email ||
+    phoneNumber !== initialRef.current.phoneNumber;
+  useUnsavedChangesWarning(isDirty && !submitting);
 
   const handleSubmit = useCallback(async () => {
     const fields = { fullName, email, phoneNumber, password };
@@ -187,6 +205,7 @@ export function StaffFormScreen() {
           placeholder="e.g. Priya Sharma"
           error={fieldErrors['fullName']}
           autoCapitalize="words"
+          maxLength={100}
           testID="input-fullName"
         />
 
@@ -197,6 +216,7 @@ export function StaffFormScreen() {
           placeholder="e.g. priya@example.com"
           error={fieldErrors['email']}
           keyboardType="email-address"
+          maxLength={100}
           testID="input-email"
         />
 
@@ -207,6 +227,7 @@ export function StaffFormScreen() {
           placeholder="e.g. +919876543210"
           error={fieldErrors['phoneNumber']}
           keyboardType="phone-pad"
+          maxLength={16}
           testID="input-phoneNumber"
         />
 
@@ -217,6 +238,7 @@ export function StaffFormScreen() {
           placeholder={mode === 'create' ? 'Min 8 characters' : 'Leave blank to keep current'}
           error={fieldErrors['password']}
           secureTextEntry
+          maxLength={64}
           testID="input-password"
         />
       </View>
@@ -228,19 +250,28 @@ export function StaffFormScreen() {
         <Text style={styles.sectionTitle}>Personal Details</Text>
       </View>
       <View style={styles.formCard}>
-        <Input
-          label="Gender"
-          value={gender}
-          onChangeText={setGender}
-          placeholder="MALE or FEMALE"
-          testID="input-gender"
-        />
+        <Text style={styles.pickerLabel}>Gender</Text>
+        <View style={styles.chipRow}>
+          {GENDER_OPTIONS.map((opt) => (
+            <Pressable
+              key={opt.value}
+              style={[styles.chip, gender === opt.value && styles.chipActive]}
+              onPress={() => setGender(gender === opt.value ? '' : opt.value)}
+              testID={`gender-${opt.value.toLowerCase()}`}
+            >
+              <Text style={[styles.chipText, gender === opt.value && styles.chipTextActive]}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
 
         <Input
           label="Start Date"
           value={startDate}
           onChangeText={setStartDate}
           placeholder="YYYY-MM-DD"
+          maxLength={10}
           testID="input-startDate"
         />
       </View>
@@ -258,6 +289,7 @@ export function StaffFormScreen() {
           onChangeText={setWhatsappNumber}
           placeholder="e.g. +919876543210"
           keyboardType="phone-pad"
+          maxLength={16}
           testID="input-whatsappNumber"
         />
 
@@ -267,6 +299,7 @@ export function StaffFormScreen() {
           onChangeText={setMobileNumber}
           placeholder="e.g. +919876543210"
           keyboardType="phone-pad"
+          maxLength={16}
           testID="input-mobileNumber"
         />
 
@@ -275,6 +308,7 @@ export function StaffFormScreen() {
           value={address}
           onChangeText={setAddress}
           placeholder="Full address"
+          maxLength={300}
           testID="input-address"
         />
       </View>
@@ -291,6 +325,7 @@ export function StaffFormScreen() {
           value={qualification}
           onChangeText={setQualification}
           placeholder="e.g. B.Ed, M.A."
+          maxLength={100}
           testID="input-qualification"
         />
 
@@ -299,6 +334,7 @@ export function StaffFormScreen() {
           value={position}
           onChangeText={setPosition}
           placeholder="e.g. Head Coach, Assistant"
+          maxLength={100}
           testID="input-position"
         />
       </View>
@@ -316,16 +352,25 @@ export function StaffFormScreen() {
           onChangeText={setSalaryAmount}
           placeholder="e.g. 25000"
           keyboardType="numeric"
+          maxLength={10}
           testID="input-salaryAmount"
         />
 
-        <Input
-          label="Salary Frequency"
-          value={salaryFrequency}
-          onChangeText={setSalaryFrequency}
-          placeholder="MONTHLY, WEEKLY, or DAILY"
-          testID="input-salaryFrequency"
-        />
+        <Text style={styles.pickerLabel}>Salary Frequency</Text>
+        <View style={styles.chipRow}>
+          {SALARY_FREQ_OPTIONS.map((opt) => (
+            <Pressable
+              key={opt.value}
+              style={[styles.chip, salaryFrequency === opt.value && styles.chipActive]}
+              onPress={() => setSalaryFrequency(opt.value)}
+              testID={`freq-${opt.value.toLowerCase()}`}
+            >
+              <Text style={[styles.chipText, salaryFrequency === opt.value && styles.chipTextActive]}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       <View style={styles.submitContainer}>
@@ -367,6 +412,40 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     padding: spacing.base,
     marginBottom: spacing.sm,
     ...shadows.sm,
+  },
+  pickerLabel: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.textSecondary,
+    marginBottom: 6,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.4,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.base,
+  },
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipText: {
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.medium,
+    color: colors.textSecondary,
+  },
+  chipTextActive: {
+    color: colors.white,
   },
   submitContainer: {
     marginTop: spacing.lg,

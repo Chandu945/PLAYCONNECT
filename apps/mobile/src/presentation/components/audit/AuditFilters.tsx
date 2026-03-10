@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
-import { AUDIT_ACTION_TYPES } from '@playconnect/contracts';
+import { AUDIT_ACTION_TYPES, AUDIT_ENTITY_TYPES } from '@playconnect/contracts';
 import type { AuditFilters as AuditFiltersType } from '../../../application/audit/use-audit-logs';
 import { Button } from '../ui/Button';
 import { fontSizes, fontWeights, radius, shadows, spacing } from '../../theme';
@@ -12,6 +12,14 @@ const ACTION_OPTIONS: { label: string; value: string }[] = [
   ...AUDIT_ACTION_TYPES.map((a) => ({
     label: a.replace(/_/g, ' '),
     value: a,
+  })),
+];
+
+const ENTITY_OPTIONS: { label: string; value: string }[] = [
+  { label: 'All Entities', value: '' },
+  ...AUDIT_ENTITY_TYPES.map((e) => ({
+    label: e.replace(/_/g, ' '),
+    value: e,
   })),
 ];
 
@@ -73,6 +81,23 @@ export function AuditFiltersPanel({ filters, onChange, onApply, onClear }: Audit
             ]}
             onPress={() => onChange({ ...filters, action: opt.value as AuditFiltersType['action'] })}
             testID={`action-opt-${opt.value || 'ALL'}`}
+          >
+            {opt.label}
+          </Text>
+        ))}
+      </View>
+
+      <Text style={styles.label}>Entity Type</Text>
+      <View style={styles.actionRow} testID="entity-type-options">
+        {ENTITY_OPTIONS.map((opt) => (
+          <Text
+            key={opt.value}
+            style={[
+              styles.actionChip,
+              filters.entityType === opt.value && styles.actionChipActive,
+            ]}
+            onPress={() => onChange({ ...filters, entityType: opt.value as AuditFiltersType['entityType'] })}
+            testID={`entity-opt-${opt.value || 'ALL'}`}
           >
             {opt.label}
           </Text>

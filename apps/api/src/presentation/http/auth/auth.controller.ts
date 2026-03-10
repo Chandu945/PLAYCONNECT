@@ -52,6 +52,7 @@ export class AuthController {
   ) {}
 
   @Post('owner/signup')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: 'Owner signup (Step 1)' })
   async signup(@Body() dto: OwnerSignupDto, @Req() req: Request) {
     const result = await this.ownerSignup.execute({
@@ -74,6 +75,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: 'Login with email or phone' })
   async loginHandler(@Body() dto: LoginDto, @Req() req: Request) {
     const result = await this.login.execute({
@@ -173,6 +175,7 @@ export class AuthController {
 
   @Post('google')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: 'Login with Google ID token' })
   async googleLogin(@Body() dto: GoogleLoginDto, @Req() req: Request) {
     const result = await this.googleLoginUseCase.execute({

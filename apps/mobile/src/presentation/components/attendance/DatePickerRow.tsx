@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { fontSizes, fontWeights, spacing, radius } from '../../theme';
@@ -22,7 +22,7 @@ function formatDate(dateStr: string): string {
   return `${weekday}, ${day} ${month} ${year}`;
 }
 
-export function DatePickerRow({ date, onPrevious, onNext, onToday, isToday }: DatePickerRowProps) {
+function DatePickerRowComponent({ date, onPrevious, onNext, onToday, isToday }: DatePickerRowProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
@@ -55,6 +55,8 @@ export function DatePickerRow({ date, onPrevious, onNext, onToday, isToday }: Da
     </View>
   );
 }
+
+export const DatePickerRow = memo(DatePickerRowComponent);
 
 const makeStyles = (colors: Colors) => StyleSheet.create({
   container: {

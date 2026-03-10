@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { spacing, fontSizes, fontWeights, radius } from '../../theme';
@@ -17,7 +17,7 @@ function formatMonth(monthStr: string): string {
   return d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 }
 
-export function MonthPickerRow({ month, onPrevious, onNext }: MonthPickerRowProps) {
+function MonthPickerRowComponent({ month, onPrevious, onNext }: MonthPickerRowProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
@@ -40,6 +40,8 @@ export function MonthPickerRow({ month, onPrevious, onNext }: MonthPickerRowProp
     </View>
   );
 }
+
+export const MonthPickerRow = memo(MonthPickerRowComponent);
 
 const makeStyles = (colors: Colors) => StyleSheet.create({
   container: {

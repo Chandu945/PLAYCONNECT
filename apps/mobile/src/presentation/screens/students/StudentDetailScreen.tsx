@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -76,12 +76,26 @@ export function StudentDetailScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const [student, setStudent] = useState<StudentListItem>(route.params.student);
+  const paramStudent = route.params?.student;
+  const [student, setStudent] = useState<StudentListItem>(
+    paramStudent ?? ({ id: '', fullName: '', status: 'ACTIVE' } as StudentListItem),
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
+  const mountedRef = useRef(true);
+
+  // Guard against missing route params — show error state
+  if (!paramStudent?.id) {
+    return (
+      <View style={styles.screen}>
+        <Text style={{ textAlign: 'center', marginTop: 40 }}>Student data unavailable</Text>
+      </View>
+    );
+  }
 
   const refetchStudent = useCallback(async () => {
     const result = await getStudent(student.id);
+    if (!mountedRef.current) return;
     if (result.ok) {
       setStudent(result.value);
     }

@@ -27,7 +27,7 @@ export class FeeDueModel {
   @Prop({ required: true })
   amount!: number;
 
-  @Prop({ required: true, default: 'UPCOMING' })
+  @Prop({ required: true, default: 'UPCOMING', enum: ['UPCOMING', 'DUE', 'PAID'] })
   status!: string;
 
   @Prop({ type: Date, default: null })

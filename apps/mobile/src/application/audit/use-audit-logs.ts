@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { AppError } from '../../domain/common/errors';
-import type { AuditLogItem, AuditActionType } from '../../domain/audit/audit.types';
+import type { AuditLogItem, AuditActionType, AuditEntityType } from '../../domain/audit/audit.types';
 import { listAuditLogsUseCase, type AuditApiPort } from './use-cases/list-audit-logs.usecase';
 
 const PAGE_SIZE = 50;
@@ -19,6 +19,7 @@ export type AuditFilters = {
   from: string;
   to: string;
   action: AuditActionType | '';
+  entityType: AuditEntityType | '';
 };
 
 type UseAuditLogsResult = {
@@ -46,12 +47,16 @@ export function useAuditLogs(auditApi: AuditApiPort): UseAuditLogsResult {
     from: defaultFrom(),
     to: defaultTo(),
     action: '',
+    entityType: '',
   });
   const [appliedFilters, setAppliedFilters] = useState<AuditFilters>(filters);
   const mountedRef = useRef(true);
+  const loadIdRef = useRef(0);
 
   const load = useCallback(
     async (targetPage: number, append: boolean, activeFilters: AuditFilters) => {
+      const currentLoadId = ++loadIdRef.current;
+
       if (append) {
         setLoadingMore(true);
       } else {
@@ -67,10 +72,12 @@ export function useAuditLogs(auditApi: AuditApiPort): UseAuditLogsResult {
           from: activeFilters.from || undefined,
           to: activeFilters.to || undefined,
           action: activeFilters.action || undefined,
+          entityType: activeFilters.entityType || undefined,
         },
       );
 
-      if (!mountedRef.current) return;
+      // Discard stale responses from superseded requests
+      if (!mountedRef.current || currentLoadId !== loadIdRef.current) return;
 
       if (result.ok) {
         if (append) {
@@ -100,17 +107,17 @@ export function useAuditLogs(auditApi: AuditApiPort): UseAuditLogsResult {
   }, [filters, load]);
 
   const clearFilters = useCallback(() => {
-    const defaults: AuditFilters = { from: defaultFrom(), to: defaultTo(), action: '' };
+    const defaults: AuditFilters = { from: defaultFrom(), to: defaultTo(), action: '', entityType: '' };
     setFilters(defaults);
     setAppliedFilters(defaults);
     load(1, false, defaults);
   }, [load]);
 
   const fetchMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
+    if (!loadingMore && !loading && hasMore) {
       load(page + 1, true, appliedFilters);
     }
-  }, [loadingMore, hasMore, page, load, appliedFilters]);
+  }, [loadingMore, loading, hasMore, page, load, appliedFilters]);
 
   useEffect(() => {
     mountedRef.current = true;

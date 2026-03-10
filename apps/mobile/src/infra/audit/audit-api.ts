@@ -13,6 +13,7 @@ export function listAuditLogs(
   if (query.from) parts.push(`from=${encodeURIComponent(query.from)}`);
   if (query.to) parts.push(`to=${encodeURIComponent(query.to)}`);
   if (query.action) parts.push(`action=${encodeURIComponent(query.action)}`);
+  if (query.entityType) parts.push(`entityType=${encodeURIComponent(query.entityType)}`);
 
   return apiGet<AuditLogsApiResponse>(`/api/v1/audit-logs?${parts.join('&')}`);
 }

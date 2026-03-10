@@ -46,7 +46,7 @@ function getStatusLabel(status: string): string {
   }
 }
 
-function getStatusColor(status: string): string {
+function getStatusColor(status: string, colors: Colors): string {
   switch (status) {
     case 'TRIAL': return colors.primary;
     case 'ACTIVE_PAID': return colors.success;
@@ -128,9 +128,9 @@ export function ProfileModal({
               <View style={styles.card}>
                 <View style={styles.subHeader}>
                   <Text style={styles.cardTitle}>Current Plan</Text>
-                  <View style={[styles.statusPill, { backgroundColor: getStatusColor(subscription.status) + '20' }]}>
-                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(subscription.status) }]} />
-                    <Text style={[styles.statusText, { color: getStatusColor(subscription.status) }]}>
+                  <View style={[styles.statusPill, { backgroundColor: getStatusColor(subscription.status, colors) + '20' }]}>
+                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(subscription.status, colors) }]} />
+                    <Text style={[styles.statusText, { color: getStatusColor(subscription.status, colors) }]}>
                       {getStatusLabel(subscription.status)}
                     </Text>
                   </View>

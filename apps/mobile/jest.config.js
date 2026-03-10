@@ -7,7 +7,7 @@ module.exports = {
     '^react-native-share$': '<rootDir>/__mocks__/react-native-share.js',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(@react-native|react-native|@react-navigation|react-native-screens|react-native-safe-area-context|react-native-keychain|react-native-fs|react-native-share|react-native-vector-icons|react-native-image-picker|@react-native-async-storage)/)',
+    'node_modules/(?!(@react-native|react-native|@react-navigation|react-native-screens|react-native-safe-area-context|react-native-keychain|react-native-fs|react-native-share|react-native-vector-icons|react-native-image-picker)/)',
   ],
   testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/'],
   collectCoverageFrom: [

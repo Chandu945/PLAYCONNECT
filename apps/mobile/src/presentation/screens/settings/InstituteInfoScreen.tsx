@@ -268,6 +268,8 @@ function ImageUploadCard({
   onDelete: () => void;
   testID: string;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   if (uploading) {
     return (
       <View style={styles.uploadCard} testID={`${testID}-uploading`}>

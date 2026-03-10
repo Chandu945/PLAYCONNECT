@@ -127,7 +127,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       await resolvePhase(result.value.user);
-    })();
+    })().catch(() => {
+      if (mountedRef.current) {
+        setState({ phase: 'unauthenticated', user: null, subscription: null });
+      }
+    });
 
     return () => {
       mountedRef.current = false;

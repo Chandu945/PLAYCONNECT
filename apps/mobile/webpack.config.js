@@ -23,7 +23,6 @@ module.exports = {
       'react-native-share': path.resolve(appDirectory, 'web/stubs/react-native-share.js'),
       '@react-native-firebase/messaging': path.resolve(appDirectory, 'web/stubs/react-native-firebase-messaging.js'),
       '@react-native-firebase/app': path.resolve(appDirectory, 'web/stubs/react-native-firebase-app.js'),
-      '@react-native-async-storage/async-storage': path.resolve(appDirectory, 'web/stubs/async-storage.js'),
     },
     modules: [
       path.resolve(appDirectory, 'node_modules'),

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Keychain from 'react-native-keychain';
 import { lightColors, darkColors } from '../theme';
 import type { Colors } from '../theme';
 
@@ -13,7 +13,7 @@ type ThemeContextValue = {
   setMode: (mode: ThemeMode) => void;
 };
 
-const STORAGE_KEY = '@playconnect_theme';
+const SERVICE = 'playconnect_theme';
 
 const ThemeContext = createContext<ThemeContextValue>({
   colors: lightColors,
@@ -33,17 +33,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Load persisted preference
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored === 'light' || stored === 'dark' || stored === 'system') {
-        setModeState(stored);
-      }
-      setLoaded(true);
-    }).catch(() => setLoaded(true));
+    Keychain.getGenericPassword({ service: SERVICE })
+      .then((result) => {
+        if (result && (result.password === 'light' || result.password === 'dark' || result.password === 'system')) {
+          setModeState(result.password as ThemeMode);
+        }
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
   }, []);
 
   const setMode = useCallback((newMode: ThemeMode) => {
     setModeState(newMode);
-    AsyncStorage.setItem(STORAGE_KEY, newMode).catch(() => {});
+    Keychain.setGenericPassword('theme', newMode, { service: SERVICE }).catch(() => {});
   }, []);
 
   const isDark = mode === 'system'

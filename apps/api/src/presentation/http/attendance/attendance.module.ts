@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AttendanceController } from './attendance.controller';
 import { AuthModule } from '../auth/auth.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
+import { DeviceTokensModule } from '../device-tokens/device-tokens.module';
 import {
   StudentAttendanceModel,
   StudentAttendanceSchema,
@@ -17,6 +18,12 @@ import { MongoStudentAttendanceRepository } from '@infrastructure/repositories/m
 import { MongoHolidayRepository } from '@infrastructure/repositories/mongo-holiday.repository';
 import { MongoStudentRepository } from '@infrastructure/repositories/mongo-student.repository';
 import { MongoStudentBatchRepository } from '@infrastructure/repositories/mongo-student-batch.repository';
+import { MongoParentStudentLinkRepository } from '@infrastructure/repositories/mongo-parent-student-link.repository';
+import {
+  ParentStudentLinkModel,
+  ParentStudentLinkSchema,
+} from '@infrastructure/database/schemas/parent-student-link.schema';
+import { PARENT_STUDENT_LINK_REPOSITORY } from '@domain/parent/ports/parent-student-link.repository';
 import { STUDENT_ATTENDANCE_REPOSITORY } from '@domain/attendance/ports/student-attendance.repository';
 import { HOLIDAY_REPOSITORY } from '@domain/attendance/ports/holiday.repository';
 import { STUDENT_REPOSITORY } from '@domain/student/ports/student.repository';
@@ -43,11 +50,13 @@ import type { AuditRecorderPort } from '@application/audit/ports/audit-recorder.
   imports: [
     AuthModule,
     AuditLogsModule,
+    DeviceTokensModule,
     MongooseModule.forFeature([
       { name: StudentAttendanceModel.name, schema: StudentAttendanceSchema },
       { name: HolidayModel.name, schema: HolidaySchema },
       { name: StudentModel.name, schema: StudentSchema },
       { name: StudentBatchModel.name, schema: StudentBatchSchema },
+      { name: ParentStudentLinkModel.name, schema: ParentStudentLinkSchema },
     ]),
   ],
   controllers: [AttendanceController],
@@ -56,6 +65,7 @@ import type { AuditRecorderPort } from '@application/audit/ports/audit-recorder.
     { provide: HOLIDAY_REPOSITORY, useClass: MongoHolidayRepository },
     { provide: STUDENT_REPOSITORY, useClass: MongoStudentRepository },
     { provide: STUDENT_BATCH_REPOSITORY, useClass: MongoStudentBatchRepository },
+    { provide: PARENT_STUDENT_LINK_REPOSITORY, useClass: MongoParentStudentLinkRepository },
     {
       provide: 'GET_DAILY_ATTENDANCE_VIEW_USE_CASE',
       useFactory: (

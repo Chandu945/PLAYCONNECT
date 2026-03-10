@@ -33,6 +33,10 @@ import {
 import { mapResultToResponse } from '../common/result-mapper';
 import { LOGGER_PORT } from '@shared/logging/logger.port';
 import type { LoggerPort } from '@shared/logging/logger.port';
+import type { PushNotificationService } from '@application/notifications/push-notification.service';
+import { PUSH_NOTIFICATION_SERVICE } from '../device-tokens/device-tokens.module';
+import type { AcademyRepository } from '@domain/academy/ports/academy.repository';
+import { ACADEMY_REPOSITORY } from '@domain/academy/ports/academy.repository';
 import type { PaymentRequestStatus } from '@playconnect/contracts';
 import type { Request } from 'express';
 
@@ -57,6 +61,10 @@ export class PaymentRequestsController {
     @Inject('LIST_TRANSACTION_LOGS_USE_CASE')
     private readonly listTransactionLogs: ListTransactionLogsUseCase,
     @Inject(LOGGER_PORT) private readonly logger: LoggerPort,
+    @Inject(PUSH_NOTIFICATION_SERVICE)
+    private readonly pushService: PushNotificationService,
+    @Inject(ACADEMY_REPOSITORY)
+    private readonly academyRepo: AcademyRepository,
   ) {}
 
   @Post()
@@ -81,6 +89,20 @@ export class PaymentRequestsController {
         studentId: dto.studentId,
         staffUserId: user.userId,
       });
+
+      // Fire-and-forget push to the academy owner
+      this.academyRepo
+        .findById(result.value.academyId)
+        .then((academy) => {
+          if (academy) {
+            return this.pushService.sendToUser(academy.ownerUserId, {
+              title: 'New Payment Request',
+              body: `${result.value.staffName ?? 'A staff member'} submitted a payment request for ${result.value.studentName ?? 'a student'} (${result.value.monthKey}). Tap to review.`,
+              data: { type: 'PAYMENT_REQUEST', requestId: result.value.id },
+            });
+          }
+        })
+        .catch(() => {});
     }
 
     return mapResultToResponse(result, req);
@@ -170,6 +192,18 @@ export class PaymentRequestsController {
         requestId: id,
         approvedByUserId: user.userId,
       });
+
+      // Fire-and-forget push to the staff who submitted
+      const staffUserId = result.value.staffUserId;
+      if (staffUserId) {
+        this.pushService
+          .sendToUser(staffUserId, {
+            title: 'Payment Approved',
+            body: `Your payment request for ${result.value.studentName ?? 'a student'} (${result.value.monthKey}) has been approved.`,
+            data: { type: 'PAYMENT_UPDATE', requestId: id },
+          })
+          .catch(() => {});
+      }
     }
 
     return mapResultToResponse(result, req);
@@ -196,6 +230,18 @@ export class PaymentRequestsController {
         requestId: id,
         rejectedByUserId: user.userId,
       });
+
+      // Fire-and-forget push to the staff who submitted
+      const staffUserId = result.value.staffUserId;
+      if (staffUserId) {
+        this.pushService
+          .sendToUser(staffUserId, {
+            title: 'Payment Rejected',
+            body: `Your payment request for ${result.value.studentName ?? 'a student'} (${result.value.monthKey}) was rejected: ${dto.reason}`,
+            data: { type: 'PAYMENT_UPDATE', requestId: id },
+          })
+          .catch(() => {});
+      }
     }
 
     return mapResultToResponse(result, req);

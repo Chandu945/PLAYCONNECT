@@ -101,6 +101,7 @@ export function StudentFeeDetailScreen() {
       confirmItem.monthKey,
     );
 
+    if (!mountedRef.current) return;
     setMarking(false);
 
     if (result.ok) {

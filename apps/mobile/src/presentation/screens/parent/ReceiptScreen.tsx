@@ -1,15 +1,77 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { ReceiptInfo } from '../../../domain/parent/parent.types';
 import { getReceiptUseCase } from '../../../application/parent/use-cases/get-receipt.usecase';
 import { parentApi } from '../../../infra/parent/parent-api';
-import { colors, spacing, fontSizes, fontWeights, radius } from '../../theme';
+import { colors, spacing, fontSizes, fontWeights, radius, shadows } from '../../theme';
+import { formatMonthKey, formatCurrency, formatDateLong } from '../../utils/format';
 
 type ReceiptRouteParams = {
   Receipt: { feeDueId: string };
 };
+
+function ReceiptRow({
+  icon,
+  label,
+  value,
+  valueColor,
+  valueBold,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  valueColor?: string;
+  valueBold?: boolean;
+}) {
+  return (
+    <View style={rowStyles.row}>
+      <View style={rowStyles.labelRow}>
+        {/* @ts-expect-error react-native-vector-icons types */}
+        <Icon name={icon} size={16} color={colors.textDisabled} />
+        <Text style={rowStyles.label}>{label}</Text>
+      </View>
+      <Text
+        style={[
+          rowStyles.value,
+          valueColor ? { color: valueColor } : undefined,
+          valueBold ? { fontWeight: fontWeights.bold, fontSize: fontSizes.lg } : undefined,
+        ]}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+const rowStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  label: {
+    fontSize: fontSizes.base,
+    color: colors.textSecondary,
+  },
+  value: {
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.medium,
+    color: colors.text,
+    maxWidth: '55%',
+    textAlign: 'right',
+  },
+});
 
 export function ReceiptScreen() {
   const route = useRoute<RouteProp<ReceiptRouteParams, 'Receipt'>>();
@@ -19,10 +81,13 @@ export function ReceiptScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const mountedRef = useRef(true);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     const result = await getReceiptUseCase({ parentApi }, feeDueId);
+    if (!mountedRef.current) return;
     if (result.ok) {
       setReceipt(result.value);
     } else {
@@ -32,13 +97,16 @@ export function ReceiptScreen() {
   }, [feeDueId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     load();
+    return () => { mountedRef.current = false; };
   }, [load]);
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text>Loading receipt...</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading receipt...</Text>
       </View>
     );
   }
@@ -46,7 +114,12 @@ export function ReceiptScreen() {
   if (error || !receipt) {
     return (
       <View style={styles.center}>
+        {/* @ts-expect-error react-native-vector-icons types */}
+        <Icon name="file-document-remove-outline" size={48} color={colors.danger} />
         <Text style={styles.errorText}>{error ?? 'Receipt not found'}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={load}>
+          <Text style={styles.retryText}>Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -54,46 +127,40 @@ export function ReceiptScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
+        {/* Success Badge */}
+        <View style={styles.successBadge}>
+          {/* @ts-expect-error react-native-vector-icons types */}
+          <Icon name="check-circle" size={40} color={colors.success} />
+        </View>
+
         <Text style={styles.receiptTitle}>Payment Receipt</Text>
+        <Text style={styles.receiptNumber}>#{receipt.receiptNumber}</Text>
 
-        <View style={styles.receiptNumber}>
-          <Text style={styles.receiptNumberText}>#{receipt.receiptNumber}</Text>
+        {/* Divider */}
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <View style={styles.dividerDot} />
+          <View style={styles.dividerLine} />
         </View>
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Student</Text>
-          <Text style={styles.value}>{receipt.studentName}</Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.label}>Academy</Text>
-          <Text style={styles.value}>{receipt.academyName}</Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.label}>Month</Text>
-          <Text style={styles.value}>{receipt.monthKey}</Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.label}>Amount</Text>
-          <Text style={styles.amountValue}>₹{receipt.amount}</Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.label}>Paid On</Text>
-          <Text style={styles.value}>
-            {new Date(receipt.paidAt).toLocaleDateString('en-IN', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.label}>Payment Method</Text>
-          <Text style={styles.value}>{receipt.paymentMethod}</Text>
+        <ReceiptRow icon="account-outline" label="Student" value={receipt.studentName} />
+        <ReceiptRow icon="office-building-outline" label="Academy" value={receipt.academyName} />
+        <ReceiptRow icon="calendar-month-outline" label="Month" value={formatMonthKey(receipt.monthKey)} />
+        <ReceiptRow
+          icon="currency-inr"
+          label="Amount"
+          value={formatCurrency(receipt.amount)}
+          valueColor={colors.success}
+          valueBold
+        />
+        <ReceiptRow icon="calendar-check-outline" label="Paid On" value={formatDateLong(receipt.paidAt)} />
+        <View style={[rowStyles.row, { borderBottomWidth: 0 }]}>
+          <View style={rowStyles.labelRow}>
+            {/* @ts-expect-error react-native-vector-icons types */}
+            <Icon name="credit-card-outline" size={16} color={colors.textDisabled} />
+            <Text style={rowStyles.label}>Method</Text>
+          </View>
+          <Text style={rowStyles.value}>{receipt.paymentMethod}</Text>
         </View>
       </View>
     </View>
@@ -101,53 +168,73 @@ export function ReceiptScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: spacing.md, backgroundColor: colors.bg },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: colors.danger, fontSize: fontSizes.md },
+  container: { flex: 1, padding: spacing.base, backgroundColor: colors.bg },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing['2xl'],
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: fontSizes.md,
+    color: colors.textSecondary,
+  },
+  errorText: {
+    color: colors.danger,
+    fontSize: fontSizes.md,
+    marginTop: spacing.md,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: spacing.base,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+  },
+  retryText: {
+    color: colors.primary,
+    fontWeight: fontWeights.semibold,
+    fontSize: fontSizes.base,
+  },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    ...shadows.lg,
+  },
+  successBadge: {
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   receiptTitle: {
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
     color: colors.text,
     textAlign: 'center',
-    marginBottom: spacing.sm,
   },
   receiptNumber: {
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  receiptNumberText: {
     fontSize: fontSizes.md,
     color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.xs,
   },
-  row: {
+  divider: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    alignItems: 'center',
+    marginVertical: spacing.lg,
   },
-  label: {
-    fontSize: fontSizes.md,
-    color: colors.textSecondary,
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
   },
-  value: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.medium,
-    color: colors.text,
-  },
-  amountValue: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
-    color: colors.success,
+  dividerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginHorizontal: spacing.sm,
   },
 });

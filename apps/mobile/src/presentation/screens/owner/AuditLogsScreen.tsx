@@ -52,7 +52,7 @@ function AuditLogsContent() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    refetch();
+    await refetch();
     setRefreshing(false);
   }, [refetch]);
 

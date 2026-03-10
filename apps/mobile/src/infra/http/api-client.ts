@@ -28,30 +28,44 @@ export const accessTokenStore = {
   get: getAccessToken,
 };
 
-async function tryRefresh(): Promise<string | null> {
-  const session = await tokenStore.getSession();
-  if (!session) return null;
+let _refreshPromise: Promise<string | null> | null = null;
 
-  const deviceId = await deviceIdStore.getDeviceId();
+async function tryRefresh(): Promise<string | null> {
+  // Deduplicate concurrent refresh calls — all callers share the same promise
+  if (_refreshPromise) return _refreshPromise;
+
+  _refreshPromise = (async () => {
+    const session = await tokenStore.getSession();
+    if (!session) return null;
+
+    const deviceId = await deviceIdStore.getDeviceId();
+    const userId = session.user.id;
+
+    try {
+      const res = await fetch(`${env.API_BASE_URL}/api/v1/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: session.refreshToken, deviceId, userId }),
+      });
+
+      if (!res.ok) return null;
+
+      const json = (await res.json()) as { data: { accessToken: string; refreshToken: string } };
+      const data = json.data;
+
+      _accessToken = data.accessToken;
+      await tokenStore.setSession(data.refreshToken, session.user);
+
+      return data.accessToken;
+    } catch {
+      return null;
+    }
+  })();
 
   try {
-    const res = await fetch(`${env.API_BASE_URL}/api/v1/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: session.refreshToken, deviceId }),
-    });
-
-    if (!res.ok) return null;
-
-    const json = (await res.json()) as { data: { accessToken: string; refreshToken: string } };
-    const data = json.data;
-
-    _accessToken = data.accessToken;
-    await tokenStore.setSession(data.refreshToken, session.user);
-
-    return data.accessToken;
-  } catch {
-    return null;
+    return await _refreshPromise;
+  } finally {
+    _refreshPromise = null;
   }
 }
 

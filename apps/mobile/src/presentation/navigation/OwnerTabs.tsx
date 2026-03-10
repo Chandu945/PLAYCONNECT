@@ -40,8 +40,8 @@ function OwnerTabsInner() {
           headerTitleStyle: { fontWeight: fontWeights.semibold, fontSize: fontSizes.lg },
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textDisabled,
+          tabBarShowLabel: false,
           tabBarStyle: { backgroundColor: colors.surface, borderTopWidth: 0, elevation: 8, shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: -2 } },
-          tabBarLabelStyle: { fontSize: fontSizes.xs, fontWeight: fontWeights.medium },
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             // @ts-expect-error react-native-vector-icons types incompatible with @types/react@19
             <Icon name={TAB_ICONS[route.name] ?? 'circle'} size={size} color={color} />

@@ -7,6 +7,7 @@ import type { TransactionLogRepository } from '@domain/fee/ports/transaction-log
 import type { ClockPort } from '../../common/clock.port';
 import type { TransactionPort } from '../../common/transaction.port';
 import type { AuditLogRepository } from '@domain/audit/ports/audit-log.repository';
+import type { StudentRepository } from '@domain/student/ports/student.repository';
 import { PaymentRequest } from '@domain/fee/entities/payment-request.entity';
 import { FeeDue } from '@domain/fee/entities/fee-due.entity';
 import { User } from '@domain/identity/entities/user.entity';
@@ -19,6 +20,7 @@ describe('ApprovePaymentRequestUseCase', () => {
   let feeDueRepo: jest.Mocked<FeeDueRepository>;
   let prRepo: jest.Mocked<PaymentRequestRepository>;
   let txLogRepo: jest.Mocked<TransactionLogRepository>;
+  let studentRepo: jest.Mocked<StudentRepository>;
   let clock: ClockPort;
   let tx: TransactionPort;
   let auditLogRepo: jest.Mocked<AuditLogRepository>;
@@ -48,6 +50,7 @@ describe('ApprovePaymentRequestUseCase', () => {
       save: jest.fn(),
       bulkSave: jest.fn(),
       bulkUpdateStatus: jest.fn(),
+      findById: jest.fn(),
       findByAcademyStudentMonth: jest.fn(),
       listByAcademyMonthAndStatuses: jest.fn(),
       listByAcademyMonthPaid: jest.fn(),
@@ -56,6 +59,7 @@ describe('ApprovePaymentRequestUseCase', () => {
       listByAcademyAndMonth: jest.fn(),
       listUnpaidByAcademy: jest.fn(),
       findUnpaidByDueDate: jest.fn(),
+      findOverdueDues: jest.fn(),
       deleteUpcomingByStudent: jest.fn(),
     } as jest.Mocked<FeeDueRepository>;
 
@@ -80,6 +84,18 @@ describe('ApprovePaymentRequestUseCase', () => {
       sumRevenueByAcademyGroupedByMonth: jest.fn(),
     } as jest.Mocked<TransactionLogRepository>;
 
+    studentRepo = {
+      save: jest.fn(),
+      findById: jest.fn(),
+      list: jest.fn(),
+      listActiveByAcademy: jest.fn(),
+      countActiveByAcademy: jest.fn(),
+      findByIds: jest.fn(),
+      countInactiveByAcademy: jest.fn(),
+      countNewAdmissionsByAcademyAndDateRange: jest.fn(),
+      findBirthdaysByAcademy: jest.fn(),
+    } as jest.Mocked<StudentRepository>;
+
     clock = { now: () => fixedNow };
     tx = { run: jest.fn().mockImplementation((fn) => fn()) };
 
@@ -91,6 +107,7 @@ describe('ApprovePaymentRequestUseCase', () => {
       feeDueRepo,
       prRepo,
       txLogRepo,
+      studentRepo,
       clock,
       tx,
       auditLogRepo,

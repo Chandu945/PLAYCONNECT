@@ -748,6 +748,12 @@ export class InMemoryFeeDueRepository implements FeeDueRepository {
     );
   }
 
+  async findOverdueDues(upToDate: string): Promise<FeeDue[]> {
+    return Array.from(this.dues.values()).filter(
+      (d) => d.status === 'DUE' && d.dueDate <= upToDate,
+    );
+  }
+
   async deleteUpcomingByStudent(academyId: string, studentId: string): Promise<number> {
     let count = 0;
     for (const [key, due] of this.dues) {

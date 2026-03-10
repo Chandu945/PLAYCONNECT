@@ -57,20 +57,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     let tokenRefreshUnsubscribe: (() => void) | undefined;
 
+    let cancelled = false;
     (async () => {
       const hasPermission = await requestNotificationPermission();
-      if (!hasPermission) return;
+      if (!hasPermission || cancelled) return;
 
       const token = await getFcmToken();
-      if (token) {
+      if (token && !cancelled) {
         await registerToken(token);
       }
 
       // Listen for token refreshes
-      tokenRefreshUnsubscribe = onTokenRefresh((newToken) => {
-        registerToken(newToken);
-      });
-    })();
+      if (!cancelled) {
+        tokenRefreshUnsubscribe = onTokenRefresh((newToken) => {
+          registerToken(newToken).catch(() => {});
+        });
+      }
+    })().catch(() => {});
 
     return () => {
       tokenRefreshUnsubscribe?.();

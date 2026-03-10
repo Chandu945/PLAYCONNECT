@@ -40,8 +40,7 @@ const OWNER_STAFF_ITEMS: MenuItem[] = [
 
 const PARENT_ITEMS: MenuItem[] = [
   { key: 'parent-profile', icon: 'account-outline', label: 'My Profile', screen: 'ParentProfile', parentOnly: true },
-  { key: 'academy-info', icon: 'office-building-outline', label: 'Academy Info', screen: 'AcademyInfo', parentOnly: true },
-  { key: 'payment-history', icon: 'history', label: 'Payment History', screen: 'PaymentHistory', parentOnly: true },
+  { key: 'academy-info', icon: 'school-outline', label: 'Academy Info', screen: 'AcademyInfo', parentOnly: true },
 ];
 
 export function MoreScreen() {
@@ -61,8 +60,8 @@ export function MoreScreen() {
           More
         </Text>
 
-        {/* Profile Card — Owner & Staff */}
-        {user && !isParent && (
+        {/* Profile Card */}
+        {user && (
           <View style={styles.profileCard} testID="profile-card">
             <View style={styles.profileAvatar}>
               <Text style={styles.profileAvatarText}>{getInitials(user.fullName)}</Text>

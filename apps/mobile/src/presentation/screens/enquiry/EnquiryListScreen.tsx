@@ -53,11 +53,11 @@ export function EnquiryListScreen() {
   );
 
   const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
-  };
+  }, [refetch]);
 
   const handleSearch = useCallback((text: string) => {
     setSearchText(text);
@@ -67,10 +67,13 @@ export function EnquiryListScreen() {
     }, 300);
   }, []);
 
-  const isOverdue = (dateStr: string | null): boolean => {
+  const isOverdue = useCallback((dateStr: string | null): boolean => {
     if (!dateStr) return false;
-    return new Date(dateStr) < new Date(new Date().toDateString());
-  };
+    // Compare as YYYY-MM-DD strings to avoid timezone issues
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return dateStr < today;
+  }, []);
 
   const renderItem = ({ item }: { item: EnquiryListItem }) => (
     <TouchableOpacity

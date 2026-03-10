@@ -16,7 +16,7 @@ import type { Result } from '../../domain/common/result';
 export interface AuthApiPort {
   login(req: LoginRequest): Promise<Result<AuthResponse, AppError>>;
   ownerSignup(req: SignupRequest): Promise<Result<AuthResponse, AppError>>;
-  refresh(refreshToken: string, deviceId: string): Promise<Result<RefreshResponse, AppError>>;
+  refresh(refreshToken: string, deviceId: string, userId: string): Promise<Result<RefreshResponse, AppError>>;
   logout(accessToken: string, deviceId: string): Promise<Result<void, AppError>>;
   setupAcademy(
     req: AcademySetupRequest,

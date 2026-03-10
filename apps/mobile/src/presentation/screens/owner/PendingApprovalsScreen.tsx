@@ -80,6 +80,7 @@ export function PendingApprovalsScreen({ onActionComplete }: PendingApprovalsScr
       );
     }
 
+    if (!mountedRef.current) return;
     setActing(false);
 
     if (result.ok) {

@@ -35,6 +35,12 @@ import { MonthlyQueryDto, MonthlyPaginatedQueryDto } from './dto/monthly.query';
 import { mapResultToResponse } from '../common/result-mapper';
 import { LOGGER_PORT } from '@shared/logging/logger.port';
 import type { LoggerPort } from '@shared/logging/logger.port';
+import type { PushNotificationService } from '@application/notifications/push-notification.service';
+import { PUSH_NOTIFICATION_SERVICE } from '../device-tokens/device-tokens.module';
+import type { ParentStudentLinkRepository } from '@domain/parent/ports/parent-student-link.repository';
+import { PARENT_STUDENT_LINK_REPOSITORY } from '@domain/parent/ports/parent-student-link.repository';
+import type { StudentRepository } from '@domain/student/ports/student.repository';
+import { STUDENT_REPOSITORY as STUDENT_REPO_TOKEN } from '@domain/student/ports/student.repository';
 import type { Request } from 'express';
 
 @ApiTags('Attendance')
@@ -62,6 +68,12 @@ export class AttendanceController {
     @Inject('GET_MONTHLY_ATTENDANCE_SUMMARY_USE_CASE')
     private readonly getMonthlyAttendanceSummary: GetMonthlyAttendanceSummaryUseCase,
     @Inject(LOGGER_PORT) private readonly logger: LoggerPort,
+    @Inject(PUSH_NOTIFICATION_SERVICE)
+    private readonly pushService: PushNotificationService,
+    @Inject(PARENT_STUDENT_LINK_REPOSITORY)
+    private readonly parentLinkRepo: ParentStudentLinkRepository,
+    @Inject(STUDENT_REPO_TOKEN)
+    private readonly studentRepo: StudentRepository,
   ) {}
 
   // === Attendance view/marking ===
@@ -109,6 +121,11 @@ export class AttendanceController {
         absentCount: result.value.absentCount,
         actorUserId: user.userId,
       });
+
+      // Fire-and-forget push to parents of absent students
+      if (dto.absentStudentIds.length > 0) {
+        this.notifyParentsOfAbsence(dto.absentStudentIds, query.date).catch(() => {});
+      }
     }
 
     return mapResultToResponse(result, req);
@@ -268,5 +285,26 @@ export class AttendanceController {
     });
 
     return mapResultToResponse(result, req);
+  }
+
+  private async notifyParentsOfAbsence(studentIds: string[], date: string): Promise<void> {
+    const students = await this.studentRepo.findByIds(studentIds);
+    const nameMap = new Map(students.map((s) => [s.id.toString(), s.fullName]));
+
+    for (const studentId of studentIds) {
+      const links = await this.parentLinkRepo.findByStudentId(studentId);
+      if (links.length === 0) continue;
+
+      const parentUserIds = links.map((l) => l.parentUserId);
+      const studentName = nameMap.get(studentId) ?? 'Your child';
+
+      await this.pushService
+        .sendToUsers(parentUserIds, {
+          title: 'Attendance Update',
+          body: `${studentName} was marked absent on ${date}.`,
+          data: { type: 'ATTENDANCE', studentId, date },
+        })
+        .catch(() => {});
+    }
   }
 }

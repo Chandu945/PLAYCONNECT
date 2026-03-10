@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, FlatList, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { StaffStackParamList } from '../../navigation/StaffStack';
 import type { StaffListItem, StaffStatus } from '../../../domain/staff/staff.types';
@@ -26,6 +26,14 @@ export function StaffListScreen() {
   const navigation = useNavigation<Nav>();
   const { items, loading, loadingMore, error, refetch, fetchMore } = useStaff(staffApiRef);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Refresh list when screen comes back into focus (e.g. after add/edit)
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch]),
+  );
+
   const [toggleTarget, setToggleTarget] = useState<StaffListItem | null>(null);
   const [toggling, setToggling] = useState(false);
   const [toggleError, setToggleError] = useState<string | null>(null);

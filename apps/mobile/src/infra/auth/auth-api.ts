@@ -56,8 +56,8 @@ export const authApi: AuthApiPort = {
     return post<AuthResponse>('/api/v1/auth/owner/signup', req);
   },
 
-  refresh(refreshToken: string, deviceId: string) {
-    return post<RefreshResponse>('/api/v1/auth/refresh', { refreshToken, deviceId });
+  refresh(refreshToken: string, deviceId: string, userId: string) {
+    return post<RefreshResponse>('/api/v1/auth/refresh', { refreshToken, deviceId, userId });
   },
 
   logout(accessToken: string, deviceId: string) {

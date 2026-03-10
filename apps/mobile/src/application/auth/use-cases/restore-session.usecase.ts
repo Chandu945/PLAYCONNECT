@@ -21,7 +21,8 @@ export async function restoreSessionUseCase(
   }
 
   const deviceId = await deps.deviceId.getDeviceId();
-  const result = await deps.authApi.refresh(session.refreshToken, deviceId);
+  const userId = session.user.id;
+  const result = await deps.authApi.refresh(session.refreshToken, deviceId, userId);
 
   if (!result.ok) {
     await deps.tokenStore.clearSession();

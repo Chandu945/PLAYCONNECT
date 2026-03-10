@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -29,17 +29,19 @@ export function InstituteInfoScreen() {
   const [initialized, setInitialized] = useState(false);
 
   // Sync form state when data loads
-  if (info && !initialized) {
-    if (info.bankDetails) {
-      setAccountHolderName(info.bankDetails.accountHolderName);
-      setAccountNumber(info.bankDetails.accountNumber);
-      setIfscCode(info.bankDetails.ifscCode);
-      setBankName(info.bankDetails.bankName);
-      setBranchName(info.bankDetails.branchName);
+  useEffect(() => {
+    if (info && !initialized) {
+      if (info.bankDetails) {
+        setAccountHolderName(info.bankDetails.accountHolderName);
+        setAccountNumber(info.bankDetails.accountNumber);
+        setIfscCode(info.bankDetails.ifscCode);
+        setBankName(info.bankDetails.bankName);
+        setBranchName(info.bankDetails.branchName);
+      }
+      setUpiId(info.upiId ?? '');
+      setInitialized(true);
     }
-    setUpiId(info.upiId ?? '');
-    setInitialized(true);
-  }
+  }, [info, initialized]);
 
   const handleSaveBankDetails = async () => {
     const hasBankFields = accountHolderName || accountNumber || ifscCode || bankName || branchName;

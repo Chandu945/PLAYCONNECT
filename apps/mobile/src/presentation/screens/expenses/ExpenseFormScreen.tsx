@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -49,9 +49,11 @@ export function ExpenseFormScreen() {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [addingCategory, setAddingCategory] = useState(false);
+  const mountedRef = useRef(true);
 
   const loadCategories = useCallback(async () => {
     const result = await expenseApi.listCategories();
+    if (!mountedRef.current) return;
     if (result.ok) {
       const parsed = expenseCategoryListSchema.safeParse(result.value);
       if (parsed.success) {
@@ -61,7 +63,9 @@ export function ExpenseFormScreen() {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     loadCategories();
+    return () => { mountedRef.current = false; };
   }, [loadCategories]);
 
   const handleAddCategory = async () => {

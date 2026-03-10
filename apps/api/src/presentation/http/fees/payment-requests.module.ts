@@ -5,6 +5,7 @@ import { AuthModule } from '../auth/auth.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { AcademyOnboardingModule } from '../academy-onboarding/academy-onboarding.module';
 import { SubscriptionModule } from '../subscription/subscription.module';
+import { DeviceTokensModule } from '../device-tokens/device-tokens.module';
 import { FeeDueModel, FeeDueSchema } from '@infrastructure/database/schemas/fee-due.schema';
 import { StudentModel, StudentSchema } from '@infrastructure/database/schemas/student.schema';
 import {
@@ -54,6 +55,7 @@ import type { AuditLogRepository } from '@domain/audit/ports/audit-log.repositor
     AuditLogsModule,
     AcademyOnboardingModule,
     SubscriptionModule,
+    DeviceTokensModule,
     MongooseModule.forFeature([
       { name: FeeDueModel.name, schema: FeeDueSchema },
       { name: StudentModel.name, schema: StudentSchema },

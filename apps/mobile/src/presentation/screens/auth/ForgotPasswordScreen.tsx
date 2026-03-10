@@ -1,5 +1,14 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+  StatusBar,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { AuthStackParamList } from '../../navigation/AuthStack';
@@ -8,9 +17,124 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { InlineError } from '../../components/ui/InlineError';
 import { usePasswordReset } from '../../hooks/usePasswordReset';
-import { colors, spacing, fontSizes, fontWeights, radius } from '../../theme';
+import { colors, spacing, fontSizes, fontWeights, radius, shadows } from '../../theme';
 
 type ForgotNav = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
+
+const STEPS = [
+  { key: 'email', label: 'Email' },
+  { key: 'otp', label: 'Verify' },
+  { key: 'newPassword', label: 'Reset' },
+] as const;
+
+function StepIndicator({ current }: { current: string }) {
+  const currentIdx = STEPS.findIndex((s) => s.key === current);
+  return (
+    <View style={stepStyles.row}>
+      {STEPS.map((s, i) => {
+        const isDone = i < currentIdx;
+        const isActive = i === currentIdx;
+        return (
+          <React.Fragment key={s.key}>
+            {i > 0 && (
+              <View
+                style={[stepStyles.line, (isDone || isActive) && stepStyles.lineDone]}
+              />
+            )}
+            <View style={stepStyles.item}>
+              <View
+                style={[
+                  stepStyles.dot,
+                  isDone && stepStyles.dotDone,
+                  isActive && stepStyles.dotActive,
+                ]}
+              >
+                {isDone ? (
+                  // @ts-expect-error react-native-vector-icons types incompatible with @types/react@19
+                  <Icon name="check" size={12} color={colors.white} />
+                ) : (
+                  <Text
+                    style={[
+                      stepStyles.dotText,
+                      isActive && stepStyles.dotTextActive,
+                    ]}
+                  >
+                    {i + 1}
+                  </Text>
+                )}
+              </View>
+              <Text
+                style={[
+                  stepStyles.label,
+                  (isDone || isActive) && stepStyles.labelActive,
+                ]}
+              >
+                {s.label}
+              </Text>
+            </View>
+          </React.Fragment>
+        );
+      })}
+    </View>
+  );
+}
+
+const stepStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+  },
+  item: {
+    alignItems: 'center',
+  },
+  line: {
+    height: 2,
+    width: 40,
+    backgroundColor: colors.border,
+    marginHorizontal: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  lineDone: {
+    backgroundColor: colors.primary,
+  },
+  dot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.bgSubtle,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  dotDone: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  dotActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  dotText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
+    color: colors.textSecondary,
+  },
+  dotTextActive: {
+    color: colors.primary,
+  },
+  label: {
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary,
+    fontWeight: fontWeights.medium,
+  },
+  labelActive: {
+    color: colors.primary,
+  },
+});
 
 export function ForgotPasswordScreen() {
   const navigation = useNavigation<ForgotNav>();
@@ -84,183 +208,249 @@ export function ForgotPasswordScreen() {
     await resendOtp(email.trim().toLowerCase());
   }, [email, resendOtp]);
 
-  if (step === 'email') {
-    return (
-      <Screen>
-        <View style={styles.header}>
-          <Text style={styles.title}>Forgot Password</Text>
-          <Text style={styles.subtitle}>Enter your email to receive a reset code</Text>
-        </View>
+  const stepConfig = {
+    email: {
+      icon: 'email-outline' as const,
+      title: 'Forgot Password?',
+      subtitle: "No worries. Enter your email and we'll send you a reset code.",
+    },
+    otp: {
+      icon: 'shield-key-outline' as const,
+      title: 'Verify Code',
+      subtitle: `We sent a 6-digit code to ${email}`,
+    },
+    newPassword: {
+      icon: 'lock-reset' as const,
+      title: 'Set New Password',
+      subtitle: 'Choose a strong password for your account',
+    },
+  };
 
-        {error ? <InlineError message={error} /> : null}
+  const config = stepConfig[step];
 
-        <Input
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          error={fieldErrors['email']}
-          placeholder="Enter your email"
-          keyboardType="email-address"
-          testID="forgot-email"
-        />
-
-        <Button
-          title="Send Reset Code"
-          onPress={handleRequestOtp}
-          loading={loading}
-          testID="forgot-send"
-        />
-
-        <View style={styles.links}>
-          <Button
-            title="Back to Sign In"
-            variant="secondary"
-            onPress={() => navigation.navigate('Login')}
-            testID="forgot-back"
-          />
-        </View>
-      </Screen>
-    );
-  }
-
-  if (step === 'otp') {
-    return (
-      <Screen>
-        <View style={styles.header}>
-          <Text style={styles.title}>Enter Code</Text>
-          <Text style={styles.subtitle}>Code sent to {email}</Text>
-        </View>
-
-        {error ? <InlineError message={error} /> : null}
-
-        <Input
-          label="Verification Code"
-          value={otp}
-          onChangeText={setOtp}
-          error={fieldErrors['otp']}
-          placeholder="Enter 6-digit code"
-          keyboardType="number-pad"
-          testID="forgot-otp"
-        />
-
-        <Button
-          title="Verify Code"
-          onPress={handleVerifyOtp}
-          loading={loading}
-          testID="forgot-verify"
-        />
-
-        <View style={styles.links}>
-          <Button
-            title={
-              cooldownRemaining > 0
-                ? `Resend Code (${cooldownRemaining}s)`
-                : 'Resend Code'
-            }
-            variant="secondary"
-            onPress={handleResend}
-            disabled={cooldownRemaining > 0}
-            testID="forgot-resend"
-          />
-          <View style={styles.spacer} />
-          <Button
-            title="Back"
-            variant="secondary"
-            onPress={goBack}
-            testID="forgot-back-otp"
-          />
-        </View>
-      </Screen>
-    );
-  }
-
-  // step === 'newPassword'
   return (
-    <Screen>
-      <View style={styles.header}>
-        <Text style={styles.title}>New Password</Text>
-        <Text style={styles.subtitle}>Choose a new password for your account</Text>
-      </View>
+    <Screen style={styles.screen}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.headerSection}>
+            <View style={styles.iconBadge}>
+              {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
+              <Icon name={config.icon} size={28} color={colors.primary} />
+            </View>
+            <Text style={styles.title}>{config.title}</Text>
+            <Text style={styles.subtitle}>{config.subtitle}</Text>
+          </View>
 
-      {error ? <InlineError message={error} /> : null}
-      {successMessage ? (
-        <View style={styles.successContainer}>
-          <Text style={styles.successText}>{successMessage}</Text>
+          {/* Card */}
+          <View style={styles.card}>
+            <StepIndicator current={step} />
+
+            {error ? <InlineError message={error} /> : null}
+            {successMessage ? (
+              <View style={styles.successBox}>
+                {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
+                <Icon name="check-circle-outline" size={18} color={colors.successText} />
+                <Text style={styles.successText}>{successMessage}</Text>
+              </View>
+            ) : null}
+
+            {step === 'email' && (
+              <>
+                <Input
+                  label="Email"
+                  value={email}
+                  onChangeText={setEmail}
+                  error={fieldErrors['email']}
+                  placeholder="Enter your email"
+                  keyboardType="email-address"
+                  testID="forgot-email"
+                />
+                <Button
+                  title="Send Reset Code"
+                  onPress={handleRequestOtp}
+                  loading={loading}
+                  testID="forgot-send"
+                />
+              </>
+            )}
+
+            {step === 'otp' && (
+              <>
+                <Input
+                  label="Verification Code"
+                  value={otp}
+                  onChangeText={setOtp}
+                  error={fieldErrors['otp']}
+                  placeholder="Enter 6-digit code"
+                  keyboardType="number-pad"
+                  testID="forgot-otp"
+                />
+                <Button
+                  title="Verify Code"
+                  onPress={handleVerifyOtp}
+                  loading={loading}
+                  testID="forgot-verify"
+                />
+                <TouchableOpacity
+                  style={styles.resendLink}
+                  onPress={handleResend}
+                  disabled={cooldownRemaining > 0}
+                  testID="forgot-resend"
+                >
+                  <Text
+                    style={[
+                      styles.resendText,
+                      cooldownRemaining > 0 && styles.resendDisabled,
+                    ]}
+                  >
+                    {cooldownRemaining > 0
+                      ? `Resend code in ${cooldownRemaining}s`
+                      : 'Resend code'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {step === 'newPassword' && (
+              <>
+                <Input
+                  label="New Password"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  error={fieldErrors['newPassword']}
+                  placeholder="Enter new password"
+                  secureTextEntry
+                  testID="forgot-new-password"
+                />
+                <Input
+                  label="Confirm Password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  error={fieldErrors['confirmPassword']}
+                  placeholder="Confirm new password"
+                  secureTextEntry
+                  testID="forgot-confirm-password"
+                />
+                <Button
+                  title="Reset Password"
+                  onPress={handleConfirmReset}
+                  loading={loading}
+                  testID="forgot-reset"
+                />
+              </>
+            )}
+          </View>
+
+          {/* Back link */}
+          <View style={styles.footer}>
+            <TouchableOpacity
+              onPress={step === 'email' ? () => navigation.navigate('Login') : goBack}
+              testID="forgot-back"
+            >
+              <View style={styles.backRow}>
+                {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
+                <Icon name="arrow-left" size={16} color={colors.primary} />
+                <Text style={styles.backText}>
+                  {step === 'email' ? 'Back to Sign In' : 'Back'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
-      ) : null}
-
-      <Input
-        label="New Password"
-        value={newPassword}
-        onChangeText={setNewPassword}
-        error={fieldErrors['newPassword']}
-        placeholder="Enter new password"
-        secureTextEntry
-        testID="forgot-new-password"
-      />
-
-      <Input
-        label="Confirm Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        error={fieldErrors['confirmPassword']}
-        placeholder="Confirm new password"
-        secureTextEntry
-        testID="forgot-confirm-password"
-      />
-
-      <Button
-        title="Reset Password"
-        onPress={handleConfirmReset}
-        loading={loading}
-        testID="forgot-reset"
-      />
-
-      <View style={styles.links}>
-        <Button
-          title="Back"
-          variant="secondary"
-          onPress={goBack}
-          testID="forgot-back-password"
-        />
-      </View>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
+  screen: {
+    backgroundColor: colors.bg,
+  },
+  flex: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  headerSection: {
     alignItems: 'center',
-    marginBottom: spacing['2xl'],
-    marginTop: spacing['3xl'],
+    marginBottom: spacing.xl,
+  },
+  iconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
   },
   title: {
     fontSize: fontSizes['3xl'],
     fontWeight: fontWeights.bold,
     color: colors.text,
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: fontSizes.lg,
+    fontSize: fontSizes.base,
     color: colors.textSecondary,
     marginTop: spacing.xs,
     textAlign: 'center',
+    paddingHorizontal: spacing.base,
   },
-  links: {
-    marginTop: spacing.xl,
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    ...shadows.md,
   },
-  spacer: {
-    height: spacing.md,
-  },
-  successContainer: {
+  successBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.successBg,
     borderWidth: 1,
     borderColor: colors.successBorder,
     borderRadius: radius.md,
-    padding: spacing.base,
-    marginVertical: spacing.md,
+    padding: spacing.md,
+    marginBottom: spacing.base,
+    gap: spacing.sm,
   },
   successText: {
     fontSize: fontSizes.base,
     color: colors.successText,
+    flex: 1,
+  },
+  resendLink: {
+    alignSelf: 'center',
+    marginTop: spacing.base,
+  },
+  resendText: {
+    fontSize: fontSizes.sm,
+    color: colors.primary,
+    fontWeight: fontWeights.medium,
+  },
+  resendDisabled: {
+    color: colors.textDisabled,
+  },
+  footer: {
+    alignItems: 'center',
+    marginTop: spacing['2xl'],
+  },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  backText: {
+    fontSize: fontSizes.base,
+    color: colors.primary,
+    fontWeight: fontWeights.semibold,
   },
 });

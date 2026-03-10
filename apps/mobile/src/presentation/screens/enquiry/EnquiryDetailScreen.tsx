@@ -57,9 +57,12 @@ export function EnquiryDetailScreen() {
     return () => { mountedRef.current = false; };
   }, [loadDetail]);
 
-  const isOverdue = enquiry?.nextFollowUpDate
-    ? new Date(enquiry.nextFollowUpDate) < new Date(new Date().toDateString())
-    : false;
+  const isOverdue = (() => {
+    if (!enquiry?.nextFollowUpDate) return false;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return enquiry.nextFollowUpDate < today;
+  })();
 
   if (loading || !enquiry) {
     return (

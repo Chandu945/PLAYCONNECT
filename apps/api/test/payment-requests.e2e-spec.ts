@@ -21,10 +21,12 @@ import { TOKEN_SERVICE } from '../src/application/identity/ports/token-service.p
 import { CreatePaymentRequestUseCase } from '../src/application/fee/use-cases/create-payment-request.usecase';
 import { ListPaymentRequestsUseCase } from '../src/application/fee/use-cases/list-payment-requests.usecase';
 import { CancelPaymentRequestUseCase } from '../src/application/fee/use-cases/cancel-payment-request.usecase';
+import { EditPaymentRequestUseCase } from '../src/application/fee/use-cases/edit-payment-request.usecase';
 import { ApprovePaymentRequestUseCase } from '../src/application/fee/use-cases/approve-payment-request.usecase';
 import { RejectPaymentRequestUseCase } from '../src/application/fee/use-cases/reject-payment-request.usecase';
 import { ListTransactionLogsUseCase } from '../src/application/fee/use-cases/list-transaction-logs.usecase';
 import { RunMonthlyDuesEngineUseCase } from '../src/application/fee/use-cases/run-monthly-dues-engine.usecase';
+import { PUSH_NOTIFICATION_SERVICE } from '../src/presentation/http/device-tokens/device-tokens.module';
 import {
   InMemoryUserRepository,
   InMemoryStudentRepository,
@@ -128,15 +130,21 @@ describe('Payment Requests Endpoints (e2e)', () => {
         },
         {
           provide: 'LIST_PAYMENT_REQUESTS_USE_CASE',
-          useFactory: (ur: UserRepository, prr: PaymentRequestRepository) =>
-            new ListPaymentRequestsUseCase(ur, prr),
-          inject: [USER_REPOSITORY, PAYMENT_REQUEST_REPOSITORY],
+          useFactory: (ur: UserRepository, sr: StudentRepository, prr: PaymentRequestRepository) =>
+            new ListPaymentRequestsUseCase(ur, sr, prr),
+          inject: [USER_REPOSITORY, STUDENT_REPOSITORY, PAYMENT_REQUEST_REPOSITORY],
         },
         {
           provide: 'CANCEL_PAYMENT_REQUEST_USE_CASE',
-          useFactory: (ur: UserRepository, prr: PaymentRequestRepository) =>
-            new CancelPaymentRequestUseCase(ur, prr, noOpAuditRecorder),
-          inject: [USER_REPOSITORY, PAYMENT_REQUEST_REPOSITORY],
+          useFactory: (ur: UserRepository, sr: StudentRepository, prr: PaymentRequestRepository) =>
+            new CancelPaymentRequestUseCase(ur, sr, prr, noOpAuditRecorder),
+          inject: [USER_REPOSITORY, STUDENT_REPOSITORY, PAYMENT_REQUEST_REPOSITORY],
+        },
+        {
+          provide: 'EDIT_PAYMENT_REQUEST_USE_CASE',
+          useFactory: (ur: UserRepository, sr: StudentRepository, prr: PaymentRequestRepository) =>
+            new EditPaymentRequestUseCase(ur, sr, prr, noOpAuditRecorder),
+          inject: [USER_REPOSITORY, STUDENT_REPOSITORY, PAYMENT_REQUEST_REPOSITORY],
         },
         {
           provide: 'APPROVE_PAYMENT_REQUEST_USE_CASE',
@@ -146,24 +154,30 @@ describe('Payment Requests Endpoints (e2e)', () => {
             fdr: FeeDueRepository,
             prr: PaymentRequestRepository,
             tlr: TransactionLogRepository,
+            sr: StudentRepository,
             clock: ClockPort,
             tx: TransactionPort,
-          ) => new ApprovePaymentRequestUseCase(ur, ar, fdr, prr, tlr, clock, tx, noOpAuditLogRepo),
+          ) => new ApprovePaymentRequestUseCase(ur, ar, fdr, prr, tlr, sr, clock, tx, noOpAuditLogRepo),
           inject: [
             USER_REPOSITORY,
             ACADEMY_REPOSITORY,
             FEE_DUE_REPOSITORY,
             PAYMENT_REQUEST_REPOSITORY,
             TRANSACTION_LOG_REPOSITORY,
+            STUDENT_REPOSITORY,
             CLOCK_PORT,
             TRANSACTION_PORT,
           ],
         },
         {
+          provide: PUSH_NOTIFICATION_SERVICE,
+          useValue: { sendToUser: async () => {}, sendToUsers: async () => {} },
+        },
+        {
           provide: 'REJECT_PAYMENT_REQUEST_USE_CASE',
-          useFactory: (ur: UserRepository, prr: PaymentRequestRepository, fdr: FeeDueRepository, clock: ClockPort) =>
-            new RejectPaymentRequestUseCase(ur, prr, fdr, clock, noOpAuditRecorder),
-          inject: [USER_REPOSITORY, PAYMENT_REQUEST_REPOSITORY, FEE_DUE_REPOSITORY, CLOCK_PORT],
+          useFactory: (ur: UserRepository, sr: StudentRepository, prr: PaymentRequestRepository, fdr: FeeDueRepository, clock: ClockPort) =>
+            new RejectPaymentRequestUseCase(ur, sr, prr, fdr, clock, noOpAuditRecorder),
+          inject: [USER_REPOSITORY, STUDENT_REPOSITORY, PAYMENT_REQUEST_REPOSITORY, FEE_DUE_REPOSITORY, CLOCK_PORT],
         },
         {
           provide: 'LIST_TRANSACTION_LOGS_USE_CASE',

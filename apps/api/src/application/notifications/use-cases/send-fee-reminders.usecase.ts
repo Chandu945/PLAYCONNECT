@@ -3,6 +3,7 @@ import type { StudentRepository } from '@domain/student/ports/student.repository
 import type { AcademyRepository } from '@domain/academy/ports/academy.repository';
 import type { SubscriptionRepository } from '@domain/subscription/ports/subscription.repository';
 import type { EmailSenderPort, EmailMessage } from '../ports/email-sender.port';
+import type { PushNotificationService } from '../push-notification.service';
 import type { LoggerPort } from '@shared/logging/logger.port';
 import type { ClockPort } from '../../common/clock.port';
 import type { FeeDue } from '@domain/fee/entities/fee-due.entity';
@@ -25,6 +26,7 @@ export class SendFeeRemindersUseCase {
     private readonly emailSender: EmailSenderPort,
     private readonly logger: LoggerPort,
     private readonly clock: ClockPort,
+    private readonly pushService?: PushNotificationService,
   ) {}
 
   async execute(): Promise<Result<FeeReminderRunSummary, never>> {
@@ -127,7 +129,7 @@ export class SendFeeRemindersUseCase {
       }
     }
 
-    // Send in chunks of CONCURRENCY
+    // Send emails in chunks of CONCURRENCY
     for (let i = 0; i < messages.length; i += CONCURRENCY) {
       const chunk = messages.slice(i, i + CONCURRENCY);
       const results = await Promise.allSettled(chunk.map((msg) => this.emailSender.send(msg)));
@@ -138,6 +140,23 @@ export class SendFeeRemindersUseCase {
         } else {
           summary.emailsFailed++;
         }
+      }
+    }
+
+    // Send push notifications to academy owners about upcoming dues
+    if (this.pushService) {
+      const ownerIds = [...byAcademy.keys()];
+      for (const academyId of ownerIds) {
+        const academy = await this.academyRepo.findById(academyId);
+        if (!academy) continue;
+        const dueCount = byAcademy.get(academyId)?.length ?? 0;
+        this.pushService
+          .sendToUser(academy.ownerUserId, {
+            title: 'Fee Reminders Sent',
+            body: `${dueCount} fee reminder(s) sent to students for dues on ${targetDueDate}.`,
+            data: { type: 'FEE_REMINDER', academyId },
+          })
+          .catch(() => {});
       }
     }
 

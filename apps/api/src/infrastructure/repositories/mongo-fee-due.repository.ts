@@ -161,6 +161,14 @@ export class MongoFeeDueRepository implements FeeDueRepository {
     return docs.map((d) => this.toDomain(d as unknown as Record<string, unknown>));
   }
 
+  async findOverdueDues(upToDate: string): Promise<FeeDue[]> {
+    const docs = await this.model
+      .find({ status: 'DUE', dueDate: { $lte: upToDate } })
+      .lean()
+      .exec();
+    return docs.map((d) => this.toDomain(d as unknown as Record<string, unknown>));
+  }
+
   async deleteUpcomingByStudent(academyId: string, studentId: string): Promise<number> {
     const result = await this.model.deleteMany({ academyId, studentId, status: 'UPCOMING' }, { session: getTransactionSession() });
     return result.deletedCount;

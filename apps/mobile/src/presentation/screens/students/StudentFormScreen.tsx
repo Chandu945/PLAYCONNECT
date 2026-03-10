@@ -81,11 +81,13 @@ export function StudentFormScreen() {
 
   useEffect(() => {
     if (mode === 'edit' && student?.id) {
+      let cancelled = false;
       getStudentBatches(student.id).then((result) => {
-        if (result.ok) {
+        if (!cancelled && result.ok) {
           setSelectedBatchIds(result.value.map((b) => b.id));
         }
-      });
+      }).catch(() => {});
+      return () => { cancelled = true; };
     }
   }, [mode, student?.id]);
 

@@ -21,6 +21,8 @@ module.exports = {
       'react-native-keychain': path.resolve(appDirectory, 'web/stubs/react-native-keychain.js'),
       'react-native-fs': path.resolve(appDirectory, 'web/stubs/react-native-fs.js'),
       'react-native-share': path.resolve(appDirectory, 'web/stubs/react-native-share.js'),
+      '@react-native-firebase/messaging': path.resolve(appDirectory, 'web/stubs/react-native-firebase-messaging.js'),
+      '@react-native-firebase/app': path.resolve(appDirectory, 'web/stubs/react-native-firebase-app.js'),
     },
     modules: [
       path.resolve(appDirectory, 'node_modules'),

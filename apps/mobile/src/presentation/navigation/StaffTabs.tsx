@@ -36,6 +36,7 @@ function StaffTabsInner() {
           headerTitleStyle: { fontWeight: fontWeights.semibold, fontSize: fontSizes.lg },
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textDisabled,
+          tabBarShowLabel: false,
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             // @ts-expect-error react-native-vector-icons types incompatible with @types/react@19
             <Icon name={TAB_ICONS[route.name] ?? 'circle'} size={size} color={color} />

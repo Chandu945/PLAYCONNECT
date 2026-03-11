@@ -16,6 +16,39 @@ import { ok, err } from '../../domain/common/result';
 import { mapHttpError } from '../http/error-mapper';
 import { env } from '../env';
 
+const AUTH_TIMEOUT_MS = 30_000;
+const AUTH_RETRY_BACKOFF_MS = 2_000;
+
+async function attemptPost<T>(
+  url: string,
+  headers: Record<string, string>,
+  body: string,
+): Promise<Result<T, AppError>> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AUTH_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body,
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      const json = await res.json().catch(() => null);
+      return err(mapHttpError(res.status, json));
+    }
+
+    const json = (await res.json()) as { data: T };
+    return ok(json.data);
+  } catch {
+    clearTimeout(timer);
+    return err({ code: 'NETWORK', message: 'Network error. Please check your connection.' });
+  }
+}
+
 async function post<T>(
   path: string,
   body: unknown,
@@ -28,27 +61,16 @@ async function post<T>(
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+  const serialized = JSON.stringify(body);
+  const result = await attemptPost<T>(url, headers, serialized);
 
-    if (!res.ok) {
-      const json = await res.json().catch(() => null);
-      return err(mapHttpError(res.status, json));
-    }
-
-    const json = (await res.json()) as { data: T };
-    return ok(json.data);
-  } catch {
-    return err({ code: 'NETWORK', message: 'Network error. Please check your connection.' });
+  // Retry once on network error (auth POSTs are safe to retry — backend revokes old sessions)
+  if (!result.ok && result.error.code === 'NETWORK') {
+    await new Promise<void>((r) => setTimeout(r, AUTH_RETRY_BACKOFF_MS));
+    return attemptPost<T>(url, headers, serialized);
   }
+
+  return result;
 }
 
 export const authApi: AuthApiPort = {

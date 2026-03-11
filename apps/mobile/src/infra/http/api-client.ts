@@ -43,11 +43,15 @@ async function tryRefresh(): Promise<string | null> {
     const userId = session.user.id;
 
     try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30_000);
       const res = await fetch(`${env.API_BASE_URL}/api/v1/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: session.refreshToken, deviceId, userId }),
+        signal: controller.signal,
       });
+      clearTimeout(timer);
 
       if (!res.ok) return null;
 

@@ -86,6 +86,7 @@ export const academyInfoSchema = z.object({
 });
 
 export const paymentHistoryItemSchema = z.object({
+  feeDueId: z.string(),
   receiptNumber: z.string(),
   studentName: z.string(),
   monthKey: z.string(),

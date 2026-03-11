@@ -11,6 +11,7 @@ const ALGORITHM = 'aes-256-gcm';
 type SessionPayload = {
   refreshToken: string;
   deviceId: string;
+  userId: string;
 };
 
 function getDerivedKey(): Buffer {
@@ -39,11 +40,11 @@ function decrypt(encoded: string): string {
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
 }
 
-export async function setSessionCookie(refreshToken: string, deviceId: string): Promise<void> {
+export async function setSessionCookie(refreshToken: string, deviceId: string, userId: string): Promise<void> {
   const cookieStore = await cookies();
   const { NEXT_PUBLIC_APP_ENV } = publicEnv();
 
-  const payload: SessionPayload = { refreshToken, deviceId };
+  const payload: SessionPayload = { refreshToken, deviceId, userId };
   const encrypted = encrypt(JSON.stringify(payload));
 
   cookieStore.set(COOKIE_NAME, encrypted, {

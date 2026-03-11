@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
   const result = await apiPost<BackendRefreshResponse>('/api/v1/admin/auth/refresh', {
     refreshToken: session.refreshToken,
     deviceId: session.deviceId,
+    userId: session.userId,
   });
 
   if (!result.ok) {
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rotate cookie with new refresh token
-  await setSessionCookie(result.data.refreshToken, session.deviceId);
+  await setSessionCookie(result.data.refreshToken, session.deviceId, session.userId);
 
   return NextResponse.json({ accessToken: result.data.accessToken });
 }

@@ -144,6 +144,13 @@ export const envSchema = z
         message: 'SMTP_HOST must not be localhost in production/staging',
       });
     }
+    if (!val.CASHFREE_WEBHOOK_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['CASHFREE_WEBHOOK_SECRET'],
+        message: 'CASHFREE_WEBHOOK_SECRET is required in production/staging',
+      });
+    }
   });
 
 export type EnvConfig = z.infer<typeof envSchema>;

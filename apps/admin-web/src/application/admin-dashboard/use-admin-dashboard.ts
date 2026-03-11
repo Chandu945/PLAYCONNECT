@@ -26,13 +26,16 @@ export function useAdminDashboard(): UseAdminDashboardReturn {
   }, []);
 
   useEffect(() => {
+    if (!accessToken) return;
+    const token = accessToken;
+
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       setError(null);
 
-      const result = await dashboardService.getDashboard(accessToken ?? undefined);
+      const result = await dashboardService.getDashboard(token);
 
       if (cancelled) return;
 

@@ -26,6 +26,9 @@ export function useAuditLogs(academyId: string, query: AuditLogsQuery): UseAudit
   const queryKey = JSON.stringify(query);
 
   useEffect(() => {
+    if (!accessToken) return;
+    const token = accessToken;
+
     let cancelled = false;
 
     async function load() {
@@ -35,7 +38,7 @@ export function useAuditLogs(academyId: string, query: AuditLogsQuery): UseAudit
       const result = await auditLogsService.listAuditLogs(
         academyId,
         query,
-        accessToken ?? undefined,
+        token,
       );
 
       if (cancelled) return;

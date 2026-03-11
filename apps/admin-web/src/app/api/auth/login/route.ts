@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   const { accessToken, refreshToken, deviceId, user } = result.data;
 
-  await setSessionCookie(refreshToken, deviceId);
+  await setSessionCookie(refreshToken, deviceId, user.id);
 
   return NextResponse.json({ accessToken, user, deviceId });
 }

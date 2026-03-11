@@ -10,12 +10,16 @@ import { ok, err } from '../../domain/common/result';
 import { mapHttpError } from '../http/error-mapper';
 import { env } from '../env';
 
+const TIMEOUT_MS = 30_000;
+
 async function fetchApi<T>(
   method: string,
   path: string,
   accessToken: string,
 ): Promise<Result<T, AppError>> {
   const url = `${env.API_BASE_URL}${path}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(url, {
       method,
@@ -23,7 +27,9 @@ async function fetchApi<T>(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
+      signal: controller.signal,
     });
+    clearTimeout(timer);
 
     if (!res.ok) {
       const json = await res.json().catch(() => null);
@@ -33,6 +39,7 @@ async function fetchApi<T>(
     const json = (await res.json()) as { data: T };
     return ok(json.data);
   } catch {
+    clearTimeout(timer);
     return err({ code: 'NETWORK', message: 'Network error. Please check your connection.' });
   }
 }
@@ -42,6 +49,8 @@ async function postApi<T>(
   accessToken: string,
 ): Promise<Result<T, AppError>> {
   const url = `${env.API_BASE_URL}${path}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -49,7 +58,9 @@ async function postApi<T>(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
+      signal: controller.signal,
     });
+    clearTimeout(timer);
 
     if (!res.ok) {
       const json = await res.json().catch(() => null);
@@ -59,6 +70,7 @@ async function postApi<T>(
     const json = (await res.json()) as { data: T };
     return ok(json.data);
   } catch {
+    clearTimeout(timer);
     return err({ code: 'NETWORK', message: 'Network error. Please check your connection.' });
   }
 }

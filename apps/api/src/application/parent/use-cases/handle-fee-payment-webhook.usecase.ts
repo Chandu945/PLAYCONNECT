@@ -107,14 +107,14 @@ export class HandleFeePaymentWebhookUseCase {
         receiptNumber,
       });
 
-      const transitioned = await this.feePaymentRepo.saveWithStatusPrecondition(updated, 'PENDING');
-      if (!transitioned) {
-        // Another concurrent webhook already processed this payment — idempotent success
-        this.logger.info('Fee payment already transitioned from PENDING — skipping', { orderId });
-        return ok(undefined);
-      }
-
       await this.transaction.run(async () => {
+        const transitioned = await this.feePaymentRepo.saveWithStatusPrecondition(updated, 'PENDING');
+        if (!transitioned) {
+          // Another concurrent webhook already processed this payment — idempotent success
+          this.logger.info('Fee payment already transitioned from PENDING — skipping', { orderId });
+          return;
+        }
+
         await this.feeDueRepo.save(paidDue);
         await this.transactionLogRepo.save(txLog);
       });

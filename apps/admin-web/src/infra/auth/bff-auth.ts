@@ -33,6 +33,7 @@ export async function resolveAccessToken(request: NextRequest): Promise<string |
   const result = await apiPost<RefreshResult>('/api/v1/admin/auth/refresh', {
     refreshToken: session.refreshToken,
     deviceId: session.deviceId,
+    userId: session.userId,
   });
 
   if (!result.ok) {
@@ -41,7 +42,7 @@ export async function resolveAccessToken(request: NextRequest): Promise<string |
   }
 
   // Rotate cookie
-  await setSessionCookie(result.data.refreshToken ?? session.refreshToken, session.deviceId);
+  await setSessionCookie(result.data.refreshToken ?? session.refreshToken, session.deviceId, session.userId);
   return result.data.accessToken;
 }
 

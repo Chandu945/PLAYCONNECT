@@ -29,13 +29,16 @@ export function useAcademies(query: AcademiesQuery): UseAcademiesReturn {
   const queryKey = JSON.stringify(query);
 
   useEffect(() => {
+    if (!accessToken) return;
+    const token = accessToken;
+
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       setError(null);
 
-      const result = await academiesService.listAcademies(query, accessToken ?? undefined);
+      const result = await academiesService.listAcademies(query, token);
 
       if (cancelled) return;
 

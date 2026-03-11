@@ -42,13 +42,16 @@ export function useAcademyDetail(academyId: string): UseAcademyDetailReturn {
   const refetch = useCallback(() => setFetchCount((c) => c + 1), []);
 
   useEffect(() => {
+    if (!accessToken) return;
+    const token = accessToken;
+
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       setError(null);
 
-      const result = await detailService.getDetail(academyId, accessToken ?? undefined);
+      const result = await detailService.getDetail(academyId, token);
 
       if (cancelled) return;
 

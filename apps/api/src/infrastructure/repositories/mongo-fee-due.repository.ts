@@ -174,7 +174,7 @@ export class MongoFeeDueRepository implements FeeDueRepository {
     return result.deletedCount;
   }
 
-  private toDomain(doc: Record<string, unknown>): FeeDue {
+  private toDomain(doc: unknown): FeeDue {
     const d = doc as {
       _id: string;
       academyId: string;

@@ -40,6 +40,7 @@ import type { StudentQueryRepository } from '../src/domain/student/ports/student
 import type { BatchRepository } from '../src/domain/batch/ports/batch.repository';
 import type { StudentBatchRepository } from '../src/domain/batch/ports/student-batch.repository';
 import { toMonthKeyFromDate } from '../src/shared/date-utils';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Students Endpoints (e2e)', () => {
   let app: INestApplication;
@@ -134,7 +135,7 @@ describe('Students Endpoints (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

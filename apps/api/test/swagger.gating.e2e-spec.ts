@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { Controller, Get, type INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { setupSwagger } from '../src/presentation/swagger/swagger.setup';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 /** Minimal controller so the test app boots. */
 @Controller('health')
@@ -18,7 +19,7 @@ async function createApp(swaggerEnabled: boolean, swaggerToken = ''): Promise<IN
   }).compile();
 
   const app = mod.createNestApplication();
-  app.setGlobalPrefix('api/v1');
+  configureApiVersioning(app);
 
   const config = { swaggerEnabled, swaggerToken } as any;
   const logger = { info: jest.fn() } as any;

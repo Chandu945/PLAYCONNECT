@@ -47,6 +47,7 @@ import type { SubscriptionRepository } from '../src/domain/subscription/ports/su
 import type { AuditLogRepository } from '../src/domain/audit/ports/audit-log.repository';
 import type { PasswordHasher } from '../src/application/identity/ports/password-hasher.port';
 import type { PasswordGeneratorPort } from '../src/application/common/password-generator.port';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 /** In-memory AdminQueryRepository that composes from individual repos */
 class InMemoryAdminQueryRepository implements AdminQueryRepository {
@@ -216,7 +217,7 @@ describe('Admin Academies (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

@@ -7,9 +7,12 @@ import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { FileStoragePort } from '../../common/ports/file-storage.port';
 import { StaffErrors } from '../../common/errors';
 import { AppError as AppErrorClass } from '@shared/kernel';
-
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  MAX_IMAGE_FILE_SIZE,
+  extensionForMime,
+  validateImageBuffer,
+} from '@shared/utils/image-validation';
 
 export interface UploadStaffPhotoInput {
   actorUserId: string;
@@ -44,12 +47,17 @@ export class UploadStaffPhotoUseCase {
       return err(StaffErrors.notInAcademy());
     }
 
-    if (!ALLOWED_MIME_TYPES.includes(input.mimeType)) {
+    if (!ALLOWED_IMAGE_MIME_TYPES.includes(input.mimeType as typeof ALLOWED_IMAGE_MIME_TYPES[number])) {
       return err(AppErrorClass.validation('Only JPEG, PNG, and WebP images are allowed'));
     }
 
-    if (input.buffer.length > MAX_FILE_SIZE) {
+    if (input.buffer.length > MAX_IMAGE_FILE_SIZE) {
       return err(AppErrorClass.validation('File size must not exceed 5MB'));
+    }
+
+    const bufferCheck = validateImageBuffer(input.buffer, input.mimeType);
+    if (!bufferCheck.valid) {
+      return err(AppErrorClass.validation(bufferCheck.reason));
     }
 
     // Delete old photo if exists
@@ -57,7 +65,7 @@ export class UploadStaffPhotoUseCase {
       await this.fileStorage.delete(staff.profilePhotoUrl);
     }
 
-    const ext = input.originalName.split('.').pop() ?? 'jpg';
+    const ext = extensionForMime(input.mimeType);
     const filename = `${uuidv4()}.${ext}`;
     const folder = `staff/${actor.academyId}`;
 

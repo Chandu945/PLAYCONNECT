@@ -51,7 +51,7 @@ export class MongoSubscriptionRepository implements SubscriptionRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
-  private toDomain(doc: Record<string, unknown>): Subscription {
+  private toDomain(doc: unknown): Subscription {
     const d = doc as {
       _id: string;
       academyId: string;

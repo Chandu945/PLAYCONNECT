@@ -6,6 +6,7 @@ import { generateRequestId } from './request-id';
 import { policyFetch } from './request-policy';
 import { tokenStore } from '../auth/token-store';
 import { deviceIdStore } from '../auth/device-id';
+import { isTokenExpiredOrExpiring } from '../auth/token-expiry';
 import { env } from '../env';
 
 let _accessToken: string | null = null;
@@ -75,6 +76,11 @@ async function request<T>(
   body?: unknown,
   retried = false,
 ): Promise<Result<T, AppError>> {
+  // Proactively refresh if the token is expired or about to expire
+  if (_accessToken && isTokenExpiredOrExpiring(_accessToken) && !retried) {
+    await tryRefresh();
+  }
+
   const url = `${env.API_BASE_URL}${path}`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

@@ -38,6 +38,7 @@ import type { OtpGenerator } from '../src/application/identity/ports/otp-generat
 import type { OtpHasher } from '../src/application/identity/ports/otp-hasher.port';
 import type { EmailSenderPort } from '../src/application/notifications/ports/email-sender.port';
 import { hashSync, compareSync } from 'bcryptjs';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Password Reset (e2e)', () => {
   let app: INestApplication;
@@ -171,7 +172,7 @@ describe('Password Reset (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

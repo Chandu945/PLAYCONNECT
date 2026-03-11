@@ -10,7 +10,7 @@ const Stack = createNativeStackNavigator<BlockedStackParamList>();
 
 export function BlockedStack() {
   return (
-    // @ts-expect-error React Navigation 6 types incompatible with @types/react@19 hoisted in monorepo
+    // @ts-expect-error @types/react version mismatch in monorepo
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="SubscriptionBlocked" component={SubscriptionScreen} />
     </Stack.Navigator>

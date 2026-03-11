@@ -10,36 +10,65 @@
   color: var(--color-text);
 }
 
-.input {
-  height: 42px;
-  padding: 0 var(--space-4);
+.inputWrapper {
+  display: flex;
+  align-items: center;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  color: var(--color-text);
   background-color: var(--color-surface);
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast);
 }
 
-.input::placeholder {
-  color: var(--color-text-disabled);
-}
-
-.input:focus {
-  outline: none;
+.inputWrapper:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
-.inputError {
+.inputWrapperError {
   border-color: var(--color-error);
 }
 
-.inputError:focus {
+.inputWrapperError:focus-within {
   box-shadow: 0 0 0 3px var(--color-error-bg);
+}
+
+.input {
+  flex: 1;
+  height: 42px;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background: transparent;
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-text-disabled);
+}
+
+.toggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-disabled);
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  transition: color var(--transition-fast);
+}
+
+.toggleButton:hover {
+  color: var(--color-text);
 }
 
 .errorText {

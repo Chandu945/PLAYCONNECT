@@ -140,32 +140,43 @@ export function StudentActionMenu({
 
   const handleGenerateDocument = async (docType: 'report' | 'registration-form' | 'id-card', label: string) => {
     onClose();
+    const token = getAccessToken();
+    if (!token) {
+      Alert.alert('Error', 'Session expired. Please log in again.');
+      return;
+    }
     setGenerating(label);
     try {
       const path = studentApi.getStudentDocumentUrl(student.id, docType);
-      const token = getAccessToken();
       const url = `${env.API_BASE_URL}${path}`;
       const destPath = `${RNFS.CachesDirectoryPath}/${docType}_${student.id}.pdf`;
 
       const response = await RNFS.downloadFile({
         fromUrl: url,
         toFile: destPath,
-        headers: { Authorization: `Bearer ${token}` },
+        connectionTimeout: 30_000,
+        readTimeout: 30_000,
+        headers: {
+          Accept: 'application/pdf',
+          Authorization: `Bearer ${token}`,
+        },
       }).promise;
 
-      if (response.statusCode === 200) {
+      if (response.statusCode === 200 && response.bytesWritten > 0) {
         await RNShare.open({
           url: `file://${destPath}`,
           type: 'application/pdf',
           title: label,
         }).catch(() => {});
-        // Clean up temp file
+        // Clean up temp file after share dialog closes
         RNFS.unlink(destPath).catch(() => {});
+      } else if (response.statusCode === 401) {
+        Alert.alert('Error', 'Session expired. Please log in again.');
       } else {
         Alert.alert('Error', 'Failed to generate document. Please try again.');
       }
     } catch {
-      Alert.alert('Error', 'Failed to generate document. Please try again.');
+      Alert.alert('Error', 'Failed to generate document. Check your connection and try again.');
     } finally {
       setGenerating(null);
     }
@@ -274,6 +285,7 @@ export function StudentActionMenu({
                   testID={`action-${action.key}`}
                 >
                   <View style={[styles.iconContainer, { backgroundColor: action.iconColor + '20' }]}>
+                    {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
                     <Icon name={action.iconName} size={22} color={action.iconColor} />
                   </View>
                   <View style={styles.actionText}>

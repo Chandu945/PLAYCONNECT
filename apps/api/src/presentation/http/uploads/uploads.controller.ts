@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../common/guards/rbac.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -20,9 +21,12 @@ import { mapResultToResponse } from '../common/result-mapper';
 import { ok, err, AppError } from '@shared/kernel';
 import { v4 as uuidv4 } from 'uuid';
 import type { Request } from 'express';
-
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  MAX_IMAGE_FILE_SIZE,
+  extensionForMime,
+  validateImageBuffer,
+} from '@shared/utils/image-validation';
 
 @ApiTags('Uploads')
 @ApiBearerAuth()
@@ -35,9 +39,10 @@ export class UploadsController {
 
   @Post('image')
   @Roles('OWNER', 'STAFF')
+  @Throttle({ short: { limit: 15, ttl: 10_000 }, medium: { limit: 40, ttl: 60_000 }, long: { limit: 200, ttl: 900_000 } })
   @ApiOperation({ summary: 'Upload an image (general purpose)' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_IMAGE_FILE_SIZE } }))
   async uploadImage(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: CurrentUserType,
@@ -47,21 +52,29 @@ export class UploadsController {
       return mapResultToResponse(err(AppError.validation('No file provided')), req);
     }
 
-    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.mimetype as typeof ALLOWED_IMAGE_MIME_TYPES[number])) {
       return mapResultToResponse(
         err(AppError.validation('Only JPEG, PNG, and WebP images are allowed')),
         req,
       );
     }
 
-    if (file.buffer.length > MAX_FILE_SIZE) {
+    if (file.buffer.length > MAX_IMAGE_FILE_SIZE) {
       return mapResultToResponse(
         err(AppError.validation('File size must not exceed 5MB')),
         req,
       );
     }
 
-    const ext = file.originalname.split('.').pop() ?? 'jpg';
+    const bufferCheck = validateImageBuffer(file.buffer, file.mimetype);
+    if (!bufferCheck.valid) {
+      return mapResultToResponse(
+        err(AppError.validation(bufferCheck.reason)),
+        req,
+      );
+    }
+
+    const ext = extensionForMime(file.mimetype);
     const filename = `${uuidv4()}.${ext}`;
     const folder = `temp/${user.userId}`;
 

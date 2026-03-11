@@ -80,7 +80,7 @@ export class MongoSubscriptionPaymentRepository implements SubscriptionPaymentRe
     return doc ? this.toDomain(doc) : null;
   }
 
-  private toDomain(doc: Record<string, unknown>): SubscriptionPayment {
+  private toDomain(doc: unknown): SubscriptionPayment {
     const d = doc as {
       _id: string;
       academyId: string;

@@ -37,6 +37,7 @@ export class GetPaymentHistoryUseCase {
     const nameMap = new Map(students.map((s) => [s.id.toString(), s.fullName]));
 
     const items: PaymentHistoryItemDto[] = txLogs.map((tx) => ({
+      feeDueId: tx.feeDueId,
       receiptNumber: tx.receiptNumber,
       studentName: nameMap.get(tx.studentId) ?? 'Unknown',
       monthKey: tx.monthKey,

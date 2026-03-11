@@ -39,10 +39,19 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
+            sourceType: 'unambiguous',
             presets: ['@react-native/babel-preset'],
             plugins: ['react-native-web'],
           },
         },
+      },
+      // React Navigation 7 ships ESM files as "main" without "type":"module" —
+      // force webpack to auto-detect module format instead of assuming CJS
+      {
+        test: /\.js$/,
+        include: /node_modules[\\/]@react-navigation/,
+        resolve: { fullySpecified: false },
+        type: 'javascript/auto',
       },
       {
         test: /\.(png|jpe?g|gif|svg)$/,

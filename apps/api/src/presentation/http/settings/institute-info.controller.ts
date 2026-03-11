@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../common/guards/rbac.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -25,6 +26,7 @@ import type { UploadInstituteImageUseCase } from '@application/academy/use-cases
 import type { DeleteInstituteImageUseCase } from '@application/academy/use-cases/delete-institute-image.usecase';
 import { UpdateInstituteInfoDto } from './dto/update-institute-info.dto';
 import { mapResultToResponse } from '../common/result-mapper';
+import { MAX_IMAGE_FILE_SIZE } from '@shared/utils/image-validation';
 import type { Request } from 'express';
 
 @ApiTags('Institute Info')
@@ -71,14 +73,18 @@ export class InstituteInfoController {
   }
 
   @Post('signature')
+  @Throttle({ short: { limit: 3, ttl: 10_000 }, medium: { limit: 10, ttl: 60_000 }, long: { limit: 30, ttl: 900_000 } })
   @ApiOperation({ summary: 'Upload signature/stamp image' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_IMAGE_FILE_SIZE } }))
   async uploadSignature(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() user: CurrentUserType,
     @Req() req: Request,
   ) {
+    if (!file) {
+      return { success: false, error: { code: 'VALIDATION', message: 'No file uploaded' } };
+    }
     const result = await this.uploadInstituteImage.execute({
       actorUserId: user.userId,
       actorRole: user.role,
@@ -102,14 +108,18 @@ export class InstituteInfoController {
   }
 
   @Post('qrcode')
+  @Throttle({ short: { limit: 3, ttl: 10_000 }, medium: { limit: 10, ttl: 60_000 }, long: { limit: 30, ttl: 900_000 } })
   @ApiOperation({ summary: 'Upload QR code image' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_IMAGE_FILE_SIZE } }))
   async uploadQrCode(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() user: CurrentUserType,
     @Req() req: Request,
   ) {
+    if (!file) {
+      return { success: false, error: { code: 'VALIDATION', message: 'No file uploaded' } };
+    }
     const result = await this.uploadInstituteImage.execute({
       actorUserId: user.userId,
       actorRole: user.role,

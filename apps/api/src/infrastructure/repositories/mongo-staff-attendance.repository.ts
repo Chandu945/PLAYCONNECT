@@ -6,6 +6,7 @@ import { StaffAttendance } from '@domain/staff-attendance/entities/staff-attenda
 import { StaffAttendanceModel } from '../database/schemas/staff-attendance.schema';
 import type { StaffAttendanceDocument } from '../database/schemas/staff-attendance.schema';
 import { getTransactionSession } from '../database/transaction-context';
+import { escapeRegex } from '@shared/utils/escape-regex';
 
 @Injectable()
 export class MongoStaffAttendanceRepository implements StaffAttendanceRepository {
@@ -64,7 +65,7 @@ export class MongoStaffAttendanceRepository implements StaffAttendanceRepository
     monthPrefix: string,
   ): Promise<StaffAttendance[]> {
     const docs = await this.model
-      .find({ academyId, date: { $regex: `^${monthPrefix}` } })
+      .find({ academyId, date: { $regex: `^${escapeRegex(monthPrefix)}` } })
       .lean()
       .exec();
     return docs.map((doc) => this.toDomain(doc as unknown as Record<string, unknown>));
@@ -78,11 +79,11 @@ export class MongoStaffAttendanceRepository implements StaffAttendanceRepository
     return this.model.countDocuments({
       academyId,
       staffUserId,
-      date: { $regex: `^${monthPrefix}` },
+      date: { $regex: `^${escapeRegex(monthPrefix)}` },
     });
   }
 
-  private toDomain(doc: Record<string, unknown>): StaffAttendance {
+  private toDomain(doc: unknown): StaffAttendance {
     const d = doc as {
       _id: string;
       academyId: string;

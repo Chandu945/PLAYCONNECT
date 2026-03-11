@@ -49,14 +49,15 @@ export class MongoDeviceTokenRepository implements DeviceTokenRepository {
     return docs.map(this.toDomain);
   }
 
-  private toDomain(doc: Record<string, unknown>): DeviceToken {
+  private toDomain(doc: unknown): DeviceToken {
+    const d = doc as Record<string, unknown>;
     return {
-      id: doc['_id'] as string,
-      userId: doc['userId'] as string,
-      fcmToken: doc['fcmToken'] as string,
-      platform: doc['platform'] as string,
-      createdAt: doc['createdAt'] as Date,
-      updatedAt: doc['updatedAt'] as Date,
+      id: d['_id'] as string,
+      userId: d['userId'] as string,
+      fcmToken: d['fcmToken'] as string,
+      platform: d['platform'] as string,
+      createdAt: d['createdAt'] as Date,
+      updatedAt: d['updatedAt'] as Date,
     };
   }
 }

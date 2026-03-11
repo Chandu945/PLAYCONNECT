@@ -38,6 +38,7 @@ import type { StudentRepository } from '../../src/domain/student/ports/student.r
 import type { StudentAttendanceRepository } from '../../src/domain/attendance/ports/student-attendance.repository';
 import type { HolidayRepository } from '../../src/domain/attendance/ports/holiday.repository';
 import type { AuditRecorderPort } from '../../src/application/audit/ports/audit-recorder.port';
+import { configureApiVersioning } from '../../src/shared/config/api-versioning';
 
 describe('Attendance Failure Paths (e2e)', () => {
   let app: INestApplication;
@@ -195,7 +196,7 @@ describe('Attendance Failure Paths (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

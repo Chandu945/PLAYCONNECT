@@ -53,9 +53,11 @@ async function attemptDownload(
   options: DownloadPdfOptions,
 ): Promise<Result<PdfExportResult, AppError>> {
   const token = getAccessToken();
-  const url = `${env.API_BASE_URL}${options.endpoint}`;
-  const separator = options.endpoint.includes('?') ? '&' : '?';
-  const fullUrl = `${url}${separator}token=${token}`;
+  if (!token) {
+    return err({ code: 'FORBIDDEN', message: 'Not authenticated. Please log in again.' });
+  }
+
+  const fullUrl = `${env.API_BASE_URL}${options.endpoint}`;
 
   const filename = buildPdfFilename(options.reportType, options.monthKey);
   const tempPath = getTempPath(filename);
@@ -68,6 +70,7 @@ async function attemptDownload(
       readTimeout: DOWNLOAD_TIMEOUT_MS,
       headers: {
         Accept: 'application/pdf',
+        Authorization: `Bearer ${token}`,
       },
     });
 
@@ -76,10 +79,13 @@ async function attemptDownload(
     // Validate HTTP status
     if (res.statusCode !== 200) {
       await safeUnlink(tempPath);
+      if (res.statusCode === 401) {
+        return err({ code: 'FORBIDDEN', message: 'Session expired. Please log in again.' });
+      }
       if (res.statusCode === 403) {
         return err({ code: 'FORBIDDEN', message: 'Access denied. Only owners can export reports.' });
       }
-      return err({ code: 'UNKNOWN', message: `Unexpected file format received. (HTTP ${res.statusCode})` });
+      return err({ code: 'UNKNOWN', message: `Failed to download report. (HTTP ${res.statusCode})` });
     }
 
     // Validate file size

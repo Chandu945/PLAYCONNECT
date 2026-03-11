@@ -48,7 +48,7 @@ export class MongoAcademyRepository implements AcademyRepository {
     return docs.map((d) => String(d._id));
   }
 
-  private toDomain(doc: Record<string, unknown>): Academy {
+  private toDomain(doc: unknown): Academy {
     const d = doc as {
       _id: string;
       ownerUserId: string;

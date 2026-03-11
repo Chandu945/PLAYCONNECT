@@ -37,6 +37,7 @@ import type { UserRepository } from '../src/domain/identity/ports/user.repositor
 import type { StudentRepository } from '../src/domain/student/ports/student.repository';
 import type { FeeDueRepository } from '../src/domain/fee/ports/fee-due.repository';
 import type { TransactionLogRepository } from '../src/domain/fee/ports/transaction-log.repository';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Reports (e2e)', () => {
   let app: INestApplication;
@@ -119,7 +120,7 @@ describe('Reports (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

@@ -25,7 +25,7 @@ const Tab = createBottomTabNavigator<ParentTabParamList>();
 export function ParentTabs() {
   const { colors } = useTheme();
   return (
-    // @ts-expect-error React Navigation 6 types incompatible with @types/react@19 hoisted in monorepo
+    // @ts-expect-error @types/react version mismatch in monorepo
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerStyle: { backgroundColor: colors.surface },

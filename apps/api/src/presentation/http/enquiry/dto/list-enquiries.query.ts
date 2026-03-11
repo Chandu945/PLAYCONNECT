@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsIn, IsNumberString, IsBooleanString } from 'class-validator';
+import { IsOptional, IsString, IsIn, IsNumberString, IsBooleanString, MaxLength, IsInt, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class ListEnquiriesQuery {
   @IsOptional()
@@ -7,6 +8,7 @@ export class ListEnquiriesQuery {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   search?: string;
 
   @IsOptional()
@@ -14,10 +16,15 @@ export class ListEnquiriesQuery {
   followUpToday?: string;
 
   @IsOptional()
-  @IsNumberString()
-  page?: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
 
   @IsOptional()
-  @IsNumberString()
-  limit?: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }

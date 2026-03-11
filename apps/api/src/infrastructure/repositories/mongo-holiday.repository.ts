@@ -6,6 +6,7 @@ import { Holiday } from '@domain/attendance/entities/holiday.entity';
 import { HolidayModel } from '../database/schemas/holiday.schema';
 import type { HolidayDocument } from '../database/schemas/holiday.schema';
 import { getTransactionSession } from '../database/transaction-context';
+import { escapeRegex } from '@shared/utils/escape-regex';
 
 @Injectable()
 export class MongoHolidayRepository implements HolidayRepository {
@@ -42,14 +43,14 @@ export class MongoHolidayRepository implements HolidayRepository {
     const docs = await this.model
       .find({
         academyId,
-        date: { $regex: `^${monthPrefix}` },
+        date: { $regex: `^${escapeRegex(monthPrefix)}` },
       })
       .lean()
       .exec();
     return docs.map((doc) => this.toDomain(doc as unknown as Record<string, unknown>));
   }
 
-  private toDomain(doc: Record<string, unknown>): Holiday {
+  private toDomain(doc: unknown): Holiday {
     const d = doc as {
       _id: string;
       academyId: string;

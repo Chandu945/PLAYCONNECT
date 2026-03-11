@@ -32,7 +32,11 @@ import { HttpLoggingInterceptor } from './http/common/interceptors/http-logging.
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 10_000, limit: 80 },    // burst: 80 req / 10s
+      { name: 'medium', ttl: 60_000, limit: 300 },   // sustained: 300 req / 60s
+      { name: 'long', ttl: 900_000, limit: 2000 },   // long-window: 2000 req / 15min
+    ]),
     HealthModule,
     AuthModule,
     AcademyOnboardingModule,

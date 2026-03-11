@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import type { Model, FilterQuery, PipelineStage } from 'mongoose';
+import type { Model, PipelineStage } from 'mongoose';
 import type {
   StudentQueryRepository,
   StudentListQuery,
@@ -12,6 +12,7 @@ import { FeeDueModel } from '../database/schemas/fee-due.schema';
 import type { FeeDueDocument } from '../database/schemas/fee-due.schema';
 import { toMonthKeyFromDate } from '@shared/date-utils';
 import type { Gender, StudentStatus } from '@playconnect/contracts';
+import { escapeRegex } from '@shared/utils/escape-regex';
 
 @Injectable()
 export class MongoStudentQueryRepository implements StudentQueryRepository {
@@ -37,7 +38,7 @@ export class MongoStudentQueryRepository implements StudentQueryRepository {
     page: number,
     pageSize: number,
   ): Promise<{ rows: StudentListRow[]; total: number }> {
-    const filter: FilterQuery<StudentDocument> = {
+    const filter: Record<string, unknown> = {
       academyId: query.academyId,
       deletedAt: null,
     };
@@ -48,7 +49,7 @@ export class MongoStudentQueryRepository implements StudentQueryRepository {
 
     if (query.search) {
       const normalizedSearch = query.search.trim().toLowerCase();
-      filter['fullNameNormalized'] = { $regex: `^${this.escapeRegex(normalizedSearch)}` };
+      filter['fullNameNormalized'] = { $regex: `^${escapeRegex(normalizedSearch)}` };
     }
 
     const skip = (page - 1) * pageSize;
@@ -88,7 +89,7 @@ export class MongoStudentQueryRepository implements StudentQueryRepository {
     if (query.search) {
       const normalizedSearch = query.search.trim().toLowerCase();
       matchStage['fullNameNormalized'] = {
-        $regex: `^${this.escapeRegex(normalizedSearch)}`,
+        $regex: `^${escapeRegex(normalizedSearch)}`,
       };
     }
 
@@ -137,11 +138,7 @@ export class MongoStudentQueryRepository implements StudentQueryRepository {
     return { rows, total };
   }
 
-  private escapeRegex(str: string): string {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  private toRow(doc: Record<string, unknown>): StudentListRow {
+  private toRow(doc: unknown): StudentListRow {
     const d = doc as {
       _id: string;
       academyId: string;

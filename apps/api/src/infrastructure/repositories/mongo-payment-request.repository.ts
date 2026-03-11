@@ -82,7 +82,7 @@ export class MongoPaymentRequestRepository implements PaymentRequestRepository {
     return this.model.countDocuments({ academyId, status: 'PENDING' });
   }
 
-  private toDomain(doc: Record<string, unknown>): PaymentRequest {
+  private toDomain(doc: unknown): PaymentRequest {
     const d = doc as {
       _id: string;
       academyId: string;

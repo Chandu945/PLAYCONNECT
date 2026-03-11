@@ -100,8 +100,8 @@ export class EnquiryController {
       status: query.status as 'ACTIVE' | 'CLOSED' | undefined,
       search: query.search,
       followUpToday: query.followUpToday === 'true',
-      page: parseInt(query.page ?? '1', 10),
-      pageSize: parseInt(query.limit ?? '20', 10),
+      page: query.page ?? 1,
+      pageSize: query.limit ?? 20,
     });
     return mapResultToResponse(result, req);
   }

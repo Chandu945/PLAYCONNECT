@@ -35,7 +35,7 @@ import { mapResultToResponse } from '../common/result-mapper';
 
 @ApiTags('Auth')
 @Controller('auth')
-@Throttle({ default: { limit: 10, ttl: 60_000 } })
+@Throttle({ short: { limit: 15, ttl: 10_000 }, medium: { limit: 40, ttl: 60_000 }, long: { limit: 200, ttl: 900_000 } })
 export class AuthController {
   constructor(
     @Inject('OWNER_SIGNUP_USE_CASE') private readonly ownerSignup: OwnerSignupUseCase,
@@ -52,7 +52,7 @@ export class AuthController {
   ) {}
 
   @Post('owner/signup')
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ short: { limit: 5, ttl: 10_000 }, medium: { limit: 10, ttl: 60_000 }, long: { limit: 30, ttl: 900_000 } })
   @ApiOperation({ summary: 'Owner signup (Step 1)' })
   async signup(@Body() dto: OwnerSignupDto, @Req() req: Request) {
     const result = await this.ownerSignup.execute({
@@ -75,7 +75,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 20, ttl: 60_000 }, long: { limit: 100, ttl: 900_000 } })
   @ApiOperation({ summary: 'Login with email or phone' })
   async loginHandler(@Body() dto: LoginDto, @Req() req: Request) {
     const result = await this.login.execute({
@@ -98,6 +98,7 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 20, ttl: 60_000 }, long: { limit: 60, ttl: 900_000 } })
   @ApiOperation({ summary: 'Refresh access token' })
   async refreshHandler(@Body() dto: RefreshDto, @Req() req: Request) {
     const result = await this.refresh.execute({
@@ -147,7 +148,7 @@ export class AuthController {
 
   @Post('password-reset/request')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @Throttle({ short: { limit: 5, ttl: 10_000 }, medium: { limit: 10, ttl: 60_000 }, long: { limit: 30, ttl: 900_000 } })
   @ApiOperation({ summary: 'Request password reset OTP' })
   async requestPasswordResetHandler(
     @Body() dto: RequestPasswordResetDto,
@@ -159,7 +160,7 @@ export class AuthController {
 
   @Post('password-reset/confirm')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ short: { limit: 5, ttl: 10_000 }, medium: { limit: 15, ttl: 60_000 }, long: { limit: 50, ttl: 900_000 } })
   @ApiOperation({ summary: 'Confirm password reset with OTP' })
   async confirmPasswordResetHandler(
     @Body() dto: ConfirmPasswordResetDto,
@@ -175,7 +176,7 @@ export class AuthController {
 
   @Post('google')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 20, ttl: 60_000 }, long: { limit: 100, ttl: 900_000 } })
   @ApiOperation({ summary: 'Login with Google ID token' })
   async googleLogin(@Body() dto: GoogleLoginDto, @Req() req: Request) {
     const result = await this.googleLoginUseCase.execute({

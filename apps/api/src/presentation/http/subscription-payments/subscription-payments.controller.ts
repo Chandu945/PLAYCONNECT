@@ -13,7 +13,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../common/guards/rbac.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -48,6 +48,7 @@ export class SubscriptionPaymentsController {
   @Roles('OWNER')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 20, ttl: 60_000 }, long: { limit: 60, ttl: 900_000 } })
   @ApiOperation({ summary: 'Initiate subscription payment (OWNER only)' })
   async initiate(@CurrentUser() user: CurrentUserType, @Req() req: Request) {
     const result = await this.initiatePayment.execute(user.userId);

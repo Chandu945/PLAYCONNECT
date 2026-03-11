@@ -16,7 +16,7 @@ const Stack = createNativeStackNavigator<ParentHomeStackParamList>();
 
 export function ParentHomeStack() {
   return (
-    // @ts-expect-error React Navigation 6 types incompatible with @types/react@19 hoisted in monorepo
+    // @ts-expect-error @types/react version mismatch in monorepo
     <Stack.Navigator>
       <Stack.Screen
         name="ChildrenList"

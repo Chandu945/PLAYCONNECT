@@ -35,6 +35,7 @@ import {
   InMemorySubscriptionRepository,
 } from './helpers/in-memory-repos';
 import { createTestTokenService } from './helpers/test-services';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 const WEBHOOK_SECRET = 'test-webhook-secret-for-e2e';
 const WEBHOOK_SIGNATURE_VERIFIER = Symbol('WEBHOOK_SIGNATURE_VERIFIER');
@@ -261,7 +262,7 @@ describe('Subscription Payments — Full Flow (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication({ rawBody: true });
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

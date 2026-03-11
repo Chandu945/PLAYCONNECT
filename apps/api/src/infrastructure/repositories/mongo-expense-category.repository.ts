@@ -6,6 +6,7 @@ import { ExpenseCategory } from '@domain/expense/entities/expense-category.entit
 import { ExpenseCategoryModel } from '../database/schemas/expense-category.schema';
 import type { ExpenseCategoryDocument } from '../database/schemas/expense-category.schema';
 import { getTransactionSession } from '../database/transaction-context';
+import { escapeRegex } from '@shared/utils/escape-regex';
 
 @Injectable()
 export class MongoExpenseCategoryRepository implements ExpenseCategoryRepository {
@@ -34,7 +35,7 @@ export class MongoExpenseCategoryRepository implements ExpenseCategoryRepository
 
   async findByAcademyAndName(academyId: string, name: string): Promise<ExpenseCategory | null> {
     const doc = await this.model
-      .findOne({ academyId, name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } })
+      .findOne({ academyId, name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, 'i') } })
       .lean()
       .exec();
     return doc ? this.toDomain(doc as unknown as Record<string, unknown>) : null;
@@ -49,7 +50,7 @@ export class MongoExpenseCategoryRepository implements ExpenseCategoryRepository
     await this.model.deleteOne({ _id: id }, { session: getTransactionSession() });
   }
 
-  private toDomain(doc: Record<string, unknown>): ExpenseCategory {
+  private toDomain(doc: unknown): ExpenseCategory {
     const d = doc as {
       _id: string;
       academyId: string;

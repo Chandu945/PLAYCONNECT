@@ -1,6 +1,7 @@
 import { Controller, Get, Inject, HttpCode, HttpStatus, Req, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
+import { timingSafeEqual } from 'crypto';
 import type { Request, Response } from 'express';
 import type { MetricsPort } from '@application/common/ports/metrics.port';
 import { METRICS_PORT } from '@application/common/ports/metrics.port';
@@ -27,7 +28,7 @@ export class MetricsController {
     const metricsToken = this.config.metricsToken;
     if (metricsToken) {
       const provided = req.headers['x-metrics-token'] as string | undefined;
-      if (provided !== metricsToken) {
+      if (!provided || !this.safeCompare(provided, metricsToken)) {
         res.status(HttpStatus.FORBIDDEN).json({ message: 'Invalid metrics token' });
         return;
       }
@@ -35,5 +36,16 @@ export class MetricsController {
 
     res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
     res.send(this.metrics.render());
+  }
+
+  private safeCompare(a: string, b: string): boolean {
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    if (bufA.length !== bufB.length) {
+      // Compare against self to keep constant time, then return false
+      timingSafeEqual(bufA, bufA);
+      return false;
+    }
+    return timingSafeEqual(bufA, bufB);
   }
 }

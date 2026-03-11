@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../common/guards/rbac.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -32,6 +33,7 @@ import { SetStaffStatusDto } from './dto/set-staff-status.dto';
 import { mapResultToResponse } from '../common/result-mapper';
 import { LOGGER_PORT } from '@shared/logging/logger.port';
 import type { LoggerPort } from '@shared/logging/logger.port';
+import { MAX_IMAGE_FILE_SIZE } from '@shared/utils/image-validation';
 import type { Request } from 'express';
 
 @ApiTags('Staff')
@@ -143,15 +145,19 @@ export class StaffController {
   }
 
   @Post(':staffUserId/photo')
+  @Throttle({ short: { limit: 15, ttl: 10_000 }, medium: { limit: 40, ttl: 60_000 }, long: { limit: 200, ttl: 900_000 } })
   @ApiOperation({ summary: 'Upload staff profile photo' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_IMAGE_FILE_SIZE } }))
   async uploadPhoto(
     @Param('staffUserId') staffUserId: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() user: CurrentUserType,
     @Req() req: Request,
   ) {
+    if (!file) {
+      return { success: false, error: { code: 'VALIDATION', message: 'No file uploaded' } };
+    }
     const result = await this.uploadStaffPhoto.execute({
       actorUserId: user.userId,
       staffUserId,

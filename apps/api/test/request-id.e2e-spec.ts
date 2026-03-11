@@ -6,6 +6,7 @@ import { GlobalExceptionFilter } from '../src/shared/errors/global-exception.fil
 import { RequestIdInterceptor } from '../src/shared/logging/request-id.interceptor';
 import { AppConfigModule } from '../src/shared/config/config.module';
 import { LoggingModule } from '../src/shared/logging/logging.module';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Request ID (e2e)', () => {
   let app: INestApplication;
@@ -19,7 +20,7 @@ describe('Request ID (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     await app.init();

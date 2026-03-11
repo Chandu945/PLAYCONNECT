@@ -44,6 +44,7 @@ import {
   InMemoryTransactionLogRepository,
 } from './helpers/in-memory-repos';
 import { createTestTokenService } from './helpers/test-services';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 const WEBHOOK_SECRET = 'test-fee-webhook-secret';
 const FEE_WEBHOOK_SIGNATURE_VERIFIER = Symbol('FEE_WEBHOOK_SIGNATURE_VERIFIER');
@@ -366,7 +367,7 @@ describe('Fee Payments — Parent Flow (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication({ rawBody: true });
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

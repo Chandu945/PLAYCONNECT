@@ -42,7 +42,7 @@ import type { Request } from 'express';
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RbacGuard)
 @Roles('SUPER_ADMIN')
-@Throttle({ default: { limit: 60, ttl: 60_000 } })
+@Throttle({ short: { limit: 40, ttl: 10_000 }, medium: { limit: 150, ttl: 60_000 }, long: { limit: 800, ttl: 900_000 } })
 export class AdminController {
   constructor(
     @Inject('GET_ADMIN_DASHBOARD_USE_CASE')

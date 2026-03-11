@@ -61,7 +61,7 @@ export class MongoPasswordResetChallengeRepository implements PasswordResetChall
     await this.model.updateOne({ _id: challengeId }, { $inc: { attempts: 1 } }, { session: getTransactionSession() });
   }
 
-  private toDomain(doc: Record<string, unknown>): PasswordResetChallenge {
+  private toDomain(doc: unknown): PasswordResetChallenge {
     const d = doc as {
       _id: string;
       userId: string;

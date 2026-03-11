@@ -28,6 +28,7 @@ import type { UserRepository } from '../src/domain/identity/ports/user.repositor
 import type { AcademyRepository } from '../src/domain/academy/ports/academy.repository';
 import type { SubscriptionRepository } from '../src/domain/subscription/ports/subscription.repository';
 import type { ClockPort } from '../src/application/common/clock.port';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -96,7 +97,7 @@ describe('Subscription (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

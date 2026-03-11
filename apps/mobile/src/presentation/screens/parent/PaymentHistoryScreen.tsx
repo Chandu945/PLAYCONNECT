@@ -8,8 +8,10 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import type { ParentPaymentsStackParamList } from '../../navigation/ParentPaymentsStack';
 import { getPaymentHistoryUseCase } from '../../../application/parent/use-cases/get-payment-history.usecase';
 import { parentApi } from '../../../infra/parent/parent-api';
 import type { PaymentHistoryItem } from '../../../domain/parent/parent.types';
@@ -34,6 +36,7 @@ function getSourceConfig(source: string, colors: Colors) {
 export function PaymentHistoryScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const navigation = useNavigation<NavigationProp<ParentPaymentsStackParamList>>();
   const [items, setItems] = useState<PaymentHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,11 +80,22 @@ export function PaymentHistoryScreen() {
 
   const totalPaid = items.reduce((sum, item) => sum + item.amount, 0);
 
+  const handleViewReceipt = useCallback(
+    (feeDueId: string) => {
+      navigation.navigate('Receipt', { feeDueId });
+    },
+    [navigation],
+  );
+
   const renderItem = useCallback(({ item }: { item: PaymentHistoryItem }) => {
     const src = getSourceConfig(item.source, colors);
 
     return (
-      <View style={styles.card}>
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.7}
+        onPress={() => handleViewReceipt(item.feeDueId)}
+      >
         <View style={styles.cardTop}>
           <View style={styles.cardLeft}>
             <View style={[styles.sourceIcon, { backgroundColor: src.bg }]}>
@@ -108,15 +122,19 @@ export function PaymentHistoryScreen() {
             <Icon name="pound" size={12} color={colors.textDisabled} />
             <Text style={styles.detailText}>{item.receiptNumber}</Text>
           </View>
-          <View style={styles.detailItem}>
+          <View style={styles.cardBottomRight}>
+            <View style={styles.detailItem}>
+              {/* @ts-expect-error react-native-vector-icons types */}
+              <Icon name="calendar-outline" size={12} color={colors.textDisabled} />
+              <Text style={styles.detailText}>{formatDate(item.paidAt)}</Text>
+            </View>
             {/* @ts-expect-error react-native-vector-icons types */}
-            <Icon name="calendar-outline" size={12} color={colors.textDisabled} />
-            <Text style={styles.detailText}>{formatDate(item.paidAt)}</Text>
+            <Icon name="chevron-right" size={16} color={colors.textDisabled} />
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
-  }, [colors, styles]);
+  }, [colors, styles, handleViewReceipt]);
 
   if (loading) {
     return (
@@ -276,10 +294,16 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
   cardBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+  },
+  cardBottomRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   detailItem: {
     flexDirection: 'row',

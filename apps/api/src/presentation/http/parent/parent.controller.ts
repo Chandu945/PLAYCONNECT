@@ -12,6 +12,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../common/guards/rbac.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -118,6 +119,7 @@ export class ParentController {
   }
 
   @Post('fee-payments/initiate')
+  @Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 20, ttl: 60_000 }, long: { limit: 80, ttl: 900_000 } })
   @ApiOperation({ summary: 'Initiate fee payment via Cashfree' })
   async initiate(
     @Body() dto: InitiateFeePaymentDto,
@@ -190,6 +192,7 @@ export class ParentController {
   }
 
   @Put('change-password')
+  @Throttle({ short: { limit: 5, ttl: 10_000 }, medium: { limit: 15, ttl: 60_000 }, long: { limit: 50, ttl: 900_000 } })
   @ApiOperation({ summary: 'Change parent password' })
   async changePassword(
     @Body() dto: ChangePasswordDto,

@@ -12,6 +12,7 @@ import type { PasswordHasher } from '@application/identity/ports/password-hasher
 import { PASSWORD_HASHER } from '@application/identity/ports/password-hasher.port';
 import type { TokenService } from '@application/identity/ports/token-service.port';
 import { TOKEN_SERVICE } from '@application/identity/ports/token-service.port';
+import { AppConfigService } from '@shared/config/config.service';
 
 @Module({
   imports: [AuthModule],
@@ -24,8 +25,9 @@ import { TOKEN_SERVICE } from '@application/identity/ports/token-service.port';
         sessionRepo: SessionRepository,
         hasher: PasswordHasher,
         tokenSvc: TokenService,
-      ) => new AdminLoginUseCase(userRepo, sessionRepo, hasher, tokenSvc),
-      inject: [USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER, TOKEN_SERVICE],
+        config: AppConfigService,
+      ) => new AdminLoginUseCase(userRepo, sessionRepo, hasher, tokenSvc, config.jwtRefreshTtl),
+      inject: [USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER, TOKEN_SERVICE, AppConfigService],
     },
     {
       provide: 'ADMIN_REFRESH_USE_CASE',
@@ -33,8 +35,9 @@ import { TOKEN_SERVICE } from '@application/identity/ports/token-service.port';
         sessionRepo: SessionRepository,
         userRepo: UserRepository,
         tokenSvc: TokenService,
-      ) => new RefreshUseCase(sessionRepo, userRepo, tokenSvc),
-      inject: [SESSION_REPOSITORY, USER_REPOSITORY, TOKEN_SERVICE],
+        config: AppConfigService,
+      ) => new RefreshUseCase(sessionRepo, userRepo, tokenSvc, config.jwtRefreshTtl),
+      inject: [SESSION_REPOSITORY, USER_REPOSITORY, TOKEN_SERVICE, AppConfigService],
     },
     {
       provide: 'ADMIN_LOGOUT_USE_CASE',

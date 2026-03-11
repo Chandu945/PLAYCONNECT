@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, Matches } from 'class-validator';
+import { IsIn, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationQueryDto } from '../../common/dto/pagination.query';
 
@@ -12,6 +12,7 @@ export class ListStudentsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ description: 'Prefix search on student name' })
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   search?: string;
 
   @ApiPropertyOptional({ enum: ['ALL', 'DUE', 'PAID'] })

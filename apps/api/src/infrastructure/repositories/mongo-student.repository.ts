@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import type { Model, FilterQuery } from 'mongoose';
+import type { Model } from 'mongoose';
 import type {
   StudentRepository,
   StudentListFilter,
@@ -11,6 +11,7 @@ import { StudentModel } from '../database/schemas/student.schema';
 import type { StudentDocument } from '../database/schemas/student.schema';
 import type { Gender, StudentStatus } from '@playconnect/contracts';
 import { getTransactionSession } from '../database/transaction-context';
+import { escapeRegex } from '@shared/utils/escape-regex';
 
 @Injectable()
 export class MongoStudentRepository implements StudentRepository {
@@ -79,7 +80,7 @@ export class MongoStudentRepository implements StudentRepository {
     page: number,
     pageSize: number,
   ): Promise<{ students: Student[]; total: number }> {
-    const query: FilterQuery<StudentDocument> = {
+    const query: Record<string, unknown> = {
       academyId: filter.academyId,
       deletedAt: null,
     };
@@ -90,7 +91,7 @@ export class MongoStudentRepository implements StudentRepository {
 
     if (filter.search) {
       const normalizedSearch = filter.search.trim().toLowerCase();
-      query['fullNameNormalized'] = { $regex: `^${this.escapeRegex(normalizedSearch)}` };
+      query['fullNameNormalized'] = { $regex: `^${escapeRegex(normalizedSearch)}` };
     }
 
     const skip = (page - 1) * pageSize;
@@ -174,11 +175,7 @@ export class MongoStudentRepository implements StudentRepository {
     }));
   }
 
-  private escapeRegex(str: string): string {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  private toDomain(doc: Record<string, unknown>): Student {
+  private toDomain(doc: unknown): Student {
     const d = doc as {
       _id: string;
       academyId: string;

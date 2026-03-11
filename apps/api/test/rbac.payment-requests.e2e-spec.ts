@@ -44,6 +44,7 @@ import type { TransactionLogRepository } from '../src/domain/fee/ports/transacti
 import type { AcademyRepository } from '../src/domain/academy/ports/academy.repository';
 import type { ClockPort } from '../src/application/common/clock.port';
 import type { TransactionPort } from '../src/application/common/transaction.port';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Payment Requests RBAC (e2e)', () => {
   let app: INestApplication;
@@ -177,7 +178,7 @@ describe('Payment Requests RBAC (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

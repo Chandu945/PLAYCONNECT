@@ -133,7 +133,7 @@ export class MongoEnquiryRepository implements EnquiryRepository {
     };
   }
 
-  private toDomain(doc: Record<string, unknown>): Enquiry {
+  private toDomain(doc: unknown): Enquiry {
     const d = doc as {
       _id: string;
       academyId: string;

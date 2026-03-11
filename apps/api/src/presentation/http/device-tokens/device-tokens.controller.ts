@@ -9,6 +9,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { IsString, IsNotEmpty, MaxLength, IsIn } from 'class-validator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -41,6 +42,7 @@ class UnregisterTokenDto {
 @ApiBearerAuth()
 @Controller('device-tokens')
 @UseGuards(JwtAuthGuard)
+@Throttle({ short: { limit: 20, ttl: 10_000 }, medium: { limit: 60, ttl: 60_000 }, long: { limit: 300, ttl: 900_000 } })
 export class DeviceTokensController {
   constructor(
     @Inject(DEVICE_TOKEN_REPOSITORY)

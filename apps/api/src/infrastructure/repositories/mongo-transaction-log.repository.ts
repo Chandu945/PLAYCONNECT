@@ -7,10 +7,7 @@ import { TransactionLogModel } from '../database/schemas/transaction-log.schema'
 import type { TransactionLogDocument } from '../database/schemas/transaction-log.schema';
 import type { PaidSource } from '@playconnect/contracts';
 import { getTransactionSession } from '../database/transaction-context';
-
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+import { escapeRegex } from '@shared/utils/escape-regex';
 
 @Injectable()
 export class MongoTransactionLogRepository implements TransactionLogRepository {
@@ -150,7 +147,7 @@ export class MongoTransactionLogRepository implements TransactionLogRepository {
     }));
   }
 
-  private toDomain(doc: Record<string, unknown>): TransactionLog {
+  private toDomain(doc: unknown): TransactionLog {
     const d = doc as {
       _id: string;
       academyId: string;

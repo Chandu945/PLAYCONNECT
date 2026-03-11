@@ -27,6 +27,7 @@ import type { AcademyRepository } from '../src/domain/academy/ports/academy.repo
 import type { UserRepository } from '../src/domain/identity/ports/user.repository';
 import type { SubscriptionRepository } from '../src/domain/subscription/ports/subscription.repository';
 import type { ClockPort } from '../src/application/common/clock.port';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('RBAC (e2e)', () => {
   let app: INestApplication;
@@ -83,7 +84,7 @@ describe('RBAC (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

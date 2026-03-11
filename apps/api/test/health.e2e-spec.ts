@@ -9,6 +9,7 @@ import { LoggingModule } from '../src/shared/logging/logging.module';
 import { HealthController } from '../src/presentation/http/health/health.controller';
 import { MongoDbModule } from '../src/infrastructure/database/mongodb.module';
 import { MongoDbHealthIndicator } from '../src/infrastructure/database/mongodb.health';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Health Endpoints (e2e)', () => {
   let app: INestApplication;
@@ -27,7 +28,7 @@ describe('Health Endpoints (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());
@@ -95,7 +96,7 @@ describe('Health Endpoints (e2e)', () => {
         .compile();
 
       dbDownApp = moduleFixture.createNestApplication();
-      dbDownApp.setGlobalPrefix('api/v1');
+      configureApiVersioning(dbDownApp);
       dbDownApp.useGlobalInterceptors(new RequestIdInterceptor());
       dbDownApp.useGlobalFilters(new GlobalExceptionFilter());
       dbDownApp.useGlobalPipes(createGlobalValidationPipe());

@@ -51,7 +51,12 @@ export class GetReceiptUseCase {
       monthKey: txLog.monthKey,
       amount: txLog.amount,
       paidAt: txLog.audit.createdAt.toISOString(),
-      paymentMethod: txLog.source === 'PARENT_ONLINE' ? 'Online Payment' : 'Cash',
+      paymentMethod:
+        txLog.source === 'PARENT_ONLINE'
+          ? 'Online Payment'
+          : txLog.source === 'STAFF_APPROVED'
+            ? 'Staff Collection'
+            : 'Direct Payment',
       source: txLog.source,
     });
   }

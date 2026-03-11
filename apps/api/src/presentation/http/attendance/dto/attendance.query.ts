@@ -1,4 +1,4 @@
-import { IsString, IsOptional, Matches } from 'class-validator';
+import { IsString, IsOptional, Matches, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationQueryDto } from '../../common/dto/pagination.query';
 
@@ -16,6 +16,7 @@ export class AttendanceQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ description: 'Search students by name' })
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   search?: string;
 
   override pageSize: number = 50;

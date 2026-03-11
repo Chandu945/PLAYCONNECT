@@ -16,7 +16,7 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 export function AuthStack() {
   return (
-    // @ts-expect-error React Navigation 6 types incompatible with @types/react@19 hoisted in monorepo
+    // @ts-expect-error @types/react version mismatch in monorepo
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="OwnerSignup" component={OwnerSignupScreen} />

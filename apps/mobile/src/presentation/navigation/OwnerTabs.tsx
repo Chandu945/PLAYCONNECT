@@ -37,7 +37,7 @@ function OwnerTabsInner() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.container}>
-      {/* @ts-expect-error React Navigation 6 types incompatible with @types/react@19 hoisted in monorepo */}
+      {/* @ts-expect-error @types/react version mismatch in monorepo */}
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerStyle: { backgroundColor: colors.surface, elevation: 0, shadowOpacity: 0, borderBottomWidth: 0 },

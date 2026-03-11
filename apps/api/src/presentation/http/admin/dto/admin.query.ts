@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, Matches } from 'class-validator';
+import { IsIn, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ADMIN_ACADEMY_STATUSES,
@@ -18,6 +18,7 @@ export class ListAcademiesQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ description: 'Search by academy name, owner name, email, or phone' })
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   search?: string;
 
   @ApiPropertyOptional({ enum: TIER_KEYS })

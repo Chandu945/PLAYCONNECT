@@ -18,7 +18,7 @@ export const envSchema = z
     // JWT
     JWT_ACCESS_SECRET: z.string().default(UNSAFE_DEFAULTS.JWT_ACCESS_SECRET),
     JWT_REFRESH_SECRET: z.string().default(UNSAFE_DEFAULTS.JWT_REFRESH_SECRET),
-    JWT_ACCESS_TTL: z.coerce.number().int().positive().default(900), // 15 minutes in seconds
+    JWT_ACCESS_TTL: z.coerce.number().int().positive().default(86400), // 1 day in seconds
     JWT_REFRESH_TTL: z.coerce.number().int().positive().default(2592000), // 30 days in seconds
 
     // Bcrypt

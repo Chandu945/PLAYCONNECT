@@ -23,7 +23,7 @@ import type { Request } from 'express';
 
 @ApiTags('Admin Auth')
 @Controller('admin/auth')
-@Throttle({ default: { limit: 10, ttl: 60_000 } })
+@Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 30, ttl: 60_000 }, long: { limit: 150, ttl: 900_000 } })
 export class AdminAuthController {
   constructor(
     @Inject('ADMIN_LOGIN_USE_CASE')
@@ -48,6 +48,7 @@ export class AdminAuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 20, ttl: 60_000 }, long: { limit: 60, ttl: 900_000 } })
   @ApiOperation({ summary: 'Admin refresh token' })
   async refreshHandler(@Body() dto: AdminRefreshDto, @Req() req: Request) {
     const result = await this.refresh.execute({

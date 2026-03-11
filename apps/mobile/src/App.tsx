@@ -24,7 +24,6 @@ function AppInner() {
   return (
     <>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.bg} />
-      {/* @ts-expect-error React Navigation 6 types incompatible with @types/react@19 hoisted in monorepo */}
       <NavigationContainer theme={navTheme}>
         <RootNavigator />
       </NavigationContainer>

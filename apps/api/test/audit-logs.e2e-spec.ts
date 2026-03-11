@@ -44,6 +44,7 @@ import type { AuditLogRepository } from '../src/domain/audit/ports/audit-log.rep
 import type { AuditRecorderPort } from '../src/application/audit/ports/audit-recorder.port';
 import type { BatchRepository } from '../src/domain/batch/ports/batch.repository';
 import type { StudentBatchRepository } from '../src/domain/batch/ports/student-batch.repository';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Audit Logs Endpoints (e2e)', () => {
   let app: INestApplication;
@@ -147,7 +148,7 @@ describe('Audit Logs Endpoints (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

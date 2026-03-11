@@ -39,6 +39,7 @@ import type { StudentRepository } from '../src/domain/student/ports/student.repo
 import type { StudentQueryRepository } from '../src/domain/student/ports/student-query.repository';
 import type { BatchRepository } from '../src/domain/batch/ports/batch.repository';
 import type { StudentBatchRepository } from '../src/domain/batch/ports/student-batch.repository';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 describe('Student Batches Endpoints (e2e)', () => {
   let app: INestApplication;
   let userRepo: InMemoryUserRepository;
@@ -140,7 +141,7 @@ describe('Student Batches Endpoints (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

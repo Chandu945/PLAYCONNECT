@@ -6,6 +6,7 @@ import { AppConfigModule } from '../../src/shared/config/config.module';
 import { LoggingModule } from '../../src/shared/logging/logging.module';
 import { GlobalExceptionFilter } from '../../src/shared/errors/global-exception.filter';
 import { RequestIdInterceptor } from '../../src/shared/logging/request-id.interceptor';
+import { configureApiVersioning } from '../../src/shared/config/api-versioning';
 import { createGlobalValidationPipe } from '../../src/shared/validation/validation.pipe';
 import { USER_REPOSITORY } from '../../src/domain/identity/ports/user.repository';
 import { TOKEN_SERVICE } from '../../src/application/identity/ports/token-service.port';
@@ -62,7 +63,7 @@ export function createTestModuleBuilder(options: TestAppOptions): {
 export async function bootstrapTestApp(builder: TestingModuleBuilder): Promise<INestApplication> {
   const moduleFixture = await builder.compile();
   const app = moduleFixture.createNestApplication();
-  app.setGlobalPrefix('api/v1');
+  configureApiVersioning(app);
   app.useGlobalInterceptors(new RequestIdInterceptor());
   app.useGlobalFilters(new GlobalExceptionFilter());
   app.useGlobalPipes(createGlobalValidationPipe());

@@ -97,7 +97,7 @@ export class MongoFeePaymentRepository implements FeePaymentRepository {
     return docs.map((d) => this.toDomain(d as unknown as Record<string, unknown>));
   }
 
-  private toDomain(doc: Record<string, unknown>): FeePayment {
+  private toDomain(doc: unknown): FeePayment {
     const d = doc as {
       _id: string;
       academyId: string;

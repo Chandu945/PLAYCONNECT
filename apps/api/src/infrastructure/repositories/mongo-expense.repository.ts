@@ -7,6 +7,7 @@ import { ExpenseModel } from '../database/schemas/expense.schema';
 import type { ExpenseDocument } from '../database/schemas/expense.schema';
 import { formatLocalDate } from '@shared/date-utils';
 import { getTransactionSession } from '../database/transaction-context';
+import { escapeRegex } from '@shared/utils/escape-regex';
 
 @Injectable()
 export class MongoExpenseRepository implements ExpenseRepository {
@@ -49,7 +50,7 @@ export class MongoExpenseRepository implements ExpenseRepository {
     const query: Record<string, unknown> = {
       academyId,
       deletedAt: null,
-      date: { $regex: `^${filter.month}` },
+      date: { $regex: `^${escapeRegex(filter.month)}` },
     };
     if (filter.categoryId) {
       query['categoryId'] = filter.categoryId;
@@ -74,7 +75,7 @@ export class MongoExpenseRepository implements ExpenseRepository {
         $match: {
           academyId,
           deletedAt: null,
-          date: { $regex: `^${month}` },
+          date: { $regex: `^${escapeRegex(month)}` },
         },
       },
       { $group: { _id: null, total: { $sum: '$amount' } } },
@@ -107,7 +108,7 @@ export class MongoExpenseRepository implements ExpenseRepository {
         $match: {
           academyId,
           deletedAt: null,
-          date: { $regex: `^${month}` },
+          date: { $regex: `^${escapeRegex(month)}` },
         },
       },
       { $group: { _id: '$category', total: { $sum: '$amount' } } },
@@ -149,7 +150,7 @@ export class MongoExpenseRepository implements ExpenseRepository {
     }));
   }
 
-  private toDomain(doc: Record<string, unknown>): Expense {
+  private toDomain(doc: unknown): Expense {
     const d = doc as {
       _id: string;
       academyId: string;

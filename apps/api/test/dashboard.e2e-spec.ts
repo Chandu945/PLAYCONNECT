@@ -39,6 +39,7 @@ import type { PaymentRequestRepository } from '../src/domain/fee/ports/payment-r
 import type { TransactionLogRepository } from '../src/domain/fee/ports/transaction-log.repository';
 import type { StudentAttendanceRepository } from '../src/domain/attendance/ports/student-attendance.repository';
 import type { ExpenseRepository } from '../src/domain/expense/ports/expense.repository';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Dashboard (e2e)', () => {
   let app: INestApplication;
@@ -112,7 +113,7 @@ describe('Dashboard (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Text, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import Share from 'react-native-share';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { ReceiptInfo } from '../../../domain/parent/parent.types';
 import { getReceiptUseCase } from '../../../application/parent/use-cases/get-receipt.usecase';
@@ -110,6 +111,30 @@ export function ReceiptScreen() {
     return () => { mountedRef.current = false; };
   }, [load]);
 
+  const handleShare = useCallback(async () => {
+    if (!receipt) return;
+    const message = [
+      '--- Payment Receipt ---',
+      `Receipt #: ${receipt.receiptNumber}`,
+      `Student: ${receipt.studentName}`,
+      `Academy: ${receipt.academyName}`,
+      `Month: ${formatMonthKey(receipt.monthKey)}`,
+      `Amount: ${formatCurrency(receipt.amount)}`,
+      `Paid On: ${formatDateLong(receipt.paidAt)}`,
+      `Method: ${receipt.paymentMethod}`,
+      '------------------------',
+    ].join('\n');
+
+    try {
+      await Share.open({ message, title: 'Payment Receipt' });
+    } catch (e: any) {
+      // User cancelled share - ignore
+      if (e?.message !== 'User did not share') {
+        Alert.alert('Error', 'Could not share receipt. Please try again.');
+      }
+    }
+  }, [receipt]);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -171,6 +196,13 @@ export function ReceiptScreen() {
           <Text style={rowStyles.value}>{receipt.paymentMethod}</Text>
         </View>
       </View>
+
+      {/* Share Button */}
+      <TouchableOpacity style={styles.shareButton} activeOpacity={0.8} onPress={handleShare}>
+        {/* @ts-expect-error react-native-vector-icons types */}
+        <Icon name="share-variant-outline" size={20} color={colors.white} />
+        <Text style={styles.shareButtonText}>Share Receipt</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -244,5 +276,20 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     borderRadius: 3,
     backgroundColor: colors.primary,
     marginHorizontal: spacing.sm,
+  },
+  shareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: radius.xl,
+    paddingVertical: spacing.md,
+    marginTop: spacing.xl,
+  },
+  shareButtonText: {
+    color: colors.white,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
   },
 });

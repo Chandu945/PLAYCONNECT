@@ -22,6 +22,7 @@ export class RefreshUseCase {
     private readonly sessionRepo: SessionRepository,
     private readonly userRepo: UserRepository,
     private readonly tokenService: TokenService,
+    private readonly refreshTtlSeconds: number = 2_592_000,
   ) {}
 
   async execute(input: RefreshInput): Promise<Result<RefreshOutput, AppError>> {
@@ -44,7 +45,7 @@ export class RefreshUseCase {
     const newRefreshToken = this.tokenService.generateRefreshToken();
     const newHash = this.tokenService.hashRefreshToken(newRefreshToken);
 
-    const refreshTtlMs = 30 * 24 * 60 * 60 * 1000; // 30 days
+    const refreshTtlMs = this.refreshTtlSeconds * 1000;
     const updated = await this.sessionRepo.updateRefreshToken(
       session.id.toString(),
       newHash,

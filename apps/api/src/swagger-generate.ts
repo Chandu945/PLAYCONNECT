@@ -13,10 +13,11 @@ import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { buildOpenApiDocument } from './presentation/swagger/swagger.setup';
+import { configureApiVersioning } from './shared/config/api-versioning';
 
 async function generate() {
   const app = await NestFactory.create(AppModule, { logger: false });
-  app.setGlobalPrefix('api/v1');
+  configureApiVersioning(app);
 
   const document = buildOpenApiDocument(app);
 

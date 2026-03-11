@@ -34,6 +34,7 @@ export class AdminLoginUseCase {
     private readonly sessionRepo: SessionRepository,
     private readonly passwordHasher: PasswordHasher,
     private readonly tokenService: TokenService,
+    private readonly refreshTtlSeconds: number = 2_592_000,
   ) {}
 
   async execute(input: AdminLoginInput): Promise<Result<AdminLoginOutput, AppError>> {
@@ -63,7 +64,7 @@ export class AdminLoginUseCase {
     const refreshToken = this.tokenService.generateRefreshToken();
     const refreshTokenHash = this.tokenService.hashRefreshToken(refreshToken);
 
-    const refreshTtlMs = 30 * 24 * 60 * 60 * 1000;
+    const refreshTtlMs = this.refreshTtlSeconds * 1000;
     const session = Session.create({
       id: randomUUID(),
       userId: user.id.toString(),

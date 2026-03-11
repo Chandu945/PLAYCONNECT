@@ -40,6 +40,7 @@ import type { PasswordResetChallengeRepository } from '../src/domain/identity/po
 import type { OtpGenerator } from '../src/application/identity/ports/otp-generator.port';
 import type { OtpHasher } from '../src/application/identity/ports/otp-hasher.port';
 import type { EmailSenderPort } from '../src/application/notifications/ports/email-sender.port';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Inactive Staff Login Enforcement (e2e)', () => {
   let app: INestApplication;
@@ -159,7 +160,7 @@ describe('Inactive Staff Login Enforcement (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

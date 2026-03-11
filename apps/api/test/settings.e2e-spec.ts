@@ -20,6 +20,7 @@ import { User } from '../src/domain/identity/entities/user.entity';
 import { Academy } from '../src/domain/academy/entities/academy.entity';
 import type { UserRepository } from '../src/domain/identity/ports/user.repository';
 import type { AcademyRepository } from '../src/domain/academy/ports/academy.repository';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Settings Endpoints (e2e)', () => {
   let app: INestApplication;
@@ -69,7 +70,7 @@ describe('Settings Endpoints (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

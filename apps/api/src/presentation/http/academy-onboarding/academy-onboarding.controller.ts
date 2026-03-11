@@ -1,5 +1,6 @@
 import { Controller, Post, Body, HttpStatus, Inject, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { SetupAcademyUseCase } from '@application/academy/use-cases/setup-academy.usecase';
 import { SetupAcademyDto } from './dto/setup-academy.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -25,6 +26,7 @@ export class AcademyOnboardingController {
   @UseGuards(JwtAuthGuard, RbacGuard)
   @Roles('OWNER')
   @ApiBearerAuth()
+  @Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 20, ttl: 60_000 }, long: { limit: 60, ttl: 900_000 } })
   @ApiOperation({ summary: 'Academy setup (Step 2 — Owner only, once)' })
   async setup(
     @Body() dto: SetupAcademyDto,

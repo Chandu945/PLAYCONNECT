@@ -29,7 +29,7 @@ import type { Request, Response } from 'express';
 @ApiBearerAuth()
 @Controller('reports')
 @UseGuards(JwtAuthGuard, RbacGuard)
-@Throttle({ default: { limit: 30, ttl: 60_000 } })
+@Throttle({ short: { limit: 15, ttl: 10_000 }, medium: { limit: 60, ttl: 60_000 }, long: { limit: 300, ttl: 900_000 } })
 export class ReportsController {
   constructor(
     @Inject('GET_STUDENT_WISE_DUES_REPORT_USE_CASE')

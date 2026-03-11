@@ -43,6 +43,7 @@ import type { FeeDueRepository } from '../src/domain/fee/ports/fee-due.repositor
 import type { TransactionLogRepository } from '../src/domain/fee/ports/transaction-log.repository';
 import type { ClockPort } from '../src/application/common/clock.port';
 import type { TransactionPort } from '../src/application/common/transaction.port';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('RBAC: Fees + Settings (e2e)', () => {
   let app: INestApplication;
@@ -153,7 +154,7 @@ describe('RBAC: Fees + Settings (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

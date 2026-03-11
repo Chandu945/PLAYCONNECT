@@ -4,3 +4,89 @@
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
 }
+
+/* ── Academy name ── */
+.academyName {
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+}
+
+/* ── Owner cell with avatar ── */
+.ownerCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ownerAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-700));
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+
+.ownerName {
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Contact cell (stacked email + phone) ── */
+.contactCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contactLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+}
+
+.contactLink svg {
+  flex-shrink: 0;
+  color: var(--color-text-disabled);
+  transition: color var(--transition-fast);
+}
+
+.contactLink:hover {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.contactLink:hover svg {
+  color: var(--color-primary);
+}
+
+/* ── View link ── */
+.viewLink {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.viewLink:hover {
+  color: var(--color-primary-hover);
+  text-decoration: none;
+}

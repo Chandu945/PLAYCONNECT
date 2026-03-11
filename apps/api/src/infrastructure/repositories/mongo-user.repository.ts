@@ -96,7 +96,7 @@ export class MongoUserRepository implements UserRepository {
     return docs.map((doc) => this.toDomain(doc as unknown as Record<string, unknown>));
   }
 
-  private toDomain(doc: Record<string, unknown>): User {
+  private toDomain(doc: unknown): User {
     const d = doc as {
       _id: string;
       fullName: string;

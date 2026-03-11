@@ -16,6 +16,7 @@ import { tokenStore } from '../../infra/auth/token-store';
 import { deviceIdStore } from '../../infra/auth/device-id';
 import { subscriptionApi } from '../../infra/subscription/subscription-api';
 import { accessTokenStore, getAccessToken, registerAuthFailureHandler } from '../../infra/http/api-client';
+import { isTokenExpiredOrExpiring } from '../../infra/auth/token-expiry';
 
 export type AuthPhase =
   | 'initializing'
@@ -144,8 +145,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // so the user is never forced to re-login after backgrounding
   useEffect(() => {
     const handleAppState = (nextState: AppStateStatus) => {
-      if (nextState === 'active' && state.phase === 'ready' && !getAccessToken()) {
-        // Access token was lost (JS engine suspended) — silently restore
+      const token = getAccessToken();
+      const needsRefresh = !token || isTokenExpiredOrExpiring(token);
+      if (nextState === 'active' && state.phase === 'ready' && needsRefresh) {
+        // Access token was lost or expired/expiring — silently restore
         restoreSessionUseCase(deps)
           .then((result) => {
             if (!mountedRef.current) return;

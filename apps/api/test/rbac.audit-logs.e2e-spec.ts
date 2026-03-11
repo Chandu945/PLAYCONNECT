@@ -18,6 +18,7 @@ import { createTestTokenService } from './helpers/test-services';
 import { User } from '../src/domain/identity/entities/user.entity';
 import type { UserRepository } from '../src/domain/identity/ports/user.repository';
 import type { AuditLogRepository } from '../src/domain/audit/ports/audit-log.repository';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('RBAC — Audit Logs Endpoints (e2e)', () => {
   let app: INestApplication;
@@ -61,7 +62,7 @@ describe('RBAC — Audit Logs Endpoints (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

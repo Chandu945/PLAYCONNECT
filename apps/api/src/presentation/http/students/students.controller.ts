@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../common/guards/rbac.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -42,10 +43,13 @@ import { UpdateStudentDto } from './dto/update-student.dto';
 import { ChangeStudentStatusDto } from './dto/change-student-status.dto';
 import { ListStudentsQueryDto } from './dto/list-students.query';
 import { SetStudentBatchesDto } from './dto/set-student-batches.dto';
+import { StudentReportQueryDto } from './dto/student-report.query';
 import { mapResultToResponse } from '../common/result-mapper';
 import { LOGGER_PORT } from '@shared/logging/logger.port';
 import type { LoggerPort } from '@shared/logging/logger.port';
 import type { Request, Response } from 'express';
+import { sanitizeFilename } from '@shared/utils/sanitize-filename';
+import { MAX_IMAGE_FILE_SIZE } from '@shared/utils/image-validation';
 
 @ApiTags('Students')
 @ApiBearerAuth()
@@ -124,15 +128,19 @@ export class StudentsController {
 
   @Post(':studentId/photo')
   @Roles('OWNER', 'STAFF')
+  @Throttle({ short: { limit: 15, ttl: 10_000 }, medium: { limit: 40, ttl: 60_000 }, long: { limit: 200, ttl: 900_000 } })
   @ApiOperation({ summary: 'Upload student profile photo' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_IMAGE_FILE_SIZE } }))
   async uploadPhoto(
     @Param('studentId') studentId: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() user: CurrentUserType,
     @Req() req: Request,
   ) {
+    if (!file) {
+      return { success: false, error: { code: 'VALIDATION', message: 'No file uploaded' } };
+    }
     const result = await this.uploadStudentPhoto.execute({
       actorUserId: user.userId,
       actorRole: user.role,
@@ -373,11 +381,11 @@ export class StudentsController {
 
   @Get(':studentId/documents/report')
   @Roles('OWNER')
+  @Throttle({ short: { limit: 15, ttl: 10_000 }, medium: { limit: 40, ttl: 60_000 }, long: { limit: 200, ttl: 900_000 } })
   @ApiOperation({ summary: 'Generate student report PDF (owner only)' })
   async report(
     @Param('studentId') studentId: string,
-    @Query('fromMonth') fromMonth: string | undefined,
-    @Query('toMonth') toMonth: string | undefined,
+    @Query() query: StudentReportQueryDto,
     @CurrentUser() user: CurrentUserType,
     @Res() res: Response,
   ) {
@@ -385,20 +393,21 @@ export class StudentsController {
       actorUserId: user.userId,
       actorRole: user.role,
       studentId,
-      fromMonth,
-      toMonth,
+      fromMonth: query.fromMonth,
+      toMonth: query.toMonth,
     });
     if (!result.ok) {
       res.status(400).json({ error: result.error.message });
       return;
     }
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${result.value.filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(result.value.filename)}"`);
     res.send(result.value.buffer);
   }
 
   @Get(':studentId/documents/registration-form')
   @Roles('OWNER')
+  @Throttle({ short: { limit: 15, ttl: 10_000 }, medium: { limit: 40, ttl: 60_000 }, long: { limit: 200, ttl: 900_000 } })
   @ApiOperation({ summary: 'Generate registration form PDF (owner only)' })
   async registrationForm(
     @Param('studentId') studentId: string,
@@ -415,12 +424,13 @@ export class StudentsController {
       return;
     }
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${result.value.filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(result.value.filename)}"`);
     res.send(result.value.buffer);
   }
 
   @Get(':studentId/documents/id-card')
   @Roles('OWNER')
+  @Throttle({ short: { limit: 15, ttl: 10_000 }, medium: { limit: 40, ttl: 60_000 }, long: { limit: 200, ttl: 900_000 } })
   @ApiOperation({ summary: 'Generate student ID card PDF (owner only)' })
   async idCard(
     @Param('studentId') studentId: string,
@@ -437,7 +447,7 @@ export class StudentsController {
       return;
     }
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${result.value.filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(result.value.filename)}"`);
     res.send(result.value.buffer);
   }
 }

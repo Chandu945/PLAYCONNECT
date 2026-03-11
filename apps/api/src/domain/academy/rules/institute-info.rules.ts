@@ -47,17 +47,19 @@ export function validateBankDetails(details: BankDetails): { valid: boolean; rea
   return { valid: true };
 }
 
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  MAX_IMAGE_FILE_SIZE,
+} from '@shared/utils/image-validation';
 
 export function validateImageFile(
   mimeType: string,
   size: number,
 ): { valid: boolean; reason?: string } {
-  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+  if (!ALLOWED_IMAGE_MIME_TYPES.includes(mimeType as typeof ALLOWED_IMAGE_MIME_TYPES[number])) {
     return { valid: false, reason: 'Only JPEG, PNG, and WebP images are allowed' };
   }
-  if (size > MAX_FILE_SIZE) {
+  if (size > MAX_IMAGE_FILE_SIZE) {
     return { valid: false, reason: 'File size must not exceed 5MB' };
   }
   return { valid: true };

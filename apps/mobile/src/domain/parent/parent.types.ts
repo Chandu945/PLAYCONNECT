@@ -96,6 +96,7 @@ export type AcademyInfo = {
 };
 
 export type PaymentHistoryItem = {
+  feeDueId: string;
   receiptNumber: string;
   studentName: string;
   monthKey: string;

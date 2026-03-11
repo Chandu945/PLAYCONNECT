@@ -6,6 +6,7 @@ import { StudentAttendance } from '@domain/attendance/entities/student-attendanc
 import { StudentAttendanceModel } from '../database/schemas/student-attendance.schema';
 import type { StudentAttendanceDocument } from '../database/schemas/student-attendance.schema';
 import { getTransactionSession } from '../database/transaction-context';
+import { escapeRegex } from '@shared/utils/escape-regex';
 
 @Injectable()
 export class MongoStudentAttendanceRepository implements StudentAttendanceRepository {
@@ -64,7 +65,7 @@ export class MongoStudentAttendanceRepository implements StudentAttendanceReposi
       .find({
         academyId,
         studentId,
-        date: { $regex: `^${monthPrefix}` },
+        date: { $regex: `^${escapeRegex(monthPrefix)}` },
       })
       .lean()
       .exec();
@@ -78,7 +79,7 @@ export class MongoStudentAttendanceRepository implements StudentAttendanceReposi
     const docs = await this.model
       .find({
         academyId,
-        date: { $regex: `^${monthPrefix}` },
+        date: { $regex: `^${escapeRegex(monthPrefix)}` },
       })
       .lean()
       .exec();
@@ -93,7 +94,7 @@ export class MongoStudentAttendanceRepository implements StudentAttendanceReposi
     return this.model.countDocuments({ academyId, date });
   }
 
-  private toDomain(doc: Record<string, unknown>): StudentAttendance {
+  private toDomain(doc: unknown): StudentAttendance {
     const d = doc as {
       _id: string;
       academyId: string;

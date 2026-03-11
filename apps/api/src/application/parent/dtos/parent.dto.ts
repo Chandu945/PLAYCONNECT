@@ -28,6 +28,7 @@ export interface AcademyInfoDto {
 }
 
 export interface PaymentHistoryItemDto {
+  feeDueId: string;
   receiptNumber: string;
   studentName: string;
   monthKey: string;

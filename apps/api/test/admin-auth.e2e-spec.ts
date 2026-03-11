@@ -23,6 +23,7 @@ import type { UserRepository } from '../src/domain/identity/ports/user.repositor
 import type { SessionRepository } from '../src/domain/identity/ports/session.repository';
 import type { PasswordHasher } from '../src/application/identity/ports/password-hasher.port';
 import type { TokenService } from '../src/application/identity/ports/token-service.port';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Admin Auth (e2e)', () => {
   let app: INestApplication;
@@ -83,7 +84,7 @@ describe('Admin Auth (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

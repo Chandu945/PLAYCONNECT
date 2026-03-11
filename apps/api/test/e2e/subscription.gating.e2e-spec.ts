@@ -56,6 +56,7 @@ import type { BatchRepository } from '../../src/domain/batch/ports/batch.reposit
 import type { StudentBatchRepository } from '../../src/domain/batch/ports/student-batch.repository';
 import type { ClockPort } from '../../src/application/common/clock.port';
 import type { AuditRecorderPort } from '../../src/application/audit/ports/audit-recorder.port';
+import { configureApiVersioning } from '../../src/shared/config/api-versioning';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -199,7 +200,7 @@ describe('Subscription Gating (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     app.useGlobalInterceptors(new RequestIdInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.useGlobalPipes(createGlobalValidationPipe());

@@ -8,6 +8,7 @@ import type { BatchDocument } from '../database/schemas/batch.schema';
 import type { Weekday } from '@playconnect/contracts';
 import type { BatchStatus } from '@domain/batch/entities/batch.entity';
 import { getTransactionSession } from '../database/transaction-context';
+import { escapeRegex } from '@shared/utils/escape-regex';
 
 @Injectable()
 export class MongoBatchRepository implements BatchRepository {
@@ -57,7 +58,7 @@ export class MongoBatchRepository implements BatchRepository {
     const filter: Record<string, unknown> = { academyId };
     if (search) {
       const normalizedSearch = search.trim().toLowerCase();
-      filter['batchNameNormalized'] = { $regex: `^${this.escapeRegex(normalizedSearch)}` };
+      filter['batchNameNormalized'] = { $regex: `^${escapeRegex(normalizedSearch)}` };
     }
     const skip = (page - 1) * pageSize;
 
@@ -70,11 +71,7 @@ export class MongoBatchRepository implements BatchRepository {
     return { batches, total };
   }
 
-  private escapeRegex(str: string): string {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  private toDomain(doc: Record<string, unknown>): Batch {
+  private toDomain(doc: unknown): Batch {
     const d = doc as {
       _id: string;
       academyId: string;

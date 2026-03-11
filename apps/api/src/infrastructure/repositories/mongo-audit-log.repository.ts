@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import type { Model, FilterQuery } from 'mongoose';
+import type { Model } from 'mongoose';
 import type { AuditLogRepository, AuditLogFilter } from '@domain/audit/ports/audit-log.repository';
 import { AuditLog } from '@domain/audit/entities/audit-log.entity';
 import { AuditLogModel } from '../database/schemas/audit-log.schema';
@@ -32,7 +32,7 @@ export class MongoAuditLogRepository implements AuditLogRepository {
   }
 
   async listByAcademy(academyId: string, filter: AuditLogFilter): Promise<Paginated<AuditLog>> {
-    const query: FilterQuery<AuditLogDocument> = { academyId };
+    const query: Record<string, unknown> = { academyId };
 
     if (filter.action) {
       query['action'] = filter.action;
@@ -41,13 +41,14 @@ export class MongoAuditLogRepository implements AuditLogRepository {
       query['entityType'] = filter.entityType;
     }
     if (filter.from || filter.to) {
-      query['createdAt'] = {};
+      const createdAtFilter: Record<string, Date> = {};
       if (filter.from) {
-        query['createdAt']['$gte'] = new Date(`${filter.from}T00:00:00.000Z`);
+        createdAtFilter['$gte'] = new Date(`${filter.from}T00:00:00.000Z`);
       }
       if (filter.to) {
-        query['createdAt']['$lte'] = new Date(`${filter.to}T23:59:59.999Z`);
+        createdAtFilter['$lte'] = new Date(`${filter.to}T23:59:59.999Z`);
       }
+      query['createdAt'] = createdAtFilter;
     }
 
     const page = filter.page;
@@ -68,7 +69,7 @@ export class MongoAuditLogRepository implements AuditLogRepository {
     };
   }
 
-  private toDomain(doc: Record<string, unknown>): AuditLog {
+  private toDomain(doc: unknown): AuditLog {
     const d = doc as {
       _id: string;
       academyId: string;

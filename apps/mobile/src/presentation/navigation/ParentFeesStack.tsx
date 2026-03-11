@@ -14,7 +14,7 @@ const Stack = createNativeStackNavigator<ParentFeesStackParamList>();
 
 export function ParentFeesStack() {
   return (
-    // @ts-expect-error React Navigation 6 types incompatible with @types/react@19 hoisted in monorepo
+    // @ts-expect-error @types/react version mismatch in monorepo
     <Stack.Navigator>
       <Stack.Screen
         name="ParentFeesOverview"

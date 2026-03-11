@@ -78,7 +78,7 @@ export class MongoSessionRepository implements SessionRepository {
     return result.modifiedCount > 0;
   }
 
-  private toDomain(doc: Record<string, unknown>): Session {
+  private toDomain(doc: unknown): Session {
     const d = doc as {
       _id: string;
       userId: string;

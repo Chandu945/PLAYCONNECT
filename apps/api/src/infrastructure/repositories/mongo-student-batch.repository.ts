@@ -48,7 +48,7 @@ export class MongoStudentBatchRepository implements StudentBatchRepository {
     return this.model.countDocuments({ batchId }).exec();
   }
 
-  private toDomain(doc: Record<string, unknown>): StudentBatch {
+  private toDomain(doc: unknown): StudentBatch {
     const d = doc as {
       _id: string;
       studentId: string;

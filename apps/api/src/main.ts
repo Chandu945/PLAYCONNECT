@@ -18,9 +18,7 @@ import { AppConfigService } from './shared/config/config.service';
 import { LOGGER_PORT } from './shared/logging/logger.port';
 import type { LoggerPort } from './shared/logging/logger.port';
 import { setupSwagger } from './presentation/swagger/swagger.setup';
-
-/** All public routes live under this prefix — enforced globally. */
-export const API_V1_PREFIX = 'api/v1';
+import { configureApiVersioning } from './shared/config/api-versioning';
 
 const SHUTDOWN_GRACE_MS = 20_000;
 
@@ -36,8 +34,8 @@ async function bootstrap() {
   const config = app.get(AppConfigService);
   const logger = app.get<LoggerPort>(LOGGER_PORT);
 
-  // Global prefix for API versioning
-  app.setGlobalPrefix(API_V1_PREFIX);
+  // NestJS native URI versioning — routes: /api/v1/...
+  configureApiVersioning(app);
 
   // Security
   app.use(helmet());
@@ -46,9 +44,10 @@ async function bootstrap() {
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ limit: '1mb', extended: true }));
 
-  // CORS — allow all origins
+  // CORS — restrict to configured origins
+  const allowedOrigins = config.corsAllowedOrigins;
   app.enableCors({
-    origin: true,
+    origin: allowedOrigins.length > 0 ? allowedOrigins : false,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],

@@ -5,6 +5,7 @@ import { MetricsController } from '../src/presentation/http/metrics/metrics.cont
 import { METRICS_PORT } from '../src/application/common/ports/metrics.port';
 import { BasicMetricsAdapter } from '../src/infrastructure/metrics/basic-metrics.adapter';
 import { AppConfigService } from '../src/shared/config/config.service';
+import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 describe('Metrics (e2e)', () => {
   let app: INestApplication;
@@ -25,7 +26,7 @@ describe('Metrics (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
+    configureApiVersioning(app);
     await app.init();
   });
 

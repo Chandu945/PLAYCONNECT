@@ -126,7 +126,7 @@ export class MongoEventRepository implements EventRepository {
     return { total, upcoming };
   }
 
-  private toDomain(doc: Record<string, unknown>): CalendarEvent {
+  private toDomain(doc: unknown): CalendarEvent {
     const d = doc as {
       _id: string;
       academyId: string;

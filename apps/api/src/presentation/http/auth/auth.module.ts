@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthController } from './auth.controller';
 import { UserModel, UserSchema } from '@infrastructure/database/schemas/user.schema';
 import { SessionModel, SessionSchema } from '@infrastructure/database/schemas/session.schema';
@@ -56,7 +55,6 @@ import { AppConfigService } from '@shared/config/config.service';
       { name: PasswordResetChallengeModel.name, schema: PasswordResetChallengeSchema },
     ]),
     JwtModule.register({}),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
   ],
   controllers: [AuthController],
   providers: [
@@ -79,8 +77,9 @@ import { AppConfigService } from '@shared/config/config.service';
         sessionRepo: SessionRepository,
         hasher: PasswordHasher,
         tokenSvc: TokenService,
-      ) => new OwnerSignupUseCase(userRepo, sessionRepo, hasher, tokenSvc),
-      inject: [USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER, TOKEN_SERVICE],
+        config: AppConfigService,
+      ) => new OwnerSignupUseCase(userRepo, sessionRepo, hasher, tokenSvc, config.jwtRefreshTtl),
+      inject: [USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER, TOKEN_SERVICE, AppConfigService],
     },
     {
       provide: 'LOGIN_USE_CASE',
@@ -89,8 +88,9 @@ import { AppConfigService } from '@shared/config/config.service';
         sessionRepo: SessionRepository,
         hasher: PasswordHasher,
         tokenSvc: TokenService,
-      ) => new LoginUseCase(userRepo, sessionRepo, hasher, tokenSvc),
-      inject: [USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER, TOKEN_SERVICE],
+        config: AppConfigService,
+      ) => new LoginUseCase(userRepo, sessionRepo, hasher, tokenSvc, config.jwtRefreshTtl),
+      inject: [USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER, TOKEN_SERVICE, AppConfigService],
     },
     {
       provide: 'REFRESH_USE_CASE',
@@ -98,8 +98,9 @@ import { AppConfigService } from '@shared/config/config.service';
         sessionRepo: SessionRepository,
         userRepo: UserRepository,
         tokenSvc: TokenService,
-      ) => new RefreshUseCase(sessionRepo, userRepo, tokenSvc),
-      inject: [SESSION_REPOSITORY, USER_REPOSITORY, TOKEN_SERVICE],
+        config: AppConfigService,
+      ) => new RefreshUseCase(sessionRepo, userRepo, tokenSvc, config.jwtRefreshTtl),
+      inject: [SESSION_REPOSITORY, USER_REPOSITORY, TOKEN_SERVICE, AppConfigService],
     },
     {
       provide: 'LOGOUT_USE_CASE',
@@ -171,8 +172,9 @@ import { AppConfigService } from '@shared/config/config.service';
         userRepo: UserRepository,
         sessionRepo: SessionRepository,
         tokenSvc: TokenService,
-      ) => new GoogleLoginUseCase(googleVerifier, userRepo, sessionRepo, tokenSvc),
-      inject: [GOOGLE_TOKEN_VERIFIER, USER_REPOSITORY, SESSION_REPOSITORY, TOKEN_SERVICE],
+        config: AppConfigService,
+      ) => new GoogleLoginUseCase(googleVerifier, userRepo, sessionRepo, tokenSvc, config.jwtRefreshTtl),
+      inject: [GOOGLE_TOKEN_VERIFIER, USER_REPOSITORY, SESSION_REPOSITORY, TOKEN_SERVICE, AppConfigService],
     },
   ],
   exports: [TOKEN_SERVICE, USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER],

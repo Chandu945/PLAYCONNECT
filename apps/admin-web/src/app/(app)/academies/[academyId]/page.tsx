@@ -20,6 +20,8 @@ import { DisableLoginModal } from '@/components/modals/DisableLoginModal';
 import { ForceLogoutModal } from '@/components/modals/ForceLogoutModal';
 import { ResetPasswordModal } from '@/components/modals/ResetPasswordModal';
 
+import styles from './page.module.css';
+
 export default function AcademyDetailPage() {
   const { academyId } = useParams<{ academyId: string }>();
   const { data, loading, error, refetch, actions } = useAcademyDetail(academyId);
@@ -140,18 +142,23 @@ export default function AcademyDetailPage() {
       />
 
       <AcademyMetrics metrics={data.metrics} />
-      <OwnerCard owner={data.owner} />
-      <SubscriptionCard subscription={data.subscription} />
 
-      <ActionsPanel
-        academyId={data.academyId}
-        loginDisabled={data.loginDisabled}
-        onManualSubscription={() => setManualSubOpen(true)}
-        onDeactivateSubscription={() => setDeactivateOpen(true)}
-        onToggleLogin={() => setDisableLoginOpen(true)}
-        onForceLogout={() => setForceLogoutOpen(true)}
-        onResetPassword={() => setResetPasswordOpen(true)}
-      />
+      <div className={styles.detailGrid}>
+        <OwnerCard owner={data.owner} />
+        <SubscriptionCard subscription={data.subscription} />
+      </div>
+
+      <div className={styles.actionsSection}>
+        <ActionsPanel
+          academyId={data.academyId}
+          loginDisabled={data.loginDisabled}
+          onManualSubscription={() => setManualSubOpen(true)}
+          onDeactivateSubscription={() => setDeactivateOpen(true)}
+          onToggleLogin={() => setDisableLoginOpen(true)}
+          onForceLogout={() => setForceLogoutOpen(true)}
+          onResetPassword={() => setResetPasswordOpen(true)}
+        />
+      </div>
 
       <ManualSubscriptionModal
         open={manualSubOpen}

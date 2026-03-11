@@ -7,7 +7,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import type { RouteProp } from '@react-navigation/native';
+import type { RouteProp, NavigationProp } from '@react-navigation/native';
+import type { ParentFeesStackParamList } from '../../navigation/ParentFeesStack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFeePaymentFlow } from '../../../application/parent/use-fee-payment-flow';
 import { spacing, fontSizes, fontWeights, radius, shadows } from '../../theme';
@@ -79,7 +80,7 @@ export function FeePaymentScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const route = useRoute<RouteProp<FeePaymentRouteParams, 'FeePayment'>>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<ParentFeesStackParamList>>();
   const feeDueId = route.params?.feeDueId ?? '';
   const monthKey = route.params?.monthKey ?? '';
   const amount = route.params?.amount ?? 0;
@@ -195,9 +196,20 @@ export function FeePaymentScreen() {
         )}
 
         {status === 'success' && (
-          <TouchableOpacity style={styles.doneButton} onPress={reset}>
-            <Text style={styles.doneButtonText}>Done</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={styles.receiptButton}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('Receipt', { feeDueId })}
+            >
+              {/* @ts-expect-error react-native-vector-icons types */}
+              <Icon name="receipt" size={20} color={colors.primary} />
+              <Text style={styles.receiptButtonText}>View Receipt</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.doneButton} onPress={reset}>
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </>
         )}
       </View>
 
@@ -358,6 +370,21 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
   },
   payButtonText: {
     color: colors.white,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
+  },
+  receiptButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.xl,
+    paddingVertical: spacing.base,
+    marginBottom: spacing.sm,
+  },
+  receiptButtonText: {
+    color: colors.primary,
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.bold,
   },

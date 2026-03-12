@@ -8,6 +8,7 @@ export interface StudentListQuery {
   search?: string;
   feeFilter?: FeeFilter;
   month?: string;
+  studentIds?: string[];
 }
 
 export interface StudentListRow {

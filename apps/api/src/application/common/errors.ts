@@ -32,6 +32,7 @@ export const BatchErrors = {
   readNotAllowed: () => AppError.forbidden('Only owners and staff can view batches'),
   deleteNotAllowed: () => AppError.forbidden('Only owners can delete batches'),
   notActive: (id: string) => AppError.validation(`Batch '${id}' is not active`),
+  capacityFull: () => AppError.conflict('Batch has reached maximum student capacity'),
 } as const;
 
 export const StudentErrors = {

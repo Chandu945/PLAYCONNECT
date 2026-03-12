@@ -52,6 +52,10 @@ export class MongoStudentQueryRepository implements StudentQueryRepository {
       filter['fullNameNormalized'] = { $regex: `^${escapeRegex(normalizedSearch)}` };
     }
 
+    if (query.studentIds) {
+      filter['_id'] = { $in: query.studentIds };
+    }
+
     const skip = (page - 1) * pageSize;
 
     const [docs, total] = await Promise.all([
@@ -91,6 +95,10 @@ export class MongoStudentQueryRepository implements StudentQueryRepository {
       matchStage['fullNameNormalized'] = {
         $regex: `^${escapeRegex(normalizedSearch)}`,
       };
+    }
+
+    if (query.studentIds) {
+      matchStage['_id'] = { $in: query.studentIds };
     }
 
     const skip = (page - 1) * pageSize;

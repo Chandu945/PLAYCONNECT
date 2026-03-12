@@ -114,8 +114,9 @@ import { MongoStudentAttendanceRepository } from '@infrastructure/repositories/m
         userRepo: UserRepository,
         studentRepo: StudentRepository,
         studentQueryRepo: StudentQueryRepository,
-      ) => new ListStudentsUseCase(userRepo, studentRepo, studentQueryRepo),
-      inject: [USER_REPOSITORY, STUDENT_REPOSITORY, STUDENT_QUERY_REPOSITORY],
+        studentBatchRepo: StudentBatchRepository,
+      ) => new ListStudentsUseCase(userRepo, studentRepo, studentQueryRepo, studentBatchRepo),
+      inject: [USER_REPOSITORY, STUDENT_REPOSITORY, STUDENT_QUERY_REPOSITORY, STUDENT_BATCH_REPOSITORY],
     },
     {
       provide: 'GET_STUDENT_USE_CASE',

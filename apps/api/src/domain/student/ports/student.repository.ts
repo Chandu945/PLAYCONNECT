@@ -7,6 +7,7 @@ export interface StudentListFilter {
   academyId: string;
   status?: StudentStatus;
   search?: string;
+  studentIds?: string[];
 }
 
 export interface BirthdayStudent {

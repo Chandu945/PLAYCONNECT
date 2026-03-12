@@ -11,6 +11,9 @@ export type BatchListItem = {
   days: Weekday[];
   notes: string | null;
   profilePhotoUrl: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  maxStudents: number | null;
   status: BatchStatus;
   studentCount: number;
   createdAt: string;
@@ -21,6 +24,9 @@ export type CreateBatchRequest = {
   batchName: string;
   days?: Weekday[];
   notes?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  maxStudents?: number | null;
 };
 
 export type UpdateBatchRequest = Partial<CreateBatchRequest> & {

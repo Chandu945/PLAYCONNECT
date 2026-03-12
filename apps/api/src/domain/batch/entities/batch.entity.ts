@@ -11,6 +11,9 @@ export interface BatchProps {
   days: Weekday[];
   notes: string | null;
   profilePhotoUrl: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  maxStudents: number | null;
   status: BatchStatus;
   audit: AuditFields;
 }
@@ -27,6 +30,9 @@ export class Batch extends Entity<BatchProps> {
     days?: Weekday[];
     notes?: string | null;
     profilePhotoUrl?: string | null;
+    startTime?: string | null;
+    endTime?: string | null;
+    maxStudents?: number | null;
   }): Batch {
     const trimmedName = params.batchName.trim();
     return new Batch(new UniqueId(params.id), {
@@ -36,6 +42,9 @@ export class Batch extends Entity<BatchProps> {
       days: [...new Set(params.days ?? [])],
       notes: params.notes ?? null,
       profilePhotoUrl: params.profilePhotoUrl ?? null,
+      startTime: params.startTime ?? null,
+      endTime: params.endTime ?? null,
+      maxStudents: params.maxStudents ?? null,
       status: 'ACTIVE',
       audit: createAuditFields(),
     });
@@ -67,6 +76,18 @@ export class Batch extends Entity<BatchProps> {
 
   get profilePhotoUrl(): string | null {
     return this.props.profilePhotoUrl;
+  }
+
+  get startTime(): string | null {
+    return this.props.startTime;
+  }
+
+  get endTime(): string | null {
+    return this.props.endTime;
+  }
+
+  get maxStudents(): number | null {
+    return this.props.maxStudents;
   }
 
   get status(): BatchStatus {

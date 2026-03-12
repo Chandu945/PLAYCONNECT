@@ -4,6 +4,7 @@ import type { AppError } from '@shared/kernel';
 import type { StudentRepository } from '@domain/student/ports/student.repository';
 import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { StudentQueryRepository } from '@domain/student/ports/student-query.repository';
+import type { StudentBatchRepository } from '@domain/batch/ports/student-batch.repository';
 import { canManageStudent } from '@domain/student/rules/student.rules';
 import { StudentErrors } from '../../common/errors';
 import type { StudentDto } from '../dtos/student.dto';
@@ -19,6 +20,7 @@ export interface ListStudentsInput {
   search?: string;
   feeFilter?: FeeFilter;
   month?: string;
+  batchId?: string;
 }
 
 export interface ListStudentsOutput {
@@ -36,6 +38,7 @@ export class ListStudentsUseCase {
     private readonly userRepo: UserRepository,
     private readonly studentRepo: StudentRepository,
     private readonly studentQueryRepo?: StudentQueryRepository,
+    private readonly studentBatchRepo?: StudentBatchRepository,
   ) {}
 
   async execute(input: ListStudentsInput): Promise<Result<ListStudentsOutput, AppError>> {
@@ -49,6 +52,19 @@ export class ListStudentsUseCase {
       return err(StudentErrors.academyRequired());
     }
 
+    // Resolve student IDs for batch filter
+    let batchStudentIds: string[] | undefined;
+    if (input.batchId && this.studentBatchRepo) {
+      const assignments = await this.studentBatchRepo.findByBatchId(input.batchId);
+      batchStudentIds = assignments.map((a) => a.studentId);
+      if (batchStudentIds.length === 0) {
+        return ok({
+          data: [],
+          meta: { page: input.page, pageSize: input.pageSize, totalItems: 0, totalPages: 0 },
+        });
+      }
+    }
+
     if (input.feeFilter && input.feeFilter !== 'ALL' && this.studentQueryRepo) {
       const { rows, total } = await this.studentQueryRepo.listWithFeeFilter(
         {
@@ -57,6 +73,7 @@ export class ListStudentsUseCase {
           search: input.search,
           feeFilter: input.feeFilter,
           month: input.month,
+          studentIds: batchStudentIds,
         },
         input.page,
         input.pageSize,
@@ -78,6 +95,7 @@ export class ListStudentsUseCase {
         academyId: actor.academyId,
         status: input.status,
         search: input.search,
+        studentIds: batchStudentIds,
       },
       input.page,
       input.pageSize,

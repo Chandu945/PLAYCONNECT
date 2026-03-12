@@ -9,6 +9,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   Animated,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,9 +29,16 @@ import { SkeletonTile } from '../../components/ui/SkeletonTile';
 import { InlineError } from '../../components/ui/InlineError';
 import { StudentRow } from '../../components/students/StudentRow';
 import { StudentActionMenu } from '../../components/student/StudentActionMenu';
+import { BatchFilterBar } from '../../components/attendance/BatchFilterBar';
+import { ActiveFilterBar } from '../../components/ui/ActiveFilterBar';
+import type { ActiveFilter } from '../../components/ui/ActiveFilterBar';
 import { spacing, fontSizes, fontWeights, radius } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
 
 type Nav = NativeStackNavigationProp<StudentsStackParamList, 'StudentsList'>;
 
@@ -63,6 +73,8 @@ export function StudentsListScreen() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StudentStatus | undefined>(undefined);
   const [feeFilter, setFeeFilter] = useState<FeeFilter | undefined>(undefined);
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [selectedBatchName, setSelectedBatchName] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [month] = useState(getCurrentMonth);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,8 +101,9 @@ export function StudentsListScreen() {
       search: debouncedSearch || undefined,
       feeFilter: feeFilter,
       month: feeFilter && feeFilter !== 'ALL' ? month : undefined,
+      batchId: selectedBatchId ?? undefined,
     }),
-    [statusFilter, debouncedSearch, feeFilter, month],
+    [statusFilter, debouncedSearch, feeFilter, month, selectedBatchId],
   );
 
   const { items, loading, loadingMore, error, refetch, fetchMore } = useStudents(
@@ -110,7 +123,58 @@ export function StudentsListScreen() {
   );
 
   const activeFilterCount =
-    (statusFilter ? 1 : 0) + (feeFilter ? 1 : 0);
+    (statusFilter ? 1 : 0) + (feeFilter ? 1 : 0) + (selectedBatchId ? 1 : 0);
+
+  const activeFilters = useMemo<ActiveFilter[]>(() => {
+    const arr: ActiveFilter[] = [];
+    if (statusFilter) {
+      const label = STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label ?? statusFilter;
+      arr.push({
+        key: 'status',
+        label: 'Status',
+        value: label,
+        onRemove: () => setStatusFilter(undefined),
+      });
+    }
+    if (feeFilter) {
+      const label = FEE_OPTIONS.find((o) => o.value === feeFilter)?.label ?? feeFilter;
+      arr.push({
+        key: 'fee',
+        label: 'Fee',
+        value: label,
+        onRemove: () => setFeeFilter(undefined),
+      });
+    }
+    if (selectedBatchId) {
+      arr.push({
+        key: 'batch',
+        label: 'Batch',
+        value: selectedBatchName ?? 'Selected',
+        onRemove: () => {
+          setSelectedBatchId(null);
+          setSelectedBatchName(null);
+        },
+      });
+    }
+    return arr;
+  }, [statusFilter, feeFilter, selectedBatchId, selectedBatchName]);
+
+  const clearAllFilters = useCallback(() => {
+    setStatusFilter(undefined);
+    setFeeFilter(undefined);
+    setSelectedBatchId(null);
+    setSelectedBatchName(null);
+  }, []);
+
+  const handleBatchChange = useCallback((id: string | null, name?: string) => {
+    setSelectedBatchId(id);
+    setSelectedBatchName(name ?? null);
+  }, []);
+
+  const toggleFilters = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowFilters((v) => !v);
+  }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -215,13 +279,17 @@ export function StudentsListScreen() {
                 <Icon name="magnify" size={22} color={colors.text} />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => setShowFilters((v) => !v)}
-                style={styles.navBtn}
+                onPress={toggleFilters}
+                style={[styles.navBtn, showFilters && styles.navBtnActive]}
                 testID="filter-button"
               >
                 {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
-                <Icon name="filter-variant" size={22} color={colors.text} />
-                {activeFilterCount > 0 && (
+                <Icon
+                  name={showFilters ? 'filter-variant-remove' : 'filter-variant'}
+                  size={22}
+                  color={showFilters ? colors.primary : colors.text}
+                />
+                {activeFilterCount > 0 && !showFilters && (
                   <View style={styles.filterBadge}>
                     <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
                   </View>
@@ -232,11 +300,19 @@ export function StudentsListScreen() {
         )}
       </View>
 
+      {/* ── Active Filter Pills (visible when panel closed) ── */}
+      {!showFilters && <ActiveFilterBar filters={activeFilters} onClearAll={clearAllFilters} />}
+
       {/* ── Filter Panel ──────────────────────────────── */}
       {showFilters && (
         <View style={styles.filterPanel}>
-          <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>Status</Text>
+          {/* Status Filter */}
+          <View style={styles.filterCard}>
+            <View style={styles.filterCardHeader}>
+              {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
+              <Icon name="account-check-outline" size={15} color={colors.textSecondary} />
+              <Text style={styles.filterCardTitle}>Status</Text>
+            </View>
             <View style={styles.chipRow}>
               {STATUS_OPTIONS.map((opt) => {
                 const selected = statusFilter === opt.value;
@@ -247,6 +323,10 @@ export function StudentsListScreen() {
                     onPress={() => setStatusFilter(opt.value)}
                     testID={`status-chip-${opt.label.toLowerCase()}`}
                   >
+                    {selected && (
+                      // @ts-expect-error react-native-vector-icons types incompatible with @types/react@19
+                      <Icon name="check" size={14} color={colors.primary} />
+                    )}
                     <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
                       {opt.label}
                     </Text>
@@ -255,8 +335,14 @@ export function StudentsListScreen() {
               })}
             </View>
           </View>
-          <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>Fee Status</Text>
+
+          {/* Fee Status Filter */}
+          <View style={styles.filterCard}>
+            <View style={styles.filterCardHeader}>
+              {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
+              <Icon name="currency-inr" size={15} color={colors.textSecondary} />
+              <Text style={styles.filterCardTitle}>Fee Status</Text>
+            </View>
             <View style={styles.chipRow}>
               {FEE_OPTIONS.map((opt) => {
                 const selected = feeFilter === opt.value;
@@ -267,6 +353,10 @@ export function StudentsListScreen() {
                     onPress={() => setFeeFilter(opt.value)}
                     testID={`fee-chip-${opt.label.toLowerCase()}`}
                   >
+                    {selected && (
+                      // @ts-expect-error react-native-vector-icons types incompatible with @types/react@19
+                      <Icon name="check" size={14} color={colors.primary} />
+                    )}
                     <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
                       {opt.label}
                     </Text>
@@ -275,15 +365,23 @@ export function StudentsListScreen() {
               })}
             </View>
           </View>
+
+          {/* Batch Filter */}
+          <View style={styles.filterCard}>
+            <View style={styles.filterCardHeader}>
+              {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
+              <Icon name="account-group-outline" size={15} color={colors.textSecondary} />
+              <Text style={styles.filterCardTitle}>Batch</Text>
+            </View>
+            <BatchFilterBar selectedBatchId={selectedBatchId} onChange={handleBatchChange} />
+          </View>
+
+          {/* Clear All */}
           {activeFilterCount > 0 && (
-            <TouchableOpacity
-              style={styles.clearFilters}
-              onPress={() => {
-                setStatusFilter(undefined);
-                setFeeFilter(undefined);
-              }}
-            >
-              <Text style={styles.clearFiltersText}>Clear Filters</Text>
+            <TouchableOpacity style={styles.clearFilters} onPress={clearAllFilters}>
+              {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
+              <Icon name="filter-remove-outline" size={16} color={colors.danger} />
+              <Text style={styles.clearFiltersText}>Clear All Filters</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -410,6 +508,9 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  navBtnActive: {
+    backgroundColor: colors.primarySoft,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -446,17 +547,25 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    gap: spacing.sm,
   },
-  filterSection: {
-    marginBottom: spacing.md,
+  filterCard: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.lg,
+    padding: spacing.md,
   },
-  filterLabel: {
+  filterCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  filterCardTitle: {
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.semibold,
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: spacing.sm,
   },
   chipRow: {
     flexDirection: 'row',
@@ -464,15 +573,18 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     gap: spacing.sm,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: spacing.base,
     borderRadius: radius.full,
-    backgroundColor: colors.bg,
-    borderWidth: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
     borderColor: colors.border,
+    gap: 5,
   },
   chipSelected: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primarySoft,
     borderColor: colors.primary,
   },
   chipText: {
@@ -481,16 +593,21 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     color: colors.textMedium,
   },
   chipTextSelected: {
-    color: colors.white,
+    color: colors.primary,
+    fontWeight: fontWeights.semibold,
   },
   clearFilters: {
-    alignSelf: 'flex-start',
-    paddingVertical: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.base,
+    gap: spacing.xs,
   },
   clearFiltersText: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
-    color: colors.primary,
+    color: colors.danger,
   },
 
   /* ── Content ───────────────────────────────────── */

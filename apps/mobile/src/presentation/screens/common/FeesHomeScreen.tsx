@@ -5,6 +5,9 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,6 +19,10 @@ import { listUnpaidDues, listPaidDues } from '../../../infra/fees/fees-api';
 import { listStudents } from '../../../infra/student/student-api';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { MonthPickerRow } from '../../components/fees/MonthPickerRow';
+import { BatchFilterBar } from '../../components/attendance/BatchFilterBar';
+import { ActiveFilterBar } from '../../components/ui/ActiveFilterBar';
+import type { ActiveFilter } from '../../components/ui/ActiveFilterBar';
+import { listBatchStudents } from '../../../infra/batch/batch-api';
 import { UnpaidDuesScreen } from './UnpaidDuesScreen';
 import { PaidFeesScreen } from './PaidFeesScreen';
 import { PendingApprovalsScreen } from '../owner/PendingApprovalsScreen';
@@ -23,6 +30,10 @@ import { MyPaymentRequestsScreen } from '../staff/MyPaymentRequestsScreen';
 import { spacing, fontSizes, fontWeights, radius } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
 
 type Nav = NativeStackNavigationProp<FeesStackParamList, 'FeesHome'>;
 
@@ -59,6 +70,9 @@ export function FeesHomeScreen() {
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [selectedBatchName, setSelectedBatchName] = useState<string | null>(null);
+  const [batchStudentIds, setBatchStudentIds] = useState<Set<string> | null>(null);
   const mountedRef = useRef(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<TextInput>(null);
@@ -104,23 +118,84 @@ export function FeesHomeScreen() {
     };
   }, [searchText]);
 
+  useEffect(() => {
+    if (!selectedBatchId) {
+      setBatchStudentIds(null);
+      return;
+    }
+    let cancelled = false;
+    async function load() {
+      const result = await listBatchStudents(selectedBatchId!, 1, 100);
+      if (cancelled) return;
+      if (result.ok) {
+        const ids = new Set(result.value.data.map((s: { id: string }) => s.id));
+        setBatchStudentIds(ids);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [selectedBatchId]);
+
   const filteredUnpaidItems = useMemo(() => {
-    if (!debouncedSearch) return unpaidItems;
-    const searchLower = debouncedSearch.toLowerCase();
-    return unpaidItems.filter((item) => {
-      const name = studentNameMap[item.studentId];
-      return name && name.toLowerCase().includes(searchLower);
-    });
-  }, [unpaidItems, debouncedSearch, studentNameMap]);
+    let items = unpaidItems;
+    if (batchStudentIds) {
+      items = items.filter((item) => batchStudentIds.has(item.studentId));
+    }
+    if (debouncedSearch) {
+      const searchLower = debouncedSearch.toLowerCase();
+      items = items.filter((item) => {
+        const name = studentNameMap[item.studentId];
+        return name && name.toLowerCase().includes(searchLower);
+      });
+    }
+    return items;
+  }, [unpaidItems, debouncedSearch, studentNameMap, batchStudentIds]);
 
   const filteredPaidItems = useMemo(() => {
-    if (!debouncedSearch) return paidItems;
-    const searchLower = debouncedSearch.toLowerCase();
-    return paidItems.filter((item) => {
-      const name = studentNameMap[item.studentId];
-      return name && name.toLowerCase().includes(searchLower);
-    });
-  }, [paidItems, debouncedSearch, studentNameMap]);
+    let items = paidItems;
+    if (batchStudentIds) {
+      items = items.filter((item) => batchStudentIds.has(item.studentId));
+    }
+    if (debouncedSearch) {
+      const searchLower = debouncedSearch.toLowerCase();
+      items = items.filter((item) => {
+        const name = studentNameMap[item.studentId];
+        return name && name.toLowerCase().includes(searchLower);
+      });
+    }
+    return items;
+  }, [paidItems, debouncedSearch, studentNameMap, batchStudentIds]);
+
+  const activeFilters = useMemo<ActiveFilter[]>(() => {
+    const arr: ActiveFilter[] = [];
+    if (selectedBatchId) {
+      arr.push({
+        key: 'batch',
+        label: 'Batch',
+        value: selectedBatchName ?? 'Selected',
+        onRemove: () => {
+          setSelectedBatchId(null);
+          setSelectedBatchName(null);
+        },
+      });
+    }
+    return arr;
+  }, [selectedBatchId, selectedBatchName]);
+
+  const clearAllFilters = useCallback(() => {
+    setSelectedBatchId(null);
+    setSelectedBatchName(null);
+  }, []);
+
+  const handleBatchChange = useCallback((id: string | null, name?: string) => {
+    setSelectedBatchId(id);
+    setSelectedBatchName(name ?? null);
+  }, []);
+
+  const toggleFilters = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowFilters((v) => !v);
+  }, []);
 
   const goToPrev = useCallback(() => {
     setMonth(addMonths(month, -1));
@@ -190,17 +265,29 @@ export function FeesHomeScreen() {
                 <Icon name="magnify" size={22} color={colors.text} />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => setShowFilters((v) => !v)}
-                style={styles.navBtn}
+                onPress={toggleFilters}
+                style={[styles.navBtn, showFilters && styles.navBtnActive]}
                 testID="filter-button"
               >
                 {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
-                <Icon name="filter-variant" size={22} color={colors.text} />
+                <Icon
+                  name={showFilters ? 'filter-variant-remove' : 'filter-variant'}
+                  size={22}
+                  color={showFilters ? colors.primary : colors.text}
+                />
+                {selectedBatchId !== null && !showFilters && (
+                  <View style={styles.filterBadge}>
+                    <Text style={styles.filterBadgeText}>1</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         )}
       </View>
+
+      {/* ── Active Filter Pills (visible when panel closed) ── */}
+      {!showFilters && <ActiveFilterBar filters={activeFilters} onClearAll={clearAllFilters} />}
 
       {/* ── Filter Panel ──────────────────────────────── */}
       {showFilters && (
@@ -212,6 +299,21 @@ export function FeesHomeScreen() {
             onSelect={setSelectedSegment}
             testID="fees-segments"
           />
+          <View style={styles.filterCard}>
+            <View style={styles.filterCardHeader}>
+              {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
+              <Icon name="account-group-outline" size={15} color={colors.textSecondary} />
+              <Text style={styles.filterCardTitle}>Batch</Text>
+            </View>
+            <BatchFilterBar selectedBatchId={selectedBatchId} onChange={handleBatchChange} />
+          </View>
+          {selectedBatchId !== null && (
+            <TouchableOpacity style={styles.clearFilters} onPress={clearAllFilters}>
+              {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
+              <Icon name="filter-remove-outline" size={16} color={colors.danger} />
+              <Text style={styles.clearFiltersText}>Clear Batch Filter</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -304,6 +406,9 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  navBtnActive: {
+    backgroundColor: colors.primarySoft,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -317,6 +422,23 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     marginLeft: spacing.xs,
   },
 
+  filterBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: colors.primary,
+    borderRadius: radius.full,
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBadgeText: {
+    fontSize: 9,
+    fontWeight: fontWeights.bold,
+    color: colors.white,
+  },
+
   /* ── Filter Panel ──────────────────────────────── */
   filterPanel: {
     backgroundColor: colors.surface,
@@ -324,6 +446,38 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    gap: spacing.sm,
+  },
+  filterCard: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  filterCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  filterCardTitle: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  clearFilters: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.base,
+    gap: spacing.xs,
+  },
+  clearFiltersText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.danger,
   },
 
   /* ── Controls ──────────────────────────────────── */

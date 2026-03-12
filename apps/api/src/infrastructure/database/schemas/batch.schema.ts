@@ -30,6 +30,15 @@ export class BatchModel {
   @Prop({ type: String, default: null })
   profilePhotoUrl!: string | null;
 
+  @Prop({ type: String, default: null })
+  startTime!: string | null;
+
+  @Prop({ type: String, default: null })
+  endTime!: string | null;
+
+  @Prop({ type: Number, default: null })
+  maxStudents!: number | null;
+
   @Prop({ required: true, default: 'ACTIVE' })
   status!: string;
 

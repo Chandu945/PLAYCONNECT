@@ -25,6 +25,9 @@ export class MongoBatchRepository implements BatchRepository {
         days: batch.days,
         notes: batch.notes,
         profilePhotoUrl: batch.profilePhotoUrl,
+        startTime: batch.startTime,
+        endTime: batch.endTime,
+        maxStudents: batch.maxStudents,
         status: batch.status,
         version: batch.audit.version,
       },
@@ -80,6 +83,9 @@ export class MongoBatchRepository implements BatchRepository {
       days: string[];
       notes: string | null;
       profilePhotoUrl: string | null;
+      startTime: string | null;
+      endTime: string | null;
+      maxStudents: number | null;
       status: string;
       createdAt: Date;
       updatedAt: Date;
@@ -93,6 +99,9 @@ export class MongoBatchRepository implements BatchRepository {
       days: (d.days ?? []) as Weekday[],
       notes: d.notes,
       profilePhotoUrl: d.profilePhotoUrl ?? null,
+      startTime: d.startTime ?? null,
+      endTime: d.endTime ?? null,
+      maxStudents: d.maxStudents ?? null,
       status: (d.status as BatchStatus) ?? 'ACTIVE',
       audit: {
         createdAt: d.createdAt,

@@ -471,6 +471,11 @@ export class InMemoryStudentRepository implements StudentRepository {
       filtered = filtered.filter((s) => s.fullNameNormalized.startsWith(normalizedSearch));
     }
 
+    if (filter.studentIds) {
+      const idSet = new Set(filter.studentIds);
+      filtered = filtered.filter((s) => idSet.has(s.id.toString()));
+    }
+
     filtered.sort((a, b) => b.audit.createdAt.getTime() - a.audit.createdAt.getTime());
     const start = (page - 1) * pageSize;
     const students = filtered.slice(start, start + pageSize);

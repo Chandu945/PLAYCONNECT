@@ -84,6 +84,9 @@ export class UploadBatchPhotoUseCase {
       days: batch.days,
       notes: batch.notes,
       profilePhotoUrl: url,
+      startTime: batch.startTime,
+      endTime: batch.endTime,
+      maxStudents: batch.maxStudents,
       status: batch.status,
       audit: updateAuditFields(batch.audit),
     });

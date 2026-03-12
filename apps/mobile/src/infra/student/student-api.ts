@@ -19,6 +19,7 @@ function buildListPath(filters: StudentListFilters, page: number, pageSize: numb
   if (filters.search) parts.push(`search=${encodeURIComponent(filters.search)}`);
   if (filters.feeFilter) parts.push(`feeFilter=${encodeURIComponent(filters.feeFilter)}`);
   if (filters.month) parts.push(`month=${encodeURIComponent(filters.month)}`);
+  if (filters.batchId) parts.push(`batchId=${encodeURIComponent(filters.batchId)}`);
 
   return `/api/v1/students?${parts.join('&')}`;
 }

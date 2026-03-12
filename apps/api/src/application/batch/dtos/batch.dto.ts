@@ -8,6 +8,9 @@ export interface BatchDto {
   days: Weekday[];
   notes: string | null;
   profilePhotoUrl: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  maxStudents: number | null;
   status: BatchStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -21,6 +24,9 @@ export function toBatchDto(batch: Batch): BatchDto {
     days: batch.days,
     notes: batch.notes,
     profilePhotoUrl: batch.profilePhotoUrl,
+    startTime: batch.startTime,
+    endTime: batch.endTime,
+    maxStudents: batch.maxStudents,
     status: batch.status,
     createdAt: batch.audit.createdAt,
     updatedAt: batch.audit.updatedAt,

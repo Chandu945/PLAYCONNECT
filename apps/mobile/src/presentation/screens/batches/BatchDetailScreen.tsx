@@ -202,6 +202,17 @@ export function BatchDetailScreen() {
     ? batch.days.map((d) => DAY_SHORT[d] ?? d).join(', ')
     : 'No days set';
 
+  const formatTime12h = (time: string): string => {
+    const [h, m] = time.split(':').map(Number);
+    const period = h! >= 12 ? 'PM' : 'AM';
+    const hour12 = h! % 12 || 12;
+    return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+  };
+
+  const timeSlotText = batch.startTime && batch.endTime
+    ? `${formatTime12h(batch.startTime)} - ${formatTime12h(batch.endTime)}`
+    : null;
+
   const renderStudentItem = useCallback(
     ({ item }: { item: StudentListItem }) => (
       <AppCard style={styles.studentCard}>
@@ -257,6 +268,14 @@ export function BatchDetailScreen() {
             )}
           </View>
           <Text style={styles.days}>{daysText}</Text>
+          {timeSlotText && (
+            <Text style={styles.days}>{timeSlotText}</Text>
+          )}
+          {batch.maxStudents != null && (
+            <Text style={styles.days}>
+              Capacity: {totalItemsRef.current} / {batch.maxStudents} students
+            </Text>
+          )}
           {batch.notes ? (
             <Text style={styles.notes}>{batch.notes}</Text>
           ) : null}

@@ -53,6 +53,7 @@ export type StudentListFilters = {
   search?: string;
   feeFilter?: FeeFilter;
   month?: string;
+  batchId?: string;
 };
 
 export type CreateStudentRequest = {

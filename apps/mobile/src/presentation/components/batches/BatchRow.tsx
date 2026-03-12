@@ -21,12 +21,29 @@ const DAY_SHORT: Record<string, string> = {
   SUN: 'Su',
 };
 
+function formatTime12h(time: string): string {
+  const [h, m] = time.split(':').map(Number);
+  const period = h! >= 12 ? 'PM' : 'AM';
+  const hour12 = h! % 12 || 12;
+  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
 function BatchRowComponent({ batch, onPress }: BatchRowProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const daysText = batch.days.length > 0
     ? batch.days.map((d) => DAY_SHORT[d] ?? d).join(', ')
     : 'No days set';
+
+  const timeText = batch.startTime && batch.endTime
+    ? `${formatTime12h(batch.startTime)} - ${formatTime12h(batch.endTime)}`
+    : null;
+
+  const subtitleText = timeText ? `${daysText} · ${timeText}` : daysText;
+
+  const studentCountText = batch.maxStudents != null
+    ? `${batch.studentCount}/${batch.maxStudents}`
+    : `${batch.studentCount}`;
 
   return (
     <AppCard style={styles.container} onPress={onPress} testID={`batch-row-${batch.id}`}>
@@ -50,10 +67,10 @@ function BatchRowComponent({ batch, onPress }: BatchRowProps) {
             )}
           </View>
           <Text style={styles.days} numberOfLines={1}>
-            {daysText}
+            {subtitleText}
           </Text>
           <Text style={styles.studentCount}>
-            {batch.studentCount} {batch.studentCount === 1 ? 'student' : 'students'}
+            {studentCountText} {batch.studentCount === 1 ? 'student' : 'students'}
           </Text>
         </View>
       </View>

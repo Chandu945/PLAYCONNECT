@@ -24,4 +24,9 @@ export class ListStudentsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @Matches(/^\d{4}-\d{2}$/, { message: 'month must be YYYY-MM format' })
   month?: string;
+
+  @ApiPropertyOptional({ description: 'Filter students by batch ID' })
+  @IsOptional()
+  @IsString()
+  batchId?: string;
 }

@@ -74,6 +74,9 @@ export class BatchesController {
       batchName: dto.batchName,
       days: dto.days,
       notes: dto.notes,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
+      maxStudents: dto.maxStudents,
     });
 
     if (result.ok) {
@@ -103,6 +106,9 @@ export class BatchesController {
       batchName: dto.batchName,
       days: dto.days,
       notes: dto.notes,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
+      maxStudents: dto.maxStudents,
       status: dto.status,
     });
 

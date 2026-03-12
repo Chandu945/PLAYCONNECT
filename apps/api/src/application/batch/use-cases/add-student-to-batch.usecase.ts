@@ -48,6 +48,13 @@ export class AddStudentToBatchUseCase {
       return err(BatchErrors.notActive(input.batchId));
     }
 
+    if (batch.maxStudents !== null) {
+      const currentCount = await this.studentBatchRepo.countByBatchId(input.batchId);
+      if (currentCount >= batch.maxStudents) {
+        return err(BatchErrors.capacityFull());
+      }
+    }
+
     const student = await this.studentRepo.findById(input.studentId);
     if (!student || student.isDeleted()) {
       return err(StudentBatchErrors.studentNotFound(input.studentId));

@@ -220,6 +220,7 @@ export class StudentsController {
       search: query.search,
       feeFilter: query.feeFilter,
       month: query.month,
+      batchId: query.batchId,
     });
 
     return mapResultToResponse(result, req);

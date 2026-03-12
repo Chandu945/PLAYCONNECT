@@ -35,6 +35,41 @@ export function validateNotes(notes: string): { valid: boolean; reason?: string 
   return { valid: true };
 }
 
+export function validateTime(time: string): { valid: boolean; reason?: string } {
+  if (!/^\d{2}:\d{2}$/.test(time)) {
+    return { valid: false, reason: 'Time must be in HH:mm format' };
+  }
+  const [hours, minutes] = time.split(':').map(Number);
+  if (hours! < 0 || hours! > 23) {
+    return { valid: false, reason: 'Hours must be between 00 and 23' };
+  }
+  if (minutes! < 0 || minutes! > 59) {
+    return { valid: false, reason: 'Minutes must be between 00 and 59' };
+  }
+  return { valid: true };
+}
+
+export function validateTimeRange(
+  start: string,
+  end: string,
+): { valid: boolean; reason?: string } {
+  const [startH, startM] = start.split(':').map(Number);
+  const [endH, endM] = end.split(':').map(Number);
+  const startMinutes = startH! * 60 + startM!;
+  const endMinutes = endH! * 60 + endM!;
+  if (endMinutes <= startMinutes) {
+    return { valid: false, reason: 'End time must be after start time' };
+  }
+  return { valid: true };
+}
+
+export function validateMaxStudents(max: number): { valid: boolean; reason?: string } {
+  if (!Number.isInteger(max) || max < 1) {
+    return { valid: false, reason: 'Max students must be a positive integer' };
+  }
+  return { valid: true };
+}
+
 export function canManageBatch(role: UserRole): { allowed: boolean; reason?: string } {
   if (role !== 'OWNER' && role !== 'STAFF') {
     return { allowed: false, reason: 'Only owners and staff can create or update batches' };

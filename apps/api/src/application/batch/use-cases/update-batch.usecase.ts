@@ -9,6 +9,9 @@ import {
   validateBatchName,
   validateDays,
   validateNotes,
+  validateTime,
+  validateTimeRange,
+  validateMaxStudents,
 } from '@domain/batch/rules/batch.rules';
 import { BatchErrors } from '../../common/errors';
 import type { BatchDto } from '../dtos/batch.dto';
@@ -25,6 +28,9 @@ export interface UpdateBatchInput {
   batchName?: string;
   days?: Weekday[];
   notes?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  maxStudents?: number | null;
   status?: BatchStatus;
 }
 
@@ -75,6 +81,38 @@ export class UpdateBatchUseCase {
       }
     }
 
+    const newStartTime = input.startTime !== undefined ? input.startTime : batch.startTime;
+    const newEndTime = input.endTime !== undefined ? input.endTime : batch.endTime;
+
+    if (newStartTime) {
+      const startCheck = validateTime(newStartTime);
+      if (!startCheck.valid) {
+        return err(AppErrorClass.validation(startCheck.reason!));
+      }
+    }
+
+    if (newEndTime) {
+      const endCheck = validateTime(newEndTime);
+      if (!endCheck.valid) {
+        return err(AppErrorClass.validation(endCheck.reason!));
+      }
+    }
+
+    if (newStartTime && newEndTime) {
+      const rangeCheck = validateTimeRange(newStartTime, newEndTime);
+      if (!rangeCheck.valid) {
+        return err(AppErrorClass.validation(rangeCheck.reason!));
+      }
+    }
+
+    const newMaxStudents = input.maxStudents !== undefined ? input.maxStudents : batch.maxStudents;
+    if (newMaxStudents !== null) {
+      const maxCheck = validateMaxStudents(newMaxStudents);
+      if (!maxCheck.valid) {
+        return err(AppErrorClass.validation(maxCheck.reason!));
+      }
+    }
+
     // Check name uniqueness if name changed
     const newName = input.batchName ?? batch.batchName;
     const newNormalized = newName.trim().toLowerCase();
@@ -97,6 +135,9 @@ export class UpdateBatchUseCase {
       days: [...new Set(newDays)],
       notes: newNotes,
       profilePhotoUrl: batch.profilePhotoUrl,
+      startTime: newStartTime,
+      endTime: newEndTime,
+      maxStudents: newMaxStudents,
       status: newStatus,
       audit: updateAuditFields(batch.audit),
     });

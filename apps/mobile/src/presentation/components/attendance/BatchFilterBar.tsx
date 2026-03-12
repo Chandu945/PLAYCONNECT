@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { BatchListItem } from '../../../domain/batch/batch.types';
 import { listBatches } from '../../../infra/batch/batch-api';
 import { fontSizes, fontWeights, radius, spacing } from '../../theme';
@@ -8,7 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 
 type BatchFilterBarProps = {
   selectedBatchId: string | null;
-  onChange: (batchId: string | null) => void;
+  onChange: (batchId: string | null, batchName?: string) => void;
 };
 
 export function BatchFilterBar({ selectedBatchId, onChange }: BatchFilterBarProps) {
@@ -34,8 +35,8 @@ export function BatchFilterBar({ selectedBatchId, onChange }: BatchFilterBarProp
   }, []);
 
   const handlePress = useCallback(
-    (batchId: string | null) => {
-      onChange(batchId);
+    (batchId: string | null, name?: string) => {
+      onChange(batchId, name);
     },
     [onChange],
   );
@@ -52,6 +53,8 @@ export function BatchFilterBar({ selectedBatchId, onChange }: BatchFilterBarProp
     return null;
   }
 
+  const allSelected = selectedBatchId === null;
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -60,12 +63,16 @@ export function BatchFilterBar({ selectedBatchId, onChange }: BatchFilterBarProp
         contentContainerStyle={styles.scrollContent}
       >
         <Pressable
-          style={[styles.chip, selectedBatchId === null && styles.chipSelected]}
+          style={[styles.chip, allSelected && styles.chipSelected]}
           onPress={() => handlePress(null)}
           testID="batch-filter-all"
         >
-          <Text style={[styles.chipText, selectedBatchId === null && styles.chipTextSelected]}>
-            All
+          {allSelected && (
+            // @ts-expect-error react-native-vector-icons types incompatible with @types/react@19
+            <Icon name="check" size={14} color={colors.primary} />
+          )}
+          <Text style={[styles.chipText, allSelected && styles.chipTextSelected]}>
+            All Batches
           </Text>
         </Pressable>
         {batches.map((batch) => {
@@ -74,12 +81,21 @@ export function BatchFilterBar({ selectedBatchId, onChange }: BatchFilterBarProp
             <Pressable
               key={batch.id}
               style={[styles.chip, isSelected && styles.chipSelected]}
-              onPress={() => handlePress(batch.id)}
+              onPress={() => handlePress(batch.id, batch.batchName)}
               testID={`batch-filter-${batch.id}`}
             >
+              <View style={[styles.batchInitial, isSelected && styles.batchInitialSelected]}>
+                <Text style={[styles.batchInitialText, isSelected && styles.batchInitialTextSelected]}>
+                  {batch.batchName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
               <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
                 {batch.batchName}
               </Text>
+              {isSelected && (
+                // @ts-expect-error react-native-vector-icons types incompatible with @types/react@19
+                <Icon name="check" size={14} color={colors.primary} />
+              )}
             </Pressable>
           );
         })}
@@ -90,24 +106,27 @@ export function BatchFilterBar({ selectedBatchId, onChange }: BatchFilterBarProp
 
 const makeStyles = (colors: Colors) => StyleSheet.create({
   container: {
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   scrollContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.base,
+    paddingHorizontal: spacing.xs,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    borderWidth: 1.5,
+    borderColor: colors.border,
     backgroundColor: colors.surface,
     marginRight: spacing.sm,
+    gap: 6,
   },
   chipSelected: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primarySoft,
     borderColor: colors.primary,
   },
   chipText: {
@@ -116,7 +135,27 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     color: colors.textMedium,
   },
   chipTextSelected: {
-    color: colors.white,
+    color: colors.primary,
+    fontWeight: fontWeights.semibold,
+  },
+  batchInitial: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  batchInitialSelected: {
+    backgroundColor: colors.primaryLight,
+  },
+  batchInitialText: {
+    fontSize: 10,
+    fontWeight: fontWeights.bold,
+    color: colors.textSecondary,
+  },
+  batchInitialTextSelected: {
+    color: colors.primary,
   },
   loadingContainer: {
     paddingVertical: spacing.sm,

@@ -9,6 +9,9 @@ import {
   validateBatchName,
   validateDays,
   validateNotes,
+  validateTime,
+  validateTimeRange,
+  validateMaxStudents,
 } from '@domain/batch/rules/batch.rules';
 import { BatchErrors } from '../../common/errors';
 import type { BatchDto } from '../dtos/batch.dto';
@@ -23,6 +26,9 @@ export interface CreateBatchInput {
   batchName: string;
   days?: Weekday[];
   notes?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  maxStudents?: number | null;
 }
 
 export class CreateBatchUseCase {
@@ -61,6 +67,34 @@ export class CreateBatchUseCase {
       }
     }
 
+    if (input.startTime) {
+      const startCheck = validateTime(input.startTime);
+      if (!startCheck.valid) {
+        return err(AppErrorClass.validation(startCheck.reason!));
+      }
+    }
+
+    if (input.endTime) {
+      const endCheck = validateTime(input.endTime);
+      if (!endCheck.valid) {
+        return err(AppErrorClass.validation(endCheck.reason!));
+      }
+    }
+
+    if (input.startTime && input.endTime) {
+      const rangeCheck = validateTimeRange(input.startTime, input.endTime);
+      if (!rangeCheck.valid) {
+        return err(AppErrorClass.validation(rangeCheck.reason!));
+      }
+    }
+
+    if (input.maxStudents !== undefined && input.maxStudents !== null) {
+      const maxCheck = validateMaxStudents(input.maxStudents);
+      if (!maxCheck.valid) {
+        return err(AppErrorClass.validation(maxCheck.reason!));
+      }
+    }
+
     const normalized = input.batchName.trim().toLowerCase();
     const existing = await this.batchRepo.findByAcademyAndName(actor.academyId, normalized);
     if (existing) {
@@ -73,6 +107,9 @@ export class CreateBatchUseCase {
       batchName: input.batchName,
       days: input.days,
       notes: input.notes,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      maxStudents: input.maxStudents,
     });
 
     await this.batchRepo.save(batch);

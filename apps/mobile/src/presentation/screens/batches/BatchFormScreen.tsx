@@ -32,6 +32,11 @@ export function BatchFormScreen() {
   const [batchName, setBatchName] = useState(batch?.batchName ?? '');
   const [days, setDays] = useState<Weekday[]>(batch?.days ?? []);
   const [notes, setNotes] = useState(batch?.notes ?? '');
+  const [startTime, setStartTime] = useState(batch?.startTime ?? '');
+  const [endTime, setEndTime] = useState(batch?.endTime ?? '');
+  const [maxStudents, setMaxStudents] = useState(
+    batch?.maxStudents != null ? String(batch.maxStudents) : '',
+  );
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
@@ -42,6 +47,9 @@ export function BatchFormScreen() {
       batchName,
       days: days.join(','),
       notes,
+      startTime,
+      endTime,
+      maxStudents,
     };
 
     const errors = validateBatchForm(fields);
@@ -55,6 +63,9 @@ export function BatchFormScreen() {
       batchName: batchName.trim(),
       days: days.length > 0 ? days : undefined,
       notes: notes.trim() || null,
+      startTime: startTime.trim() || null,
+      endTime: endTime.trim() || null,
+      maxStudents: maxStudents.trim() ? parseInt(maxStudents.trim(), 10) : null,
     };
 
     setSubmitting(true);
@@ -69,7 +80,7 @@ export function BatchFormScreen() {
     } else {
       setServerError(result.error.message);
     }
-  }, [batchName, days, notes, mode, batch?.id, navigation]);
+  }, [batchName, days, notes, startTime, endTime, maxStudents, mode, batch?.id, navigation]);
 
   return (
     <ScrollView
@@ -93,6 +104,34 @@ export function BatchFormScreen() {
           selected={days}
           onChange={setDays}
           error={fieldErrors['days']}
+        />
+
+        <Input
+          label="Start Time (optional)"
+          value={startTime}
+          onChangeText={setStartTime}
+          error={fieldErrors['startTime']}
+          placeholder="HH:MM, e.g. 06:00"
+          testID="input-startTime"
+        />
+
+        <Input
+          label="End Time (optional)"
+          value={endTime}
+          onChangeText={setEndTime}
+          error={fieldErrors['endTime']}
+          placeholder="HH:MM, e.g. 07:30"
+          testID="input-endTime"
+        />
+
+        <Input
+          label="Max Students (optional)"
+          value={maxStudents}
+          onChangeText={setMaxStudents}
+          error={fieldErrors['maxStudents']}
+          placeholder="e.g. 30, leave empty for unlimited"
+          keyboardType="numeric"
+          testID="input-maxStudents"
         />
 
         <TextArea

@@ -30,7 +30,7 @@ export class FeePaymentModel {
   @Prop({ required: true, unique: true })
   orderId!: string;
 
-  @Prop({ type: String, default: null, sparse: true, unique: true })
+  @Prop({ type: String, default: null })
   cfOrderId!: string | null;
 
   @Prop({ required: true })
@@ -70,6 +70,10 @@ export class FeePaymentModel {
 export const FeePaymentSchema = SchemaFactory.createForClass(FeePaymentModel);
 
 FeePaymentSchema.index({ academyId: 1, createdAt: -1 });
+FeePaymentSchema.index(
+  { cfOrderId: 1 },
+  { unique: true, partialFilterExpression: { cfOrderId: { $type: 'string' } } },
+);
 FeePaymentSchema.index(
   { feeDueId: 1, status: 1 },
   { unique: true, partialFilterExpression: { status: 'PENDING' } },

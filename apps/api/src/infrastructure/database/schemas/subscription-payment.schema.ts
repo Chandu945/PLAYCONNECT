@@ -21,7 +21,7 @@ export class SubscriptionPaymentModel {
   @Prop({ required: true, unique: true })
   orderId!: string;
 
-  @Prop({ type: String, default: null, sparse: true, unique: true })
+  @Prop({ type: String, default: null })
   cfOrderId!: string | null;
 
   @Prop({ required: true })
@@ -59,6 +59,10 @@ export const SubscriptionPaymentSchema = SchemaFactory.createForClass(Subscripti
 
 // Indexes
 SubscriptionPaymentSchema.index({ academyId: 1, createdAt: -1 });
+SubscriptionPaymentSchema.index(
+  { cfOrderId: 1 },
+  { unique: true, partialFilterExpression: { cfOrderId: { $type: 'string' } } },
+);
 // Partial unique index: one PENDING per academy
 SubscriptionPaymentSchema.index(
   { academyId: 1, status: 1 },

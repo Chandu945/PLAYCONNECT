@@ -4,7 +4,7 @@ export type FeeDueStatus = 'UPCOMING' | 'DUE' | 'PAID';
 export const FEE_DUE_STATUSES = ['UPCOMING', 'DUE', 'PAID'] as const;
 
 /** How the payment was initiated */
-export type PaidSource = 'OWNER_DIRECT' | 'STAFF_APPROVED' | 'PARENT_ONLINE';
+export type PaidSource = 'OWNER_DIRECT' | 'STAFF_APPROVED' | 'PARENT_ONLINE' | 'MANUAL';
 
 /** Payment instrument label */
 export type PaymentLabel = 'CASH' | 'UPI' | 'CARD' | 'NET_BANKING' | 'ONLINE';

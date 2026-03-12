@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export type FeeDueStatus = 'UPCOMING' | 'DUE' | 'PAID';
-export type PaidSource = 'OWNER_DIRECT' | 'STAFF_APPROVED' | 'PARENT_ONLINE';
+export type PaidSource = 'OWNER_DIRECT' | 'STAFF_APPROVED' | 'PARENT_ONLINE' | 'MANUAL';
 export type PaymentLabel = 'CASH' | 'UPI' | 'CARD' | 'NET_BANKING' | 'ONLINE';
 
 export const childSummarySchema = z.object({
@@ -33,7 +33,7 @@ export const childFeeDueSchema = z.object({
   totalPayable: z.number().default(0),
   status: z.enum(['UPCOMING', 'DUE', 'PAID']),
   paidAt: z.string().nullable(),
-  paidSource: z.enum(['OWNER_DIRECT', 'STAFF_APPROVED', 'PARENT_ONLINE']).nullable(),
+  paidSource: z.enum(['OWNER_DIRECT', 'STAFF_APPROVED', 'PARENT_ONLINE', 'MANUAL']).nullable(),
   paymentLabel: z.enum(['CASH', 'UPI', 'CARD', 'NET_BANKING', 'ONLINE']).nullable(),
 });
 
@@ -68,7 +68,7 @@ export const receiptSchema = z.object({
   lateFeeApplied: z.number().nullable().default(null),
   paidAt: z.string(),
   paymentMethod: z.string(),
-  source: z.enum(['OWNER_DIRECT', 'STAFF_APPROVED', 'PARENT_ONLINE']),
+  source: z.enum(['OWNER_DIRECT', 'STAFF_APPROVED', 'PARENT_ONLINE', 'MANUAL']),
 });
 
 export const parentProfileSchema = z.object({
@@ -95,7 +95,7 @@ export const paymentHistoryItemSchema = z.object({
   studentName: z.string(),
   monthKey: z.string(),
   amount: z.number(),
-  source: z.enum(['OWNER_DIRECT', 'STAFF_APPROVED', 'PARENT_ONLINE']),
+  source: z.enum(['OWNER_DIRECT', 'STAFF_APPROVED', 'PARENT_ONLINE', 'MANUAL']),
   paidAt: z.string(),
 });
 

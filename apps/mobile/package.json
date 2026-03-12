@@ -13,6 +13,7 @@
     "web": "webpack serve --config webpack.config.js --mode development"
   },
   "dependencies": {
+    "@cashfreepayments/cashfree-js": "^1.0.6",
     "@playconnect/contracts": "*",
     "@react-native-firebase/app": "^21.6.1",
     "@react-native-firebase/messaging": "^21.6.1",

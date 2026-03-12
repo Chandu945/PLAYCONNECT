@@ -28,6 +28,8 @@ function getSourceConfig(source: string, colors: Colors) {
       return { label: 'Cash', icon: 'cash', color: colors.success, bg: colors.successBg };
     case 'STAFF_APPROVED':
       return { label: 'Staff', icon: 'account-check', color: colors.warning, bg: colors.warningBg };
+    case 'MANUAL':
+      return { label: 'Manual', icon: 'hand-coin', color: colors.textSecondary, bg: colors.bgSubtle };
     default:
       return { label: source, icon: 'help-circle-outline', color: colors.textSecondary, bg: colors.bgSubtle };
   }

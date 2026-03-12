@@ -18,8 +18,8 @@ import { generateReceiptNumber } from '@domain/fee/rules/payment-request.rules';
 import { PaymentRequestErrors } from '../../common/errors';
 import type { PaymentRequestDto } from '../dtos/payment-request.dto';
 import { toPaymentRequestDto } from '../dtos/payment-request.dto';
-import type { UserRole } from '@playconnect/contracts';
-import { DEFAULT_RECEIPT_PREFIX } from '@playconnect/contracts';
+import type { UserRole, LateFeeConfig, LateFeeRepeatInterval } from '@playconnect/contracts';
+import { DEFAULT_RECEIPT_PREFIX, computeLateFee } from '@playconnect/contracts';
 import { randomUUID } from 'crypto';
 
 export interface ApprovePaymentRequestInput {
@@ -69,6 +69,22 @@ export class ApprovePaymentRequestUseCase {
     const academy = await this.academyRepo.findById(request.academyId);
     const prefix = academy?.receiptPrefix ?? DEFAULT_RECEIPT_PREFIX;
 
+    // Compute late fee snapshot — prefer snapshotted config, fall back to live academy config
+    const todayStr = now.toISOString().slice(0, 10);
+    let lateFeeApplied = 0;
+    const liveConfig: LateFeeConfig | undefined = academy?.lateFeeEnabled
+      ? {
+          lateFeeEnabled: academy.lateFeeEnabled,
+          gracePeriodDays: academy.gracePeriodDays,
+          lateFeeAmountInr: academy.lateFeeAmountInr,
+          lateFeeRepeatIntervalDays: academy.lateFeeRepeatIntervalDays as LateFeeRepeatInterval,
+        }
+      : undefined;
+    const effectiveConfig = due.lateFeeConfigSnapshot ?? liveConfig;
+    if (effectiveConfig) {
+      lateFeeApplied = computeLateFee(due.dueDate, todayStr, effectiveConfig);
+    }
+
     // Atomic: approve request + mark due paid + create transaction log
     const approved = request.approve(input.actorUserId, now);
     const paidDue = due.markPaidByApproval({
@@ -76,6 +92,7 @@ export class ApprovePaymentRequestUseCase {
       collectedByUserId: request.staffUserId,
       paymentRequestId: request.id.toString(),
       paidAt: now,
+      lateFeeApplied,
     });
 
     await this.transaction.run(async () => {

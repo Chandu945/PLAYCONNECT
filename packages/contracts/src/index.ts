@@ -36,13 +36,19 @@ export { GENDERS } from './models/student';
 export type { LocalDate, MonthKey } from './types/dates';
 
 // Fee due constants
-export type { FeeDueStatus, PaidSource, PaymentLabel } from './constants/fee-due';
+export type { FeeDueStatus, PaidSource, PaymentLabel, LateFeeRepeatInterval, LateFeeConfig } from './constants/fee-due';
 export {
   FEE_DUE_STATUSES,
   DEFAULT_DUE_DATE_DAY,
   DEFAULT_RECEIPT_PREFIX,
   CONVENIENCE_FEE_RATE,
   computeConvenienceFee,
+  DEFAULT_LATE_FEE_ENABLED,
+  DEFAULT_GRACE_PERIOD_DAYS,
+  DEFAULT_LATE_FEE_AMOUNT_INR,
+  DEFAULT_LATE_FEE_REPEAT_INTERVAL_DAYS,
+  ALLOWED_REPEAT_INTERVALS,
+  computeLateFee,
 } from './constants/fee-due';
 
 // Fee filter constants

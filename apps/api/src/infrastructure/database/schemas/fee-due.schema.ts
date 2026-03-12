@@ -51,6 +51,17 @@ export class FeeDueModel {
   @Prop({ type: String, default: null })
   paymentRequestId!: string | null;
 
+  @Prop({ type: Number, default: null })
+  lateFeeApplied!: number | null;
+
+  @Prop({ type: Object, default: null })
+  lateFeeConfigSnapshot!: {
+    lateFeeEnabled: boolean;
+    gracePeriodDays: number;
+    lateFeeAmountInr: number;
+    lateFeeRepeatIntervalDays: number;
+  } | null;
+
   @Prop({ default: 1 })
   version!: number;
 }

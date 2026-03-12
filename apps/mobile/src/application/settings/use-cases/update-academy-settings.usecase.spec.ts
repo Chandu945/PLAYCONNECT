@@ -13,7 +13,14 @@ function makeApi(response: { ok: true; value: AcademySettings } | { ok: false; e
 
 describe('updateAcademySettingsUseCase', () => {
   it('should return updated settings on success', async () => {
-    const settings: AcademySettings = { defaultDueDateDay: 10, receiptPrefix: 'INV' };
+    const settings: AcademySettings = {
+      defaultDueDateDay: 10,
+      receiptPrefix: 'INV',
+      lateFeeEnabled: false,
+      gracePeriodDays: 5,
+      lateFeeAmountInr: 0,
+      lateFeeRepeatIntervalDays: 5,
+    };
     const deps = makeApi(ok(settings));
 
     const result = await updateAcademySettingsUseCase(deps, { defaultDueDateDay: 10 });

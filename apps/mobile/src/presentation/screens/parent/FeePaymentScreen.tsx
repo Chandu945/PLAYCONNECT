@@ -18,7 +18,7 @@ import { CONVENIENCE_FEE_RATE } from '@playconnect/contracts';
 import { useTheme } from '../../context/ThemeContext';
 
 type FeePaymentRouteParams = {
-  FeePayment: { feeDueId: string; monthKey: string; amount: number };
+  FeePayment: { feeDueId: string; monthKey: string; amount: number; lateFee?: number };
 };
 
 function StepIndicator({
@@ -83,9 +83,11 @@ export function FeePaymentScreen() {
   const navigation = useNavigation<NavigationProp<ParentFeesStackParamList>>();
   const feeDueId = route.params?.feeDueId ?? '';
   const monthKey = route.params?.monthKey ?? '';
-  const amount = route.params?.amount ?? 0;
-  const convenienceFee = Math.round(amount * CONVENIENCE_FEE_RATE);
-  const totalAmount = amount + convenienceFee;
+  const feeAmount = route.params?.amount ?? 0;
+  const lateFee = route.params?.lateFee ?? 0;
+  const baseAmount = feeAmount + lateFee;
+  const convenienceFee = Math.round(baseAmount * CONVENIENCE_FEE_RATE);
+  const totalAmount = baseAmount + convenienceFee;
 
   const { status, error, startPayment, reset } = useFeePaymentFlow(() => {
     navigation.goBack();
@@ -113,12 +115,29 @@ export function FeePaymentScreen() {
         </View>
       </View>
 
+      {/* Late Fee Info Banner */}
+      {lateFee > 0 && (
+        <View style={styles.lateFeeInfoBanner}>
+          {/* @ts-expect-error react-native-vector-icons types */}
+          <Icon name="information-outline" size={18} color={colors.danger} />
+          <Text style={styles.lateFeeInfoText}>
+            A late fee of {formatCurrency(lateFee)} has been applied because this fee was not paid by the due date.
+          </Text>
+        </View>
+      )}
+
       {/* Fee Breakdown */}
       <View style={styles.breakdownCard}>
         <View style={styles.breakdownRow}>
           <Text style={styles.breakdownLabel}>Fee Amount</Text>
-          <Text style={styles.breakdownValue}>{formatCurrency(amount)}</Text>
+          <Text style={styles.breakdownValue}>{formatCurrency(feeAmount)}</Text>
         </View>
+        {lateFee > 0 && (
+          <View style={styles.breakdownRow}>
+            <Text style={[styles.breakdownLabel, { color: colors.danger }]}>Late Fee</Text>
+            <Text style={[styles.breakdownValue, { color: colors.danger }]}>{formatCurrency(lateFee)}</Text>
+          </View>
+        )}
         <View style={styles.breakdownRow}>
           <Text style={styles.breakdownLabel}>Convenience Fee ({(CONVENIENCE_FEE_RATE * 100).toFixed(1)}%)</Text>
           <Text style={styles.breakdownValue}>{formatCurrency(convenienceFee)}</Text>
@@ -268,6 +287,23 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
     color: colors.text,
+  },
+  lateFeeInfoBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: colors.dangerBg,
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  lateFeeInfoText: {
+    flex: 1,
+    fontSize: fontSizes.sm,
+    color: colors.dangerText,
+    lineHeight: 18,
   },
   breakdownCard: {
     backgroundColor: colors.surface,

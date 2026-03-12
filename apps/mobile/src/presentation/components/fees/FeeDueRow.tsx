@@ -74,7 +74,12 @@ function FeeDueRowComponent({
       </View>
 
       <View style={styles.right}>
-        <Text style={styles.amount}>{formatAmount(item.amount)}</Text>
+        <Text style={styles.amount}>
+          {formatAmount(item.status !== 'PAID' && item.lateFee > 0 ? item.totalPayable : item.amount)}
+        </Text>
+        {item.status !== 'PAID' && item.lateFee > 0 && (
+          <Text style={styles.lateFeeText}>+{formatAmount(item.lateFee)} late fee</Text>
+        )}
         <Badge label={item.status} variant={STATUS_VARIANT[item.status] ?? 'neutral'} />
       </View>
 
@@ -132,6 +137,10 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     fontSize: fontSizes.md,
     fontWeight: fontWeights.bold,
     color: colors.text,
+  },
+  lateFeeText: {
+    fontSize: fontSizes.xs,
+    color: colors.danger,
   },
   chevron: {
     marginLeft: spacing.xs,

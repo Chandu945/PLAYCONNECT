@@ -57,6 +57,9 @@ function makeDeps(overrides: Record<string, unknown> = {}) {
       warn: jest.fn(),
       debug: jest.fn(),
     },
+    auditRecorder: {
+      record: jest.fn().mockResolvedValue(undefined),
+    },
     ...overrides,
   };
 }
@@ -72,6 +75,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
       deps.signatureVerifier as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute(
@@ -91,6 +95,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
       deps.signatureVerifier as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute(
@@ -127,6 +132,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
       deps.signatureVerifier as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute(
@@ -148,6 +154,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
       deps.signatureVerifier as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute(
@@ -171,6 +178,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
       deps.signatureVerifier as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute(
@@ -196,6 +204,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
       deps.signatureVerifier as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute(
@@ -221,6 +230,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
       deps.signatureVerifier as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute(

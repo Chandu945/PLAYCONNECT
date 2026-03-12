@@ -21,6 +21,7 @@ import { USER_REPOSITORY } from '@domain/identity/ports/user.repository';
 import { ACADEMY_REPOSITORY } from '@domain/academy/ports/academy.repository';
 import { CLOCK_PORT } from '@application/common/clock.port';
 import { TRANSACTION_PORT } from '@application/common/transaction.port';
+import { SystemClock } from '@application/common/system-clock';
 import { ListUnpaidDuesUseCase } from '@application/fee/use-cases/list-unpaid-dues.usecase';
 import { ListPaidDuesUseCase } from '@application/fee/use-cases/list-paid-dues.usecase';
 import { GetStudentFeesUseCase } from '@application/fee/use-cases/get-student-fees.usecase';
@@ -51,11 +52,12 @@ import type { TransactionPort } from '@application/common/transaction.port';
     { provide: STUDENT_REPOSITORY, useClass: MongoStudentRepository },
     { provide: TRANSACTION_LOG_REPOSITORY, useClass: MongoTransactionLogRepository },
     { provide: TRANSACTION_PORT, useClass: MongoTransactionService },
+    { provide: CLOCK_PORT, useClass: SystemClock },
     {
       provide: 'LIST_UNPAID_DUES_USE_CASE',
-      useFactory: (userRepo: UserRepository, feeDueRepo: FeeDueRepository) =>
-        new ListUnpaidDuesUseCase(userRepo, feeDueRepo),
-      inject: [USER_REPOSITORY, FEE_DUE_REPOSITORY],
+      useFactory: (userRepo: UserRepository, feeDueRepo: FeeDueRepository, academyRepo: AcademyRepository, clock: ClockPort) =>
+        new ListUnpaidDuesUseCase(userRepo, feeDueRepo, academyRepo, clock),
+      inject: [USER_REPOSITORY, FEE_DUE_REPOSITORY, ACADEMY_REPOSITORY, CLOCK_PORT],
     },
     {
       provide: 'LIST_PAID_DUES_USE_CASE',
@@ -69,8 +71,10 @@ import type { TransactionPort } from '@application/common/transaction.port';
         userRepo: UserRepository,
         studentRepo: StudentRepository,
         feeDueRepo: FeeDueRepository,
-      ) => new GetStudentFeesUseCase(userRepo, studentRepo, feeDueRepo),
-      inject: [USER_REPOSITORY, STUDENT_REPOSITORY, FEE_DUE_REPOSITORY],
+        academyRepo: AcademyRepository,
+        clock: ClockPort,
+      ) => new GetStudentFeesUseCase(userRepo, studentRepo, feeDueRepo, academyRepo, clock),
+      inject: [USER_REPOSITORY, STUDENT_REPOSITORY, FEE_DUE_REPOSITORY, ACADEMY_REPOSITORY, CLOCK_PORT],
     },
     {
       provide: 'MARK_FEE_PAID_USE_CASE',

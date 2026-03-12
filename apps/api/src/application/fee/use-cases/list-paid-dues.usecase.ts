@@ -33,6 +33,6 @@ export class ListPaidDuesUseCase {
 
     const dues = await this.feeDueRepo.listByAcademyMonthPaid(user.academyId, input.month);
 
-    return ok(dues.map(toFeeDueDto));
+    return ok(dues.map((d) => toFeeDueDto(d)));
   }
 }

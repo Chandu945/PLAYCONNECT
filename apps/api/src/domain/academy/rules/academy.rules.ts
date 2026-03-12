@@ -38,3 +38,21 @@ export function canUpdateSettings(role: UserRole): { allowed: boolean; reason?: 
   }
   return { allowed: true };
 }
+
+export function validateGracePeriodDays(days: number): { valid: boolean; reason?: string } {
+  if (!Number.isInteger(days) || days < 0 || days > 30)
+    return { valid: false, reason: 'Grace period must be 0–30 days' };
+  return { valid: true };
+}
+
+export function validateLateFeeAmountInr(amount: number): { valid: boolean; reason?: string } {
+  if (!Number.isInteger(amount) || amount < 0 || amount > 10000)
+    return { valid: false, reason: 'Late fee amount must be 0–10000 INR' };
+  return { valid: true };
+}
+
+export function validateLateFeeRepeatIntervalDays(interval: number): { valid: boolean; reason?: string } {
+  if (![1, 3, 5].includes(interval))
+    return { valid: false, reason: 'Repeat interval must be 1, 3, or 5 days' };
+  return { valid: true };
+}

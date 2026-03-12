@@ -60,6 +60,7 @@ describe('ApprovePaymentRequestUseCase', () => {
       listUnpaidByAcademy: jest.fn(),
       findUnpaidByDueDate: jest.fn(),
       findOverdueDues: jest.fn(),
+      findDueWithoutSnapshot: jest.fn(),
       deleteUpcomingByStudent: jest.fn(),
     } as jest.Mocked<FeeDueRepository>;
 

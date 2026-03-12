@@ -31,6 +31,8 @@ import {
   InMemorySubscriptionRepository,
 } from './helpers/in-memory-repos';
 import { createTestTokenService } from './helpers/test-services';
+import { AUDIT_RECORDER_PORT } from '../src/application/audit/ports/audit-recorder.port';
+import type { AuditRecorderPort } from '../src/application/audit/ports/audit-recorder.port';
 import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 const WEBHOOK_SECRET = 'test-webhook-secret-for-e2e';
@@ -98,6 +100,10 @@ describe('Subscription Payments — Webhook Security (e2e)', () => {
     const tokenService = createTestTokenService(jwtService);
     const clock = { now: () => new Date() };
 
+    const mockAuditRecorder: AuditRecorderPort = {
+      record: jest.fn().mockResolvedValue(undefined),
+    };
+
     const moduleFixture = await Test.createTestingModule({
       imports: [
         AppConfigModule,
@@ -115,27 +121,28 @@ describe('Subscription Payments — Webhook Security (e2e)', () => {
         { provide: ACTIVE_STUDENT_COUNTER, useValue: { countActiveStudents: jest.fn().mockResolvedValue(0) } },
         { provide: CLOCK_PORT, useValue: clock },
         { provide: TOKEN_SERVICE, useValue: tokenService },
+        { provide: AUDIT_RECORDER_PORT, useValue: mockAuditRecorder },
         {
           provide: WEBHOOK_SIGNATURE_VERIFIER,
           useValue: new CashfreeSignatureVerifier(WEBHOOK_SECRET),
         },
         {
           provide: 'INITIATE_SUBSCRIPTION_PAYMENT_USE_CASE',
-          useFactory: (ur: any, ar: any, sr: any, pr: any, gw: any, sc: any, c: any, l: any) =>
-            new InitiateSubscriptionPaymentUseCase(ur, ar, sr, pr, gw, sc, c, l),
+          useFactory: (ur: any, ar: any, sr: any, pr: any, gw: any, sc: any, c: any, l: any, audit: any) =>
+            new InitiateSubscriptionPaymentUseCase(ur, ar, sr, pr, gw, sc, c, l, audit),
           inject: [
             USER_REPOSITORY, ACADEMY_REPOSITORY, SUBSCRIPTION_REPOSITORY,
             SUBSCRIPTION_PAYMENT_REPOSITORY, CASHFREE_GATEWAY, ACTIVE_STUDENT_COUNTER,
-            CLOCK_PORT, LOGGER_PORT,
+            CLOCK_PORT, LOGGER_PORT, AUDIT_RECORDER_PORT,
           ],
         },
         {
           provide: 'HANDLE_CASHFREE_WEBHOOK_USE_CASE',
-          useFactory: (pr: any, sr: any, sv: any, c: any, l: any) =>
-            new HandleCashfreeWebhookUseCase(pr, sr, sv, c, l),
+          useFactory: (pr: any, sr: any, sv: any, c: any, l: any, audit: any) =>
+            new HandleCashfreeWebhookUseCase(pr, sr, sv, c, l, audit),
           inject: [
             SUBSCRIPTION_PAYMENT_REPOSITORY, SUBSCRIPTION_REPOSITORY,
-            WEBHOOK_SIGNATURE_VERIFIER, CLOCK_PORT, LOGGER_PORT,
+            WEBHOOK_SIGNATURE_VERIFIER, CLOCK_PORT, LOGGER_PORT, AUDIT_RECORDER_PORT,
           ],
         },
         {

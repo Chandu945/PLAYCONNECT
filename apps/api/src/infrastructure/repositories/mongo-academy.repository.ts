@@ -24,6 +24,10 @@ export class MongoAcademyRepository implements AcademyRepository {
         deactivatedAt: academy.deactivatedAt,
         defaultDueDateDay: academy.defaultDueDateDay,
         receiptPrefix: academy.receiptPrefix,
+        lateFeeEnabled: academy.lateFeeEnabled,
+        gracePeriodDays: academy.gracePeriodDays,
+        lateFeeAmountInr: academy.lateFeeAmountInr,
+        lateFeeRepeatIntervalDays: academy.lateFeeRepeatIntervalDays,
         instituteInfo: academy.instituteInfo,
         version: academy.audit.version,
         deletedAt: academy.softDelete.deletedAt,
@@ -58,6 +62,10 @@ export class MongoAcademyRepository implements AcademyRepository {
       deactivatedAt: Date | null;
       defaultDueDateDay: number | null;
       receiptPrefix: string | null;
+      lateFeeEnabled?: boolean;
+      gracePeriodDays?: number;
+      lateFeeAmountInr?: number;
+      lateFeeRepeatIntervalDays?: number;
       instituteInfo: InstituteInfo | null;
       createdAt: Date;
       updatedAt: Date;
@@ -74,6 +82,10 @@ export class MongoAcademyRepository implements AcademyRepository {
       deactivatedAt: d.deactivatedAt ?? null,
       defaultDueDateDay: d.defaultDueDateDay ?? null,
       receiptPrefix: d.receiptPrefix ?? null,
+      lateFeeEnabled: d.lateFeeEnabled ?? false,
+      gracePeriodDays: d.gracePeriodDays ?? 5,
+      lateFeeAmountInr: d.lateFeeAmountInr ?? 0,
+      lateFeeRepeatIntervalDays: d.lateFeeRepeatIntervalDays ?? 5,
       instituteInfo: d.instituteInfo ?? undefined,
       audit: {
         createdAt: d.createdAt,

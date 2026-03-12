@@ -5,6 +5,7 @@ import type { SubscriptionRepository } from '@domain/subscription/ports/subscrip
 import type { ClockPort } from '@application/common/clock.port';
 import type { TransactionPort } from '@application/common/transaction.port';
 import type { LoggerPort } from '@shared/logging/logger.port';
+import type { AuditRecorderPort } from '@application/audit/ports/audit-recorder.port';
 import { Subscription } from '@domain/subscription/entities/subscription.entity';
 import { computePaidDates } from '@domain/subscription-payments/rules/subscription-payment.rules';
 
@@ -19,6 +20,7 @@ export class HandleCashfreeWebhookUseCase {
     private readonly signatureVerifier: WebhookSignatureVerifier,
     private readonly clock: ClockPort,
     private readonly logger: LoggerPort,
+    private readonly auditRecorder: AuditRecorderPort,
     private readonly transaction?: TransactionPort,
   ) {}
 
@@ -101,11 +103,37 @@ export class HandleCashfreeWebhookUseCase {
         academyId: payment.academyId,
         tierKey: payment.tierKey,
       });
+
+      await this.auditRecorder.record({
+        academyId: payment.academyId,
+        actorUserId: payment.ownerUserId,
+        action: 'SUBSCRIPTION_PAYMENT_COMPLETED',
+        entityType: 'SUBSCRIPTION_PAYMENT',
+        entityId: orderId,
+        context: {
+          tierKey: payment.tierKey,
+          amountInr: String(payment.amountInr),
+          providerPaymentId: cfPaymentId ? String(cfPaymentId) : '',
+        },
+      });
     } else if (paymentStatus === 'FAILED' || paymentStatus === 'USER_DROPPED') {
       // payment.status !== 'SUCCESS' is guaranteed by the early return above (line 66)
       const updated = payment.markFailed(paymentStatus);
       await this.paymentRepo.save(updated);
       this.logger.info('Payment FAILED', { orderId, reason: paymentStatus });
+
+      await this.auditRecorder.record({
+        academyId: payment.academyId,
+        actorUserId: payment.ownerUserId,
+        action: 'SUBSCRIPTION_PAYMENT_FAILED',
+        entityType: 'SUBSCRIPTION_PAYMENT',
+        entityId: orderId,
+        context: {
+          reason: paymentStatus,
+          tierKey: payment.tierKey,
+          amountInr: String(payment.amountInr),
+        },
+      });
     }
 
     return ok(undefined);

@@ -22,6 +22,8 @@ function makeFeeDue(overrides: Partial<FeeDueItem> = {}): FeeDueItem {
     monthKey: '2026-03',
     dueDate: '2026-03-10',
     amount: 500,
+    lateFee: 0,
+    totalPayable: 500,
     status: 'DUE',
     paidAt: null,
     paidByUserId: null,

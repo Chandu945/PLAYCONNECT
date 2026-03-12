@@ -51,6 +51,8 @@ export interface ChildFeeDueDto {
   monthKey: string;
   dueDate: string;
   amount: number;
+  lateFee: number;
+  totalPayable: number;
   status: FeeDueStatus;
   paidAt: string | null;
   paidSource: PaidSource | null;
@@ -61,6 +63,7 @@ export interface InitiateFeePaymentOutput {
   orderId: string;
   paymentSessionId: string;
   baseAmount: number;
+  lateFee: number;
   convenienceFee: number;
   totalAmount: number;
   currency: string;
@@ -82,6 +85,7 @@ export interface ReceiptOutput {
   academyName: string;
   monthKey: string;
   amount: number;
+  lateFeeApplied: number | null;
   paidAt: string;
   paymentMethod: string;
   source: PaidSource;

@@ -113,17 +113,23 @@ export function ReceiptScreen() {
 
   const handleShare = useCallback(async () => {
     if (!receipt) return;
-    const message = [
+    const lines = [
       '--- Payment Receipt ---',
       `Receipt #: ${receipt.receiptNumber}`,
       `Student: ${receipt.studentName}`,
       `Academy: ${receipt.academyName}`,
       `Month: ${formatMonthKey(receipt.monthKey)}`,
-      `Amount: ${formatCurrency(receipt.amount)}`,
+      `Fee Amount: ${formatCurrency(receipt.amount)}`,
+    ];
+    if (receipt.lateFeeApplied != null && receipt.lateFeeApplied > 0) {
+      lines.push(`Late Fee: ${formatCurrency(receipt.lateFeeApplied)}`);
+    }
+    lines.push(
       `Paid On: ${formatDateLong(receipt.paidAt)}`,
       `Method: ${receipt.paymentMethod}`,
       '------------------------',
-    ].join('\n');
+    );
+    const message = lines.join('\n');
 
     try {
       await Share.open({ message, title: 'Payment Receipt' });
@@ -181,11 +187,19 @@ export function ReceiptScreen() {
         <ReceiptRow icon="calendar-month-outline" label="Month" value={formatMonthKey(receipt.monthKey)} />
         <ReceiptRow
           icon="currency-inr"
-          label="Amount"
+          label="Fee Amount"
           value={formatCurrency(receipt.amount)}
           valueColor={colors.success}
           valueBold
         />
+        {receipt.lateFeeApplied != null && receipt.lateFeeApplied > 0 && (
+          <ReceiptRow
+            icon="clock-alert-outline"
+            label="Late Fee"
+            value={formatCurrency(receipt.lateFeeApplied)}
+            valueColor={colors.danger}
+          />
+        )}
         <ReceiptRow icon="calendar-check-outline" label="Paid On" value={formatDateLong(receipt.paidAt)} />
         <View style={[rowStyles.row, { borderBottomWidth: 0 }]}>
           <View style={rowStyles.labelRow}>

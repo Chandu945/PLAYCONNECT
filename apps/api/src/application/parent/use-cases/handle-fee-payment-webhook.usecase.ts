@@ -7,6 +7,7 @@ import type { AcademyRepository } from '@domain/academy/ports/academy.repository
 import type { ClockPort } from '@application/common/clock.port';
 import type { TransactionPort } from '@application/common/transaction.port';
 import type { LoggerPort } from '@shared/logging/logger.port';
+import type { AuditRecorderPort } from '@application/audit/ports/audit-recorder.port';
 import { TransactionLog } from '@domain/fee/entities/transaction-log.entity';
 import { generateReceiptNumber } from '@domain/fee/rules/payment-request.rules';
 import { DEFAULT_RECEIPT_PREFIX } from '@playconnect/contracts';
@@ -26,6 +27,7 @@ export class HandleFeePaymentWebhookUseCase {
     private readonly clock: ClockPort,
     private readonly transaction: TransactionPort,
     private readonly logger: LoggerPort,
+    private readonly auditRecorder: AuditRecorderPort,
   ) {}
 
   async execute(
@@ -86,7 +88,7 @@ export class HandleFeePaymentWebhookUseCase {
       }
 
       // Mark fee due as paid and create transaction log atomically
-      const paidDue = feeDue.markPaidByParentOnline(payment.parentUserId, now);
+      const paidDue = feeDue.markPaidByParentOnline(payment.parentUserId, now, payment.lateFeeSnapshot);
 
       const academy = await this.academyRepo.findById(payment.academyId);
       const prefix = academy?.receiptPrefix ?? DEFAULT_RECEIPT_PREFIX;
@@ -124,10 +126,40 @@ export class HandleFeePaymentWebhookUseCase {
         feeDueId: payment.feeDueId,
         academyId: payment.academyId,
       });
+
+      await this.auditRecorder.record({
+        academyId: payment.academyId,
+        actorUserId: payment.parentUserId,
+        action: 'FEE_PAYMENT_COMPLETED',
+        entityType: 'FEE_PAYMENT',
+        entityId: orderId,
+        context: {
+          feeDueId: payment.feeDueId,
+          studentId: payment.studentId,
+          monthKey: payment.monthKey,
+          baseAmount: String(payment.baseAmount),
+          providerPaymentId: cfPaymentId ? String(cfPaymentId) : '',
+          receiptNumber,
+        },
+      });
     } else if (paymentStatus === 'FAILED' || paymentStatus === 'USER_DROPPED') {
       const updated = payment.markFailed(paymentStatus);
       await this.feePaymentRepo.save(updated);
       this.logger.info('Fee payment FAILED', { orderId, reason: paymentStatus });
+
+      await this.auditRecorder.record({
+        academyId: payment.academyId,
+        actorUserId: payment.parentUserId,
+        action: 'FEE_PAYMENT_FAILED',
+        entityType: 'FEE_PAYMENT',
+        entityId: orderId,
+        context: {
+          feeDueId: payment.feeDueId,
+          studentId: payment.studentId,
+          monthKey: payment.monthKey,
+          reason: paymentStatus,
+        },
+      });
     }
 
     return ok(undefined);

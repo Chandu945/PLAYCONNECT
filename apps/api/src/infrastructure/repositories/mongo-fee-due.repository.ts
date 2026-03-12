@@ -5,7 +5,7 @@ import type { FeeDueRepository } from '@domain/fee/ports/fee-due.repository';
 import { FeeDue } from '@domain/fee/entities/fee-due.entity';
 import { FeeDueModel } from '../database/schemas/fee-due.schema';
 import type { FeeDueDocument } from '../database/schemas/fee-due.schema';
-import type { FeeDueStatus, PaidSource, PaymentLabel } from '@playconnect/contracts';
+import type { FeeDueStatus, PaidSource, PaymentLabel, LateFeeConfig, LateFeeRepeatInterval } from '@playconnect/contracts';
 import { getTransactionSession } from '../database/transaction-context';
 
 @Injectable()
@@ -41,6 +41,8 @@ export class MongoFeeDueRepository implements FeeDueRepository {
         collectedByUserId: feeDue.collectedByUserId,
         approvedByUserId: feeDue.approvedByUserId,
         paymentRequestId: feeDue.paymentRequestId,
+        lateFeeApplied: feeDue.lateFeeApplied,
+        lateFeeConfigSnapshot: feeDue.lateFeeConfigSnapshot,
         version: feeDue.audit.version,
       },
       { upsert: isNew, session: getTransactionSession() },
@@ -72,6 +74,8 @@ export class MongoFeeDueRepository implements FeeDueRepository {
             collectedByUserId: fd.collectedByUserId,
             approvedByUserId: fd.approvedByUserId,
             paymentRequestId: fd.paymentRequestId,
+            lateFeeApplied: fd.lateFeeApplied,
+            lateFeeConfigSnapshot: fd.lateFeeConfigSnapshot,
             version: fd.audit.version,
             updatedAt: new Date(),
           },
@@ -169,6 +173,14 @@ export class MongoFeeDueRepository implements FeeDueRepository {
     return docs.map((d) => this.toDomain(d as unknown as Record<string, unknown>));
   }
 
+  async findDueWithoutSnapshot(academyId: string): Promise<FeeDue[]> {
+    const docs = await this.model
+      .find({ academyId, status: 'DUE', lateFeeConfigSnapshot: null })
+      .lean()
+      .exec();
+    return docs.map((d) => this.toDomain(d as unknown as Record<string, unknown>));
+  }
+
   async deleteUpcomingByStudent(academyId: string, studentId: string): Promise<number> {
     const result = await this.model.deleteMany({ academyId, studentId, status: 'UPCOMING' }, { session: getTransactionSession() });
     return result.deletedCount;
@@ -190,6 +202,13 @@ export class MongoFeeDueRepository implements FeeDueRepository {
       collectedByUserId: string | null;
       approvedByUserId: string | null;
       paymentRequestId: string | null;
+      lateFeeApplied?: number | null;
+      lateFeeConfigSnapshot?: {
+        lateFeeEnabled: boolean;
+        gracePeriodDays: number;
+        lateFeeAmountInr: number;
+        lateFeeRepeatIntervalDays: number;
+      } | null;
       createdAt: Date;
       updatedAt: Date;
       version: number;
@@ -209,6 +228,15 @@ export class MongoFeeDueRepository implements FeeDueRepository {
       collectedByUserId: d.collectedByUserId ?? null,
       approvedByUserId: d.approvedByUserId ?? null,
       paymentRequestId: d.paymentRequestId ?? null,
+      lateFeeApplied: d.lateFeeApplied ?? null,
+      lateFeeConfigSnapshot: d.lateFeeConfigSnapshot
+        ? {
+            lateFeeEnabled: d.lateFeeConfigSnapshot.lateFeeEnabled,
+            gracePeriodDays: d.lateFeeConfigSnapshot.gracePeriodDays,
+            lateFeeAmountInr: d.lateFeeConfigSnapshot.lateFeeAmountInr,
+            lateFeeRepeatIntervalDays: d.lateFeeConfigSnapshot.lateFeeRepeatIntervalDays as LateFeeRepeatInterval,
+          }
+        : null,
       audit: {
         createdAt: d.createdAt,
         updatedAt: d.updatedAt,

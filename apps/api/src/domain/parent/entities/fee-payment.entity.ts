@@ -15,6 +15,7 @@ export interface FeePaymentProps {
   baseAmount: number;
   convenienceFee: number;
   totalAmount: number;
+  lateFeeSnapshot: number;
   currency: string;
   status: FeePaymentStatus;
   failureReason: string | null;
@@ -40,6 +41,7 @@ export class FeePayment extends Entity<FeePaymentProps> {
     baseAmount: number;
     convenienceFee: number;
     totalAmount: number;
+    lateFeeSnapshot?: number;
   }): FeePayment {
     return new FeePayment(new UniqueId(params.id), {
       academyId: params.academyId,
@@ -53,6 +55,7 @@ export class FeePayment extends Entity<FeePaymentProps> {
       baseAmount: params.baseAmount,
       convenienceFee: params.convenienceFee,
       totalAmount: params.totalAmount,
+      lateFeeSnapshot: params.lateFeeSnapshot ?? 0,
       currency: 'INR',
       status: 'PENDING',
       failureReason: null,
@@ -131,6 +134,9 @@ export class FeePayment extends Entity<FeePaymentProps> {
   }
   get totalAmount(): number {
     return this.props.totalAmount;
+  }
+  get lateFeeSnapshot(): number {
+    return this.props.lateFeeSnapshot;
   }
   get currency(): string {
     return this.props.currency;

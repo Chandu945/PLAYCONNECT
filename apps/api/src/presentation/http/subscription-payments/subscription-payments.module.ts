@@ -35,6 +35,7 @@ import { ACADEMY_REPOSITORY } from '@domain/academy/ports/academy.repository';
 import { LOGGER_PORT } from '@shared/logging/logger.port';
 import { AuthModule } from '../auth/auth.module';
 import { AcademyOnboardingModule } from '../academy-onboarding/academy-onboarding.module';
+import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { InitiateSubscriptionPaymentUseCase } from '@application/subscription-payments/use-cases/initiate-subscription-payment.usecase';
 import { HandleCashfreeWebhookUseCase } from '@application/subscription-payments/use-cases/handle-cashfree-webhook.usecase';
 import type { WebhookSignatureVerifier } from '@application/subscription-payments/use-cases/handle-cashfree-webhook.usecase';
@@ -44,6 +45,8 @@ import { CashfreeHttpClient } from '@infrastructure/payments/cashfree/cashfree-h
 import { CashfreeSignatureVerifier } from '@infrastructure/payments/cashfree/cashfree.signature';
 import type { ExternalCallPolicyPort } from '@application/common/ports/external-call-policy.port';
 import { EXTERNAL_CALL_POLICY } from '@application/common/ports/external-call-policy.port';
+import { AUDIT_RECORDER_PORT } from '@application/audit/ports/audit-recorder.port';
+import type { AuditRecorderPort } from '@application/audit/ports/audit-recorder.port';
 import { TRANSACTION_PORT } from '@application/common/transaction.port';
 import type { TransactionPort } from '@application/common/transaction.port';
 import { MongoTransactionService } from '@infrastructure/database/mongo-transaction.service';
@@ -55,6 +58,7 @@ const WEBHOOK_SIGNATURE_VERIFIER = Symbol('WEBHOOK_SIGNATURE_VERIFIER');
   imports: [
     AuthModule,
     AcademyOnboardingModule,
+    AuditLogsModule,
     MongooseModule.forFeature([
       { name: SubscriptionPaymentModel.name, schema: SubscriptionPaymentSchema },
       { name: SubscriptionModel.name, schema: SubscriptionSchema },
@@ -117,6 +121,7 @@ const WEBHOOK_SIGNATURE_VERIFIER = Symbol('WEBHOOK_SIGNATURE_VERIFIER');
         studentCounter: ActiveStudentCounterPort,
         clock: ClockPort,
         logger: LoggerPort,
+        auditRecorder: AuditRecorderPort,
       ) =>
         new InitiateSubscriptionPaymentUseCase(
           userRepo,
@@ -127,6 +132,7 @@ const WEBHOOK_SIGNATURE_VERIFIER = Symbol('WEBHOOK_SIGNATURE_VERIFIER');
           studentCounter,
           clock,
           logger,
+          auditRecorder,
         ),
       inject: [
         USER_REPOSITORY,
@@ -137,6 +143,7 @@ const WEBHOOK_SIGNATURE_VERIFIER = Symbol('WEBHOOK_SIGNATURE_VERIFIER');
         ACTIVE_STUDENT_COUNTER,
         CLOCK_PORT,
         LOGGER_PORT,
+        AUDIT_RECORDER_PORT,
       ],
     },
     {
@@ -147,6 +154,7 @@ const WEBHOOK_SIGNATURE_VERIFIER = Symbol('WEBHOOK_SIGNATURE_VERIFIER');
         verifier: WebhookSignatureVerifier,
         clock: ClockPort,
         logger: LoggerPort,
+        auditRecorder: AuditRecorderPort,
         transaction: TransactionPort,
       ) =>
         new HandleCashfreeWebhookUseCase(
@@ -155,6 +163,7 @@ const WEBHOOK_SIGNATURE_VERIFIER = Symbol('WEBHOOK_SIGNATURE_VERIFIER');
           verifier,
           clock,
           logger,
+          auditRecorder,
           transaction,
         ),
       inject: [
@@ -163,6 +172,7 @@ const WEBHOOK_SIGNATURE_VERIFIER = Symbol('WEBHOOK_SIGNATURE_VERIFIER');
         WEBHOOK_SIGNATURE_VERIFIER,
         CLOCK_PORT,
         LOGGER_PORT,
+        AUDIT_RECORDER_PORT,
         TRANSACTION_PORT,
       ],
     },

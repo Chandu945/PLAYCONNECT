@@ -45,6 +45,9 @@ export class FeePaymentModel {
   @Prop({ required: true })
   totalAmount!: number;
 
+  @Prop({ type: Number, default: 0 })
+  lateFeeSnapshot!: number;
+
   @Prop({ required: true, default: 'INR' })
   currency!: string;
 

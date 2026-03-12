@@ -1,6 +1,6 @@
 import type { AuditFields } from '@shared/kernel';
 import { Entity, UniqueId, createAuditFields, updateAuditFields } from '@shared/kernel';
-import type { FeeDueStatus, PaidSource, PaymentLabel } from '@playconnect/contracts';
+import type { FeeDueStatus, PaidSource, PaymentLabel, LateFeeConfig } from '@playconnect/contracts';
 
 export interface FeeDueProps {
   academyId: string;
@@ -16,6 +16,8 @@ export interface FeeDueProps {
   collectedByUserId: string | null;
   approvedByUserId: string | null;
   paymentRequestId: string | null;
+  lateFeeApplied: number | null;
+  lateFeeConfigSnapshot: LateFeeConfig | null;
   audit: AuditFields;
 }
 
@@ -46,6 +48,8 @@ export class FeeDue extends Entity<FeeDueProps> {
       collectedByUserId: null,
       approvedByUserId: null,
       paymentRequestId: null,
+      lateFeeApplied: null,
+      lateFeeConfigSnapshot: null,
       audit: createAuditFields(),
     });
   }
@@ -106,6 +110,14 @@ export class FeeDue extends Entity<FeeDueProps> {
     return this.props.paymentRequestId;
   }
 
+  get lateFeeApplied(): number | null {
+    return this.props.lateFeeApplied;
+  }
+
+  get lateFeeConfigSnapshot(): LateFeeConfig | null {
+    return this.props.lateFeeConfigSnapshot;
+  }
+
   get audit(): AuditFields {
     return this.props.audit;
   }
@@ -121,7 +133,7 @@ export class FeeDue extends Entity<FeeDueProps> {
     });
   }
 
-  markPaid(userId: string, paidAt: Date, paymentLabel: PaymentLabel = 'CASH'): FeeDue {
+  markPaid(userId: string, paidAt: Date, paymentLabel: PaymentLabel = 'CASH', lateFeeApplied?: number): FeeDue {
     if (this.props.status === 'UPCOMING') {
       throw new Error('Cannot mark an UPCOMING fee as paid');
     }
@@ -132,6 +144,7 @@ export class FeeDue extends Entity<FeeDueProps> {
       paidByUserId: userId,
       paidSource: 'OWNER_DIRECT',
       paymentLabel,
+      lateFeeApplied: lateFeeApplied ?? this.props.lateFeeApplied,
       audit: updateAuditFields(this.props.audit),
     });
   }
@@ -142,6 +155,7 @@ export class FeeDue extends Entity<FeeDueProps> {
     paymentRequestId: string;
     paidAt: Date;
     paymentLabel?: PaymentLabel;
+    lateFeeApplied?: number;
   }): FeeDue {
     if (this.props.status === 'UPCOMING') {
       throw new Error('Cannot mark an UPCOMING fee as paid');
@@ -156,11 +170,12 @@ export class FeeDue extends Entity<FeeDueProps> {
       collectedByUserId: params.collectedByUserId,
       approvedByUserId: params.approvedByUserId,
       paymentRequestId: params.paymentRequestId,
+      lateFeeApplied: params.lateFeeApplied ?? this.props.lateFeeApplied,
       audit: updateAuditFields(this.props.audit),
     });
   }
 
-  markPaidByParentOnline(parentUserId: string, paidAt: Date): FeeDue {
+  markPaidByParentOnline(parentUserId: string, paidAt: Date, lateFeeApplied?: number): FeeDue {
     if (this.props.status === 'UPCOMING') {
       throw new Error('Cannot mark an UPCOMING fee as paid');
     }
@@ -171,6 +186,16 @@ export class FeeDue extends Entity<FeeDueProps> {
       paidByUserId: parentUserId,
       paidSource: 'PARENT_ONLINE',
       paymentLabel: 'ONLINE',
+      lateFeeApplied: lateFeeApplied ?? this.props.lateFeeApplied,
+      audit: updateAuditFields(this.props.audit),
+    });
+  }
+
+  snapshotLateFeeConfig(config: LateFeeConfig): FeeDue {
+    if (this.props.lateFeeConfigSnapshot) return this; // already snapshotted
+    return FeeDue.reconstitute(this.id.toString(), {
+      ...this.props,
+      lateFeeConfigSnapshot: config,
       audit: updateAuditFields(this.props.audit),
     });
   }
@@ -186,6 +211,8 @@ export class FeeDue extends Entity<FeeDueProps> {
       collectedByUserId: null,
       approvedByUserId: null,
       paymentRequestId: null,
+      lateFeeApplied: null,
+      lateFeeConfigSnapshot: null,
       audit: updateAuditFields(this.props.audit),
     });
   }

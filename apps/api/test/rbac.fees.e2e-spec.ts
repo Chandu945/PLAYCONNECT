@@ -101,9 +101,9 @@ describe('RBAC: Fees + Settings (e2e)', () => {
         { provide: TOKEN_SERVICE, useValue: tokenService },
         {
           provide: 'LIST_UNPAID_DUES_USE_CASE',
-          useFactory: (ur: UserRepository, fdr: FeeDueRepository) =>
-            new ListUnpaidDuesUseCase(ur, fdr),
-          inject: [USER_REPOSITORY, FEE_DUE_REPOSITORY],
+          useFactory: (ur: UserRepository, fdr: FeeDueRepository, ar: AcademyRepository, clock: ClockPort) =>
+            new ListUnpaidDuesUseCase(ur, fdr, ar, clock),
+          inject: [USER_REPOSITORY, FEE_DUE_REPOSITORY, ACADEMY_REPOSITORY, CLOCK_PORT],
         },
         {
           provide: 'LIST_PAID_DUES_USE_CASE',
@@ -113,9 +113,9 @@ describe('RBAC: Fees + Settings (e2e)', () => {
         },
         {
           provide: 'GET_STUDENT_FEES_USE_CASE',
-          useFactory: (ur: UserRepository, sr: StudentRepository, fdr: FeeDueRepository) =>
-            new GetStudentFeesUseCase(ur, sr, fdr),
-          inject: [USER_REPOSITORY, STUDENT_REPOSITORY, FEE_DUE_REPOSITORY],
+          useFactory: (ur: UserRepository, sr: StudentRepository, fdr: FeeDueRepository, ar: AcademyRepository, clock: ClockPort) =>
+            new GetStudentFeesUseCase(ur, sr, fdr, ar, clock),
+          inject: [USER_REPOSITORY, STUDENT_REPOSITORY, FEE_DUE_REPOSITORY, ACADEMY_REPOSITORY, CLOCK_PORT],
         },
         {
           provide: 'MARK_FEE_PAID_USE_CASE',

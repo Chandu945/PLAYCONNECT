@@ -44,6 +44,8 @@ import {
   InMemoryTransactionLogRepository,
 } from './helpers/in-memory-repos';
 import { createTestTokenService } from './helpers/test-services';
+import { AUDIT_RECORDER_PORT } from '../src/application/audit/ports/audit-recorder.port';
+import type { AuditRecorderPort } from '../src/application/audit/ports/audit-recorder.port';
 import { configureApiVersioning } from '../src/shared/config/api-versioning';
 
 const WEBHOOK_SECRET = 'test-fee-webhook-secret';
@@ -301,6 +303,10 @@ describe('Fee Payments — Parent Flow (e2e)', () => {
       getOrder: jest.fn(),
     };
 
+    const mockAuditRecorder: AuditRecorderPort = {
+      record: jest.fn().mockResolvedValue(undefined),
+    };
+
     const moduleFixture = await Test.createTestingModule({
       imports: [
         AppConfigModule,
@@ -319,6 +325,7 @@ describe('Fee Payments — Parent Flow (e2e)', () => {
         { provide: CASHFREE_GATEWAY, useValue: mockGateway },
         { provide: CLOCK_PORT, useValue: clock },
         { provide: TOKEN_SERVICE, useValue: tokenService },
+        { provide: AUDIT_RECORDER_PORT, useValue: mockAuditRecorder },
         {
           provide: FEE_WEBHOOK_SIGNATURE_VERIFIER,
           useValue: new CashfreeSignatureVerifier(WEBHOOK_SECRET),
@@ -326,24 +333,25 @@ describe('Fee Payments — Parent Flow (e2e)', () => {
         // Initiate fee payment use case
         {
           provide: 'INITIATE_FEE_PAYMENT_USE_CASE',
-          useFactory: (ur: any, lr: any, fdr: any, fpr: any, gw: any, l: any) =>
-            new InitiateFeePaymentUseCase(ur, lr, fdr, fpr, gw, l),
+          useFactory: (ur: any, lr: any, fdr: any, fpr: any, ar: any, gw: any, c: any, l: any, audit: any) =>
+            new InitiateFeePaymentUseCase(ur, lr, fdr, fpr, ar, gw, c, l, audit),
           inject: [
             USER_REPOSITORY, PARENT_STUDENT_LINK_REPOSITORY,
             FEE_DUE_REPOSITORY, FEE_PAYMENT_REPOSITORY,
-            CASHFREE_GATEWAY, LOGGER_PORT,
+            ACADEMY_REPOSITORY, CASHFREE_GATEWAY,
+            CLOCK_PORT, LOGGER_PORT, AUDIT_RECORDER_PORT,
           ],
         },
         // Handle fee payment webhook use case
         {
           provide: 'HANDLE_FEE_PAYMENT_WEBHOOK_USE_CASE',
-          useFactory: (fpr: any, fdr: any, tlr: any, ar: any, sv: any, c: any, tx: any, l: any) =>
-            new HandleFeePaymentWebhookUseCase(fpr, fdr, tlr, ar, sv, c, tx, l),
+          useFactory: (fpr: any, fdr: any, tlr: any, ar: any, sv: any, c: any, tx: any, l: any, audit: any) =>
+            new HandleFeePaymentWebhookUseCase(fpr, fdr, tlr, ar, sv, c, tx, l, audit),
           inject: [
             FEE_PAYMENT_REPOSITORY, FEE_DUE_REPOSITORY,
             TRANSACTION_LOG_REPOSITORY, ACADEMY_REPOSITORY,
             FEE_WEBHOOK_SIGNATURE_VERIFIER, CLOCK_PORT,
-            'TRANSACTION_PORT', LOGGER_PORT,
+            'TRANSACTION_PORT', LOGGER_PORT, AUDIT_RECORDER_PORT,
           ],
         },
         // Get fee payment status use case
@@ -486,6 +494,7 @@ describe('Fee Payments — Parent Flow (e2e)', () => {
       baseAmount: 500,
       convenienceFee: 13,
       totalAmount: 513,
+      lateFeeSnapshot: 0,
     });
     await feePaymentRepo.save(existingPayment);
 
@@ -523,6 +532,7 @@ describe('Fee Payments — Parent Flow (e2e)', () => {
       baseAmount: 500,
       convenienceFee: 13,
       totalAmount: 513,
+      lateFeeSnapshot: 0,
     });
     await feePaymentRepo.save(payment);
 
@@ -582,6 +592,7 @@ describe('Fee Payments — Parent Flow (e2e)', () => {
       baseAmount: 500,
       convenienceFee: 13,
       totalAmount: 513,
+      lateFeeSnapshot: 0,
     });
     await feePaymentRepo.save(payment);
 
@@ -635,6 +646,7 @@ describe('Fee Payments — Parent Flow (e2e)', () => {
       baseAmount: 500,
       convenienceFee: 13,
       totalAmount: 513,
+      lateFeeSnapshot: 0,
     });
     await feePaymentRepo.save(payment);
 

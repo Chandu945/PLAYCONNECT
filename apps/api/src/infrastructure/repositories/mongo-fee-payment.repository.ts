@@ -31,6 +31,7 @@ export class MongoFeePaymentRepository implements FeePaymentRepository {
         baseAmount: payment.baseAmount,
         convenienceFee: payment.convenienceFee,
         totalAmount: payment.totalAmount,
+        lateFeeSnapshot: payment.lateFeeSnapshot,
         currency: payment.currency,
         status: payment.status,
         failureReason: payment.failureReason,
@@ -60,6 +61,7 @@ export class MongoFeePaymentRepository implements FeePaymentRepository {
         baseAmount: payment.baseAmount,
         convenienceFee: payment.convenienceFee,
         totalAmount: payment.totalAmount,
+        lateFeeSnapshot: payment.lateFeeSnapshot,
         currency: payment.currency,
         status: payment.status,
         failureReason: payment.failureReason,
@@ -111,6 +113,7 @@ export class MongoFeePaymentRepository implements FeePaymentRepository {
       baseAmount: number;
       convenienceFee: number;
       totalAmount: number;
+      lateFeeSnapshot?: number;
       currency: string;
       status: string;
       failureReason: string | null;
@@ -133,6 +136,7 @@ export class MongoFeePaymentRepository implements FeePaymentRepository {
       baseAmount: d.baseAmount,
       convenienceFee: d.convenienceFee ?? 0,
       totalAmount: d.totalAmount ?? d.baseAmount,
+      lateFeeSnapshot: d.lateFeeSnapshot ?? 0,
       currency: d.currency,
       status: d.status as FeePaymentStatus,
       failureReason: d.failureReason,

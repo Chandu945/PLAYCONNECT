@@ -79,6 +79,10 @@ describe('SetupAcademyUseCase', () => {
       deactivatedAt: null,
       defaultDueDateDay: null,
       receiptPrefix: null,
+      lateFeeEnabled: false,
+      gracePeriodDays: 5,
+      lateFeeAmountInr: 0,
+      lateFeeRepeatIntervalDays: 5,
       audit: createAuditFields(),
       softDelete: initSoftDelete(),
     });

@@ -30,5 +30,6 @@ export interface FeeDueRepository {
   listUnpaidByAcademy(academyId: string): Promise<FeeDue[]>;
   findUnpaidByDueDate(dueDate: string): Promise<FeeDue[]>;
   findOverdueDues(upToDate: string): Promise<FeeDue[]>;
+  findDueWithoutSnapshot(academyId: string): Promise<FeeDue[]>;
   deleteUpcomingByStudent(academyId: string, studentId: string): Promise<number>;
 }

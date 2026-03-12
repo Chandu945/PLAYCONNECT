@@ -11,6 +11,8 @@ export type FeeDueItem = {
   monthKey: string;
   dueDate: string;
   amount: number;
+  lateFee: number;
+  totalPayable: number;
   status: FeeDueStatus;
   paidAt: string | null;
   paidByUserId: string | null;

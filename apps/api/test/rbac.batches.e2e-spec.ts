@@ -24,6 +24,8 @@ import { RemoveStudentFromBatchUseCase } from '../src/application/batch/use-case
 import { DeleteBatchUseCase } from '../src/application/batch/use-cases/delete-batch.usecase';
 import { UploadBatchPhotoUseCase } from '../src/application/batch/use-cases/upload-batch-photo.usecase';
 import { FILE_STORAGE_PORT } from '../src/application/common/ports/file-storage.port';
+import { TRANSACTION_PORT } from '../src/application/common/transaction.port';
+import type { TransactionPort } from '../src/application/common/transaction.port';
 import {
   InMemoryUserRepository,
   InMemoryBatchRepository,
@@ -64,6 +66,9 @@ describe('Batches RBAC (e2e)', () => {
       upload: jest.fn().mockResolvedValue('https://example.com/photo.jpg'),
       delete: jest.fn().mockResolvedValue(undefined),
     };
+    const noopTransaction: TransactionPort = {
+      run: async <T>(fn: () => Promise<T>): Promise<T> => fn(),
+    };
 
     const moduleFixture = await Test.createTestingModule({
       imports: [
@@ -79,6 +84,7 @@ describe('Batches RBAC (e2e)', () => {
         { provide: STUDENT_REPOSITORY, useValue: studentRepo },
         { provide: STUDENT_BATCH_REPOSITORY, useValue: studentBatchRepo },
         { provide: TOKEN_SERVICE, useValue: tokenService },
+        { provide: TRANSACTION_PORT, useValue: noopTransaction },
         {
           provide: 'CREATE_BATCH_USE_CASE',
           useFactory: (ur: UserRepository, br: BatchRepository) => new CreateBatchUseCase(ur, br),
@@ -120,9 +126,9 @@ describe('Batches RBAC (e2e)', () => {
         },
         {
           provide: 'DELETE_BATCH_USE_CASE',
-          useFactory: (ur: UserRepository, br: BatchRepository, sbr: StudentBatchRepository) =>
-            new DeleteBatchUseCase(ur, br, sbr),
-          inject: [USER_REPOSITORY, BATCH_REPOSITORY, STUDENT_BATCH_REPOSITORY],
+          useFactory: (ur: UserRepository, br: BatchRepository, sbr: StudentBatchRepository, tx: TransactionPort) =>
+            new DeleteBatchUseCase(ur, br, sbr, tx),
+          inject: [USER_REPOSITORY, BATCH_REPOSITORY, STUDENT_BATCH_REPOSITORY, TRANSACTION_PORT],
         },
         {
           provide: 'UPLOAD_BATCH_PHOTO_USE_CASE',

@@ -39,6 +39,10 @@ function createAcademy(id = 'academy-1', ownerUserId = 'user-1'): Academy {
     deactivatedAt: null,
     defaultDueDateDay: null,
     receiptPrefix: null,
+    lateFeeEnabled: false,
+    gracePeriodDays: 5,
+    lateFeeAmountInr: 0,
+    lateFeeRepeatIntervalDays: 5,
     audit: createAuditFields(),
     softDelete: initSoftDelete(),
   });

@@ -4,15 +4,18 @@ import type { AppError } from '@shared/kernel';
 import type { FeeDueRepository } from '@domain/fee/ports/fee-due.repository';
 import type { ParentStudentLinkRepository } from '@domain/parent/ports/parent-student-link.repository';
 import type { FeePaymentRepository } from '@domain/parent/ports/fee-payment.repository';
+import type { AcademyRepository } from '@domain/academy/ports/academy.repository';
 import type { CashfreeGatewayPort } from '@domain/subscription-payments/ports/cashfree-gateway.port';
 import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { LoggerPort } from '@shared/logging/logger.port';
+import type { AuditRecorderPort } from '@application/audit/ports/audit-recorder.port';
+import type { ClockPort } from '../../common/clock.port';
 import { canPayFeeOnline } from '@domain/parent/rules/parent.rules';
 import { generateFeeOrderId } from '@domain/parent/rules/parent.rules';
 import { FeePayment } from '@domain/parent/entities/fee-payment.entity';
 import { ParentErrors } from '../../common/errors';
 import type { InitiateFeePaymentOutput } from '../dtos/parent.dto';
-import { type UserRole, computeConvenienceFee } from '@playconnect/contracts';
+import { type UserRole, type LateFeeConfig, type LateFeeRepeatInterval, computeConvenienceFee, computeLateFee } from '@playconnect/contracts';
 import { randomUUID } from 'node:crypto';
 
 export interface InitiateFeePaymentInput {
@@ -27,8 +30,11 @@ export class InitiateFeePaymentUseCase {
     private readonly linkRepo: ParentStudentLinkRepository,
     private readonly feeDueRepo: FeeDueRepository,
     private readonly feePaymentRepo: FeePaymentRepository,
+    private readonly academyRepo: AcademyRepository,
     private readonly cashfreeGateway: CashfreeGatewayPort,
+    private readonly clock: ClockPort,
     private readonly logger: LoggerPort,
+    private readonly auditRecorder: AuditRecorderPort,
   ) {}
 
   async execute(
@@ -58,8 +64,25 @@ export class InitiateFeePaymentUseCase {
     const existingPending = await this.feePaymentRepo.findPendingByFeeDueId(input.feeDueId);
     if (existingPending) return err(ParentErrors.paymentAlreadyPending());
 
-    // Compute convenience fee
-    const baseAmount = foundDue.amount;
+    // Compute late fee — prefer snapshotted config, fall back to live academy config
+    const academy = await this.academyRepo.findById(foundDue.academyId);
+    const todayStr = this.clock.now().toISOString().slice(0, 10);
+    let lateFee = 0;
+    const liveConfig: LateFeeConfig | undefined = academy?.lateFeeEnabled
+      ? {
+          lateFeeEnabled: academy.lateFeeEnabled,
+          gracePeriodDays: academy.gracePeriodDays,
+          lateFeeAmountInr: academy.lateFeeAmountInr,
+          lateFeeRepeatIntervalDays: academy.lateFeeRepeatIntervalDays as LateFeeRepeatInterval,
+        }
+      : undefined;
+    const effectiveConfig = foundDue.lateFeeConfigSnapshot ?? liveConfig;
+    if (effectiveConfig) {
+      lateFee = computeLateFee(foundDue.dueDate, todayStr, effectiveConfig);
+    }
+
+    // Compute convenience fee (on base + late fee)
+    const baseAmount = foundDue.amount + lateFee;
     const convenienceFee = computeConvenienceFee(baseAmount);
     const totalAmount = baseAmount + convenienceFee;
 
@@ -79,6 +102,7 @@ export class InitiateFeePaymentUseCase {
       baseAmount,
       convenienceFee,
       totalAmount,
+      lateFeeSnapshot: lateFee,
     });
     await this.feePaymentRepo.save(payment);
 
@@ -118,6 +142,7 @@ export class InitiateFeePaymentUseCase {
       baseAmount: withCfId.baseAmount,
       convenienceFee: withCfId.convenienceFee,
       totalAmount: withCfId.totalAmount,
+      lateFeeSnapshot: withCfId.lateFeeSnapshot,
       currency: withCfId.currency,
       status: withCfId.status,
       failureReason: withCfId.failureReason,
@@ -135,10 +160,27 @@ export class InitiateFeePaymentUseCase {
       totalAmount,
     });
 
+    await this.auditRecorder.record({
+      academyId: matchedLink.academyId,
+      actorUserId: input.parentUserId,
+      action: 'FEE_PAYMENT_INITIATED',
+      entityType: 'FEE_PAYMENT',
+      entityId: orderId,
+      context: {
+        feeDueId: input.feeDueId,
+        studentId: matchedLink.studentId,
+        monthKey: foundDue.monthKey,
+        baseAmount: String(baseAmount),
+        convenienceFee: String(convenienceFee),
+        totalAmount: String(totalAmount),
+      },
+    });
+
     return ok({
       orderId,
       paymentSessionId: cfResult.paymentSessionId,
       baseAmount,
+      lateFee,
       convenienceFee,
       totalAmount,
       currency: 'INR',

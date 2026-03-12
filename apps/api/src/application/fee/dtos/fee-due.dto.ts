@@ -1,5 +1,6 @@
 import type { FeeDue } from '@domain/fee/entities/fee-due.entity';
-import type { FeeDueStatus, PaidSource, PaymentLabel } from '@playconnect/contracts';
+import type { FeeDueStatus, PaidSource, PaymentLabel, LateFeeConfig } from '@playconnect/contracts';
+import { computeLateFee } from '@playconnect/contracts';
 
 export interface FeeDueDto {
   id: string;
@@ -8,6 +9,8 @@ export interface FeeDueDto {
   monthKey: string;
   dueDate: string;
   amount: number;
+  lateFee: number;
+  totalPayable: number;
   status: FeeDueStatus;
   paidAt: string | null;
   paidByUserId: string | null;
@@ -20,7 +23,22 @@ export interface FeeDueDto {
   updatedAt: string;
 }
 
-export function toFeeDueDto(feeDue: FeeDue): FeeDueDto {
+export function toFeeDueDto(
+  feeDue: FeeDue,
+  lateFeeConfig?: LateFeeConfig,
+  today?: string,
+): FeeDueDto {
+  let lateFee = 0;
+  if (feeDue.status === 'PAID') {
+    // For paid fees, use the snapshotted amount that was actually collected
+    lateFee = feeDue.lateFeeApplied ?? 0;
+  } else if (today) {
+    // For unpaid fees, compute dynamically — prefer snapshot config over live config
+    const effectiveConfig = feeDue.lateFeeConfigSnapshot ?? lateFeeConfig;
+    if (effectiveConfig) {
+      lateFee = computeLateFee(feeDue.dueDate, today, effectiveConfig);
+    }
+  }
   return {
     id: feeDue.id.toString(),
     academyId: feeDue.academyId,
@@ -28,6 +46,8 @@ export function toFeeDueDto(feeDue: FeeDue): FeeDueDto {
     monthKey: feeDue.monthKey,
     dueDate: feeDue.dueDate,
     amount: feeDue.amount,
+    lateFee,
+    totalPayable: feeDue.amount + lateFee,
     status: feeDue.status,
     paidAt: feeDue.paidAt ? feeDue.paidAt.toISOString() : null,
     paidByUserId: feeDue.paidByUserId,

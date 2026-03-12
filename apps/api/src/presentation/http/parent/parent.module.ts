@@ -5,6 +5,7 @@ import { FeePaymentWebhookController } from './fee-payment-webhook.controller';
 import { FeePaymentTestController } from './fee-payment-test.controller';
 import { AuthModule } from '../auth/auth.module';
 import { AcademyOnboardingModule } from '../academy-onboarding/academy-onboarding.module';
+import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 
 // Schemas
 import {
@@ -92,6 +93,8 @@ import type { ClockPort } from '@application/common/clock.port';
 import type { LoggerPort } from '@shared/logging/logger.port';
 import type { ExternalCallPolicyPort } from '@application/common/ports/external-call-policy.port';
 import { EXTERNAL_CALL_POLICY } from '@application/common/ports/external-call-policy.port';
+import { AUDIT_RECORDER_PORT } from '@application/audit/ports/audit-recorder.port';
+import type { AuditRecorderPort } from '@application/audit/ports/audit-recorder.port';
 
 const FEE_WEBHOOK_SIGNATURE_VERIFIER = Symbol('FEE_WEBHOOK_SIGNATURE_VERIFIER');
 
@@ -99,6 +102,7 @@ const FEE_WEBHOOK_SIGNATURE_VERIFIER = Symbol('FEE_WEBHOOK_SIGNATURE_VERIFIER');
   imports: [
     AuthModule,
     AcademyOnboardingModule,
+    AuditLogsModule,
     MongooseModule.forFeature([
       { name: ParentStudentLinkModel.name, schema: ParentStudentLinkSchema },
       { name: FeePaymentModel.name, schema: FeePaymentSchema },
@@ -192,9 +196,9 @@ const FEE_WEBHOOK_SIGNATURE_VERIFIER = Symbol('FEE_WEBHOOK_SIGNATURE_VERIFIER');
     },
     {
       provide: 'GET_CHILD_FEES_USE_CASE',
-      useFactory: (linkRepo: ParentStudentLinkRepository, feeDueRepo: FeeDueRepository) =>
-        new GetChildFeesUseCase(linkRepo, feeDueRepo),
-      inject: [PARENT_STUDENT_LINK_REPOSITORY, FEE_DUE_REPOSITORY],
+      useFactory: (linkRepo: ParentStudentLinkRepository, feeDueRepo: FeeDueRepository, academyRepo: AcademyRepository, clock: ClockPort) =>
+        new GetChildFeesUseCase(linkRepo, feeDueRepo, academyRepo, clock),
+      inject: [PARENT_STUDENT_LINK_REPOSITORY, FEE_DUE_REPOSITORY, ACADEMY_REPOSITORY, CLOCK_PORT],
     },
     {
       provide: 'INITIATE_FEE_PAYMENT_USE_CASE',
@@ -203,24 +207,33 @@ const FEE_WEBHOOK_SIGNATURE_VERIFIER = Symbol('FEE_WEBHOOK_SIGNATURE_VERIFIER');
         linkRepo: ParentStudentLinkRepository,
         feeDueRepo: FeeDueRepository,
         feePaymentRepo: FeePaymentRepository,
+        academyRepo: AcademyRepository,
         gateway: CashfreeGatewayPort,
+        clock: ClockPort,
         logger: LoggerPort,
+        auditRecorder: AuditRecorderPort,
       ) =>
         new InitiateFeePaymentUseCase(
           userRepo,
           linkRepo,
           feeDueRepo,
           feePaymentRepo,
+          academyRepo,
           gateway,
+          clock,
           logger,
+          auditRecorder,
         ),
       inject: [
         USER_REPOSITORY,
         PARENT_STUDENT_LINK_REPOSITORY,
         FEE_DUE_REPOSITORY,
         FEE_PAYMENT_REPOSITORY,
+        ACADEMY_REPOSITORY,
         CASHFREE_GATEWAY,
+        CLOCK_PORT,
         LOGGER_PORT,
+        AUDIT_RECORDER_PORT,
       ],
     },
     {
@@ -234,6 +247,7 @@ const FEE_WEBHOOK_SIGNATURE_VERIFIER = Symbol('FEE_WEBHOOK_SIGNATURE_VERIFIER');
         clock: ClockPort,
         transaction: TransactionPort,
         logger: LoggerPort,
+        auditRecorder: AuditRecorderPort,
       ) =>
         new HandleFeePaymentWebhookUseCase(
           feePaymentRepo,
@@ -244,6 +258,7 @@ const FEE_WEBHOOK_SIGNATURE_VERIFIER = Symbol('FEE_WEBHOOK_SIGNATURE_VERIFIER');
           clock,
           transaction,
           logger,
+          auditRecorder,
         ),
       inject: [
         FEE_PAYMENT_REPOSITORY,
@@ -254,6 +269,7 @@ const FEE_WEBHOOK_SIGNATURE_VERIFIER = Symbol('FEE_WEBHOOK_SIGNATURE_VERIFIER');
         CLOCK_PORT,
         TRANSACTION_PORT,
         LOGGER_PORT,
+        AUDIT_RECORDER_PORT,
       ],
     },
     {

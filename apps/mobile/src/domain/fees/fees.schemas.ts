@@ -7,6 +7,8 @@ export const feeDueItemSchema = z.object({
   monthKey: z.string(),
   dueDate: z.string(),
   amount: z.number().int(),
+  lateFee: z.number().int().default(0),
+  totalPayable: z.number().int().default(0),
   status: z.enum(['UPCOMING', 'DUE', 'PAID']),
   paidAt: z.string().nullable(),
   paidByUserId: z.string().nullable(),

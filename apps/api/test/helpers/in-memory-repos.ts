@@ -754,6 +754,12 @@ export class InMemoryFeeDueRepository implements FeeDueRepository {
     );
   }
 
+  async findDueWithoutSnapshot(academyId: string): Promise<FeeDue[]> {
+    return Array.from(this.dues.values()).filter(
+      (d) => d.academyId === academyId && d.status === 'DUE' && d.lateFeeConfigSnapshot === null,
+    );
+  }
+
   async deleteUpcomingByStudent(academyId: string, studentId: string): Promise<number> {
     let count = 0;
     for (const [key, due] of this.dues) {

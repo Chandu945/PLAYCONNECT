@@ -208,7 +208,7 @@ export function ChildDetailScreen() {
 
   const totalDue = fees
     .filter((f) => f.status === 'DUE')
-    .reduce((sum, f) => sum + f.amount, 0);
+    .reduce((sum, f) => sum + f.amount + f.lateFee, 0);
 
   return (
     <ScrollView
@@ -327,7 +327,9 @@ export function ChildDetailScreen() {
                   </View>
                 </View>
               </View>
-              <Text style={styles.feeAmount}>{formatCurrency(fee.amount)}</Text>
+              <Text style={styles.feeAmount}>
+                {formatCurrency(fee.status === 'DUE' && fee.lateFee > 0 ? fee.amount + fee.lateFee : fee.amount)}
+              </Text>
             </View>
             {fee.status === 'PAID' && (
               <TouchableOpacity
@@ -339,6 +341,30 @@ export function ChildDetailScreen() {
                 <Text style={styles.receiptButtonText}>View Receipt</Text>
               </TouchableOpacity>
             )}
+            {fee.status === 'DUE' && fee.lateFee > 0 && (
+              <View style={styles.lateFeeNotice}>
+                {/* @ts-expect-error react-native-vector-icons types */}
+                <Icon name="alert-circle-outline" size={14} color={colors.danger} />
+                <Text style={styles.lateFeeNoticeText}>
+                  Late fee of {formatCurrency(fee.lateFee)} applied
+                </Text>
+              </View>
+            )}
+            {fee.status === 'DUE' && fee.lateFee === 0 && (() => {
+              const dueDateMs = new Date(fee.dueDate + 'T00:00:00').getTime();
+              const todayMs = new Date().setHours(0, 0, 0, 0);
+              const dayMs = 24 * 60 * 60 * 1000;
+              const daysPastDue = Math.floor((todayMs - dueDateMs) / dayMs);
+              return daysPastDue > 0 ? (
+                <View style={styles.graceNotice}>
+                  {/* @ts-expect-error react-native-vector-icons types */}
+                  <Icon name="clock-alert-outline" size={14} color={colors.warning} />
+                  <Text style={styles.graceNoticeText}>
+                    Pay soon to avoid late fees
+                  </Text>
+                </View>
+              ) : null;
+            })()}
             {fee.status === 'DUE' && (
               <TouchableOpacity
                 style={styles.payButton}
@@ -347,12 +373,17 @@ export function ChildDetailScreen() {
                     feeDueId: fee.id,
                     monthKey: fee.monthKey,
                     amount: fee.amount,
+                    lateFee: fee.lateFee,
                   })
                 }
               >
                 {/* @ts-expect-error react-native-vector-icons types */}
                 <Icon name="credit-card-outline" size={16} color={colors.white} />
-                <Text style={styles.payButtonText}>Pay Now</Text>
+                <Text style={styles.payButtonText}>
+                  {fee.lateFee > 0
+                    ? `Pay ${formatCurrency(fee.amount + fee.lateFee)}`
+                    : 'Pay Now'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -486,6 +517,36 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     color: colors.successText,
     fontWeight: fontWeights.semibold,
     fontSize: fontSizes.sm,
+  },
+  lateFeeNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: colors.dangerBg,
+    borderRadius: radius.sm,
+  },
+  lateFeeNoticeText: {
+    fontSize: fontSizes.xs,
+    color: colors.danger,
+    fontWeight: fontWeights.medium,
+    flex: 1,
+  },
+  graceNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: colors.warningBg,
+    borderRadius: radius.sm,
+  },
+  graceNoticeText: {
+    fontSize: fontSizes.xs,
+    color: colors.warning,
+    fontWeight: fontWeights.medium,
+    flex: 1,
   },
   payButton: {
     flexDirection: 'row',

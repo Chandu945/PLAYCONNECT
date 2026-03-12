@@ -8,6 +8,7 @@ import type { CashfreeGatewayPort } from '@domain/subscription-payments/ports/ca
 import type { ActiveStudentCounterPort } from '@application/subscription/ports/active-student-counter.port';
 import type { ClockPort } from '@application/common/clock.port';
 import type { LoggerPort } from '@shared/logging/logger.port';
+import type { AuditRecorderPort } from '@application/audit/ports/audit-recorder.port';
 import { SubscriptionPayment } from '@domain/subscription-payments/entities/subscription-payment.entity';
 import { requiredTierForCount } from '@domain/subscription/rules/subscription-tier.rules';
 import {
@@ -27,6 +28,7 @@ export class InitiateSubscriptionPaymentUseCase {
     private readonly studentCounter: ActiveStudentCounterPort,
     private readonly clock: ClockPort,
     private readonly logger: LoggerPort,
+    private readonly auditRecorder: AuditRecorderPort,
   ) {}
 
   async execute(actorUserId: string): Promise<Result<InitiatePaymentOutput, AppError>> {
@@ -150,6 +152,19 @@ export class InitiateSubscriptionPaymentUseCase {
       orderId,
       tierKey: requiredTier,
       amountInr,
+    });
+
+    await this.auditRecorder.record({
+      academyId,
+      actorUserId,
+      action: 'SUBSCRIPTION_PAYMENT_INITIATED',
+      entityType: 'SUBSCRIPTION_PAYMENT',
+      entityId: orderId,
+      context: {
+        tierKey: requiredTier,
+        amountInr: String(amountInr),
+        activeStudents: String(activeStudentCount),
+      },
     });
 
     return ok({

@@ -7,6 +7,7 @@ import type { ClockPort } from '../../common/clock.port';
 import type { Result } from '@shared/kernel';
 import { ok } from '@shared/kernel';
 import { formatLocalDate } from '@shared/date-utils';
+import { computeLateFee } from '@playconnect/contracts';
 
 export interface OverduePushReminderSummary {
   runDate: string;
@@ -119,13 +120,21 @@ export class SendOverduePushRemindersUseCase {
       const studentName = studentMap.get(due.studentId) ?? 'your child';
       const daysOverdue = diffDays(due.dueDate, today);
 
+      // Compute late fee if config snapshot exists
+      const lateFee = due.lateFeeConfigSnapshot
+        ? computeLateFee(due.dueDate, today, due.lateFeeConfigSnapshot)
+        : 0;
+      const lateFeeNote = lateFee > 0
+        ? ` A late fee of \u20B9${lateFee} has been added.`
+        : '';
+
       let body: string;
       if (daysOverdue === 0) {
         body = `Fee of \u20B9${due.amount} for ${studentName} (${formatMonthKey(due.monthKey)}) is due today. Please pay to avoid late fees.`;
       } else if (daysOverdue === 1) {
-        body = `Fee of \u20B9${due.amount} for ${studentName} (${formatMonthKey(due.monthKey)}) was due yesterday. Please pay now.`;
+        body = `Fee of \u20B9${due.amount} for ${studentName} (${formatMonthKey(due.monthKey)}) was due yesterday. Please pay now.${lateFeeNote}`;
       } else {
-        body = `Fee of \u20B9${due.amount} for ${studentName} (${formatMonthKey(due.monthKey)}) is overdue by ${daysOverdue} days. Please pay immediately.`;
+        body = `Fee of \u20B9${due.amount} for ${studentName} (${formatMonthKey(due.monthKey)}) is overdue by ${daysOverdue} days.${lateFeeNote} Please pay immediately.`;
       }
 
       try {

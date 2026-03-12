@@ -44,12 +44,16 @@ export class GetReceiptUseCase {
       this.academyRepo.findById(txLog.academyId),
     ]);
 
+    // Load fee due to get lateFeeApplied snapshot
+    const feeDue = await this.feeDueRepo.findById(input.feeDueId);
+
     return ok({
       receiptNumber: txLog.receiptNumber,
       studentName: student?.fullName ?? 'Unknown',
       academyName: academy?.academyName ?? 'Unknown',
       monthKey: txLog.monthKey,
       amount: txLog.amount,
+      lateFeeApplied: feeDue?.lateFeeApplied ?? null,
       paidAt: txLog.audit.createdAt.toISOString(),
       paymentMethod:
         txLog.source === 'PARENT_ONLINE'

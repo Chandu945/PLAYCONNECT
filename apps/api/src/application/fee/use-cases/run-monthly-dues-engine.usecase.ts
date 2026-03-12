@@ -7,7 +7,7 @@ import type { FeeDueRepository } from '@domain/fee/ports/fee-due.repository';
 import { FeeDue } from '@domain/fee/entities/fee-due.entity';
 import { isEligibleForDue, shouldFlipToDue, computeDueDate } from '@domain/fee/rules/fee.rules';
 import { toMonthKeyFromDate } from '@shared/date-utils';
-import { DEFAULT_DUE_DATE_DAY } from '@playconnect/contracts';
+import { DEFAULT_DUE_DATE_DAY, type LateFeeConfig, type LateFeeRepeatInterval } from '@playconnect/contracts';
 import { randomUUID } from 'crypto';
 
 export interface RunMonthlyDuesEngineInput {
@@ -18,6 +18,7 @@ export interface RunMonthlyDuesEngineInput {
 export interface RunMonthlyDuesEngineOutput {
   created: number;
   flippedToDue: number;
+  snapshotted: number;
 }
 
 export class RunMonthlyDuesEngineUseCase {
@@ -32,7 +33,7 @@ export class RunMonthlyDuesEngineUseCase {
   ): Promise<Result<RunMonthlyDuesEngineOutput, AppError>> {
     const academy = await this.academyRepo.findById(input.academyId);
     if (!academy) {
-      return ok({ created: 0, flippedToDue: 0 });
+      return ok({ created: 0, flippedToDue: 0, snapshotted: 0 });
     }
 
     const dueDateDay = academy.defaultDueDateDay ?? DEFAULT_DUE_DATE_DAY;
@@ -91,6 +92,35 @@ export class RunMonthlyDuesEngineUseCase {
       }
     }
 
-    return ok({ created: toCreate.length, flippedToDue });
+    // Phase 3: Snapshot late fee config onto overdue dues that haven't been snapshotted yet
+    let snapshotted = 0;
+    if (academy.lateFeeEnabled && academy.lateFeeAmountInr > 0) {
+      const config: LateFeeConfig = {
+        lateFeeEnabled: academy.lateFeeEnabled,
+        gracePeriodDays: academy.gracePeriodDays,
+        lateFeeAmountInr: academy.lateFeeAmountInr,
+        lateFeeRepeatIntervalDays: academy.lateFeeRepeatIntervalDays as LateFeeRepeatInterval,
+      };
+
+      const todayStr = input.now.toISOString().slice(0, 10);
+      const todayMs = input.now.getTime();
+      const dayMs = 24 * 60 * 60 * 1000;
+
+      const unsnapshotted = await this.feeDueRepo.findDueWithoutSnapshot(input.academyId);
+      const toSnapshot: FeeDue[] = [];
+      for (const due of unsnapshotted) {
+        const dueDateMs = new Date(due.dueDate + 'T00:00:00').getTime();
+        const daysPastDue = Math.floor((todayMs - dueDateMs) / dayMs);
+        if (daysPastDue > config.gracePeriodDays) {
+          toSnapshot.push(due.snapshotLateFeeConfig(config));
+        }
+      }
+      if (toSnapshot.length > 0) {
+        await this.feeDueRepo.bulkSave(toSnapshot);
+        snapshotted = toSnapshot.length;
+      }
+    }
+
+    return ok({ created: toCreate.length, flippedToDue, snapshotted });
   }
 }

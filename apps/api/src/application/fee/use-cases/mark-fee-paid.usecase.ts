@@ -14,8 +14,8 @@ import { generateReceiptNumber } from '@domain/fee/rules/payment-request.rules';
 import { FeeErrors } from '../../common/errors';
 import type { FeeDueDto } from '../dtos/fee-due.dto';
 import { toFeeDueDto } from '../dtos/fee-due.dto';
-import type { UserRole, PaymentLabel } from '@playconnect/contracts';
-import { DEFAULT_RECEIPT_PREFIX } from '@playconnect/contracts';
+import type { UserRole, PaymentLabel, LateFeeConfig, LateFeeRepeatInterval } from '@playconnect/contracts';
+import { DEFAULT_RECEIPT_PREFIX, computeLateFee } from '@playconnect/contracts';
 import { randomUUID } from 'crypto';
 
 export interface MarkFeePaidInput {
@@ -64,7 +64,23 @@ export class MarkFeePaidUseCase {
     const academy = await this.academyRepo.findById(academyId);
     const prefix = academy?.receiptPrefix ?? DEFAULT_RECEIPT_PREFIX;
 
-    const paid = due.markPaid(input.actorUserId, now, input.paymentLabel);
+    // Compute late fee snapshot — prefer snapshotted config, fall back to live academy config
+    const todayStr = now.toISOString().slice(0, 10);
+    let lateFeeApplied = 0;
+    const liveConfig: LateFeeConfig | undefined = academy?.lateFeeEnabled
+      ? {
+          lateFeeEnabled: academy.lateFeeEnabled,
+          gracePeriodDays: academy.gracePeriodDays,
+          lateFeeAmountInr: academy.lateFeeAmountInr,
+          lateFeeRepeatIntervalDays: academy.lateFeeRepeatIntervalDays as LateFeeRepeatInterval,
+        }
+      : undefined;
+    const effectiveConfig = due.lateFeeConfigSnapshot ?? liveConfig;
+    if (effectiveConfig) {
+      lateFeeApplied = computeLateFee(due.dueDate, todayStr, effectiveConfig);
+    }
+
+    const paid = due.markPaid(input.actorUserId, now, input.paymentLabel, lateFeeApplied);
 
     await this.transaction.run(async () => {
       const count = await this.transactionLogRepo.countByAcademyAndPrefix(academyId, prefix);

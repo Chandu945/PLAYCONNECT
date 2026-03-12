@@ -48,6 +48,10 @@ export class SettingsController {
       actorRole: user.role,
       defaultDueDateDay: dto.defaultDueDateDay,
       receiptPrefix: dto.receiptPrefix,
+      lateFeeEnabled: dto.lateFeeEnabled,
+      gracePeriodDays: dto.gracePeriodDays,
+      lateFeeAmountInr: dto.lateFeeAmountInr,
+      lateFeeRepeatIntervalDays: dto.lateFeeRepeatIntervalDays,
     });
 
     return mapResultToResponse(result, req);

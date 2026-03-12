@@ -65,6 +65,9 @@ function makeDeps(overrides: Record<string, unknown> = {}) {
       warn: jest.fn(),
       debug: jest.fn(),
     },
+    auditRecorder: {
+      record: jest.fn().mockResolvedValue(undefined),
+    },
     ...overrides,
   };
 }
@@ -81,6 +84,7 @@ describe('InitiateSubscriptionPaymentUseCase', () => {
       deps.studentCounter as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute('user-1');
@@ -112,6 +116,7 @@ describe('InitiateSubscriptionPaymentUseCase', () => {
       deps.studentCounter as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute('user-1');
@@ -135,6 +140,7 @@ describe('InitiateSubscriptionPaymentUseCase', () => {
       deps.studentCounter as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute('user-1');
@@ -158,6 +164,7 @@ describe('InitiateSubscriptionPaymentUseCase', () => {
       deps.studentCounter as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute('user-1');
@@ -180,6 +187,7 @@ describe('InitiateSubscriptionPaymentUseCase', () => {
       deps.studentCounter as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute('user-1');
@@ -202,6 +210,7 @@ describe('InitiateSubscriptionPaymentUseCase', () => {
       deps.studentCounter as never,
       deps.clock,
       deps.logger as never,
+      deps.auditRecorder as never,
     );
 
     const result = await uc.execute('user-1');

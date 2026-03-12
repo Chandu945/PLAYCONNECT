@@ -40,6 +40,10 @@ export interface AcademyProps {
   deactivatedAt: Date | null;
   defaultDueDateDay: number | null;
   receiptPrefix: string | null;
+  lateFeeEnabled: boolean;
+  gracePeriodDays: number;
+  lateFeeAmountInr: number;
+  lateFeeRepeatIntervalDays: number;
   instituteInfo?: InstituteInfo;
   audit: AuditFields;
   softDelete: SoftDeleteFields;
@@ -64,6 +68,10 @@ export class Academy extends Entity<AcademyProps> {
       deactivatedAt: null,
       defaultDueDateDay: null,
       receiptPrefix: null,
+      lateFeeEnabled: false,
+      gracePeriodDays: 5,
+      lateFeeAmountInr: 0,
+      lateFeeRepeatIntervalDays: 5,
       audit: createAuditFields(),
       softDelete: initSoftDelete(),
     });
@@ -99,6 +107,22 @@ export class Academy extends Entity<AcademyProps> {
 
   get receiptPrefix(): string | null {
     return this.props.receiptPrefix;
+  }
+
+  get lateFeeEnabled(): boolean {
+    return this.props.lateFeeEnabled;
+  }
+
+  get gracePeriodDays(): number {
+    return this.props.gracePeriodDays;
+  }
+
+  get lateFeeAmountInr(): number {
+    return this.props.lateFeeAmountInr;
+  }
+
+  get lateFeeRepeatIntervalDays(): number {
+    return this.props.lateFeeRepeatIntervalDays;
   }
 
   get audit(): AuditFields {
@@ -137,11 +161,22 @@ export class Academy extends Entity<AcademyProps> {
     });
   }
 
-  updateSettings(params: { defaultDueDateDay?: number; receiptPrefix?: string }): Academy {
+  updateSettings(params: {
+    defaultDueDateDay?: number;
+    receiptPrefix?: string;
+    lateFeeEnabled?: boolean;
+    gracePeriodDays?: number;
+    lateFeeAmountInr?: number;
+    lateFeeRepeatIntervalDays?: number;
+  }): Academy {
     return Academy.reconstitute(this.id.toString(), {
       ...this.props,
       defaultDueDateDay: params.defaultDueDateDay ?? this.props.defaultDueDateDay,
       receiptPrefix: params.receiptPrefix ?? this.props.receiptPrefix,
+      lateFeeEnabled: params.lateFeeEnabled ?? this.props.lateFeeEnabled,
+      gracePeriodDays: params.gracePeriodDays ?? this.props.gracePeriodDays,
+      lateFeeAmountInr: params.lateFeeAmountInr ?? this.props.lateFeeAmountInr,
+      lateFeeRepeatIntervalDays: params.lateFeeRepeatIntervalDays ?? this.props.lateFeeRepeatIntervalDays,
       audit: updateAuditFields(this.props.audit),
     });
   }

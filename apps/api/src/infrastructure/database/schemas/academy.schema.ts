@@ -53,6 +53,18 @@ export class AcademyModel {
   @Prop({ type: String, default: null })
   receiptPrefix!: string | null;
 
+  @Prop({ type: Boolean, default: false })
+  lateFeeEnabled!: boolean;
+
+  @Prop({ type: Number, default: 5 })
+  gracePeriodDays!: number;
+
+  @Prop({ type: Number, default: 0 })
+  lateFeeAmountInr!: number;
+
+  @Prop({ type: Number, default: 5 })
+  lateFeeRepeatIntervalDays!: number;
+
   @Prop({ type: Object, default: null })
   instituteInfo!: {
     signatureStampUrl: string | null;

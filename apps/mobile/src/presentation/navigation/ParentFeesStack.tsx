@@ -6,7 +6,7 @@ import { ReceiptScreen } from '../screens/parent/ReceiptScreen';
 
 export type ParentFeesStackParamList = {
   ParentFeesOverview: { studentId: string; fullName: string };
-  FeePayment: { feeDueId: string; monthKey: string; amount: number };
+  FeePayment: { feeDueId: string; monthKey: string; amount: number; lateFee?: number };
   Receipt: { feeDueId: string };
 };
 

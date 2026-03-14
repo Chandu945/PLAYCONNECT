@@ -3,8 +3,8 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ collection: 'events', timestamps: true })
 export class EventModel extends Document {
-  @Prop({ type: Types.ObjectId, required: true, index: true })
-  academyId!: Types.ObjectId;
+  @Prop({ type: String, required: true, index: true })
+  academyId!: string;
 
   @Prop({ required: true })
   title!: string;
@@ -36,14 +36,14 @@ export class EventModel extends Document {
   @Prop({ type: String, default: null })
   targetAudience!: string | null;
 
-  @Prop({ type: [Types.ObjectId], default: [] })
-  batchIds!: Types.ObjectId[];
+  @Prop({ type: [String], default: [] })
+  batchIds!: string[];
 
   @Prop({ required: true })
   status!: string;
 
-  @Prop({ type: Types.ObjectId, required: true })
-  createdBy!: Types.ObjectId;
+  @Prop({ type: String, required: true })
+  createdBy!: string;
 }
 
 export const EventSchema = SchemaFactory.createForClass(EventModel);

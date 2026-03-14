@@ -71,10 +71,9 @@ describe('SubscriptionScreen', () => {
     expect(screen.getByText('28')).toBeTruthy(); // daysRemaining
   });
 
-  it('displays tier card with active student count', () => {
+  it('displays tier info with active student count', () => {
     renderScreen(makeAuth());
-    expect(screen.getByTestId('tier-card')).toBeTruthy();
-    expect(screen.getByTestId('active-student-count')).toBeTruthy();
+    expect(screen.getByText('Active Students')).toBeTruthy();
     expect(screen.getByText('15')).toBeTruthy();
   });
 

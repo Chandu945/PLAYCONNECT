@@ -21,14 +21,12 @@ import {
   removeStudentFromBatch,
   deleteBatch,
 } from '../../../infra/batch/batch-api';
-import { AppCard } from '../../components/ui/AppCard';
-import { SectionHeader } from '../../components/ui/SectionHeader';
+import { Badge } from '../../components/ui/Badge';
 import { SkeletonTile } from '../../components/ui/SkeletonTile';
 import { InlineError } from '../../components/ui/InlineError';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
-import { spacing, fontSizes, fontWeights, radius, listDefaults } from '../../theme';
+import { spacing, fontSizes, fontWeights, radius, shadows, listDefaults } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -113,7 +111,6 @@ export function BatchDetailScreen() {
     setLoading(false);
   }, [fetchStudents]);
 
-  // Reload when screen comes into focus (e.g. after adding students)
   useFocusEffect(
     useCallback(() => {
       loadInitial();
@@ -210,18 +207,25 @@ export function BatchDetailScreen() {
   };
 
   const timeSlotText = batch.startTime && batch.endTime
-    ? `${formatTime12h(batch.startTime)} - ${formatTime12h(batch.endTime)}`
+    ? `${formatTime12h(batch.startTime)} – ${formatTime12h(batch.endTime)}`
     : null;
 
+  /* ── Student row ────────────────────────────────────────────────────── */
   const renderStudentItem = useCallback(
-    ({ item }: { item: StudentListItem }) => (
-      <AppCard style={styles.studentCard}>
+    ({ item, index }: { item: StudentListItem; index: number }) => (
+      <View style={[styles.studentRow, index > 0 && styles.studentRowBorder]}>
+        {/* Avatar circle with initial */}
+        <View style={styles.studentAvatar}>
+          <Text style={styles.studentAvatarText}>{item.fullName.charAt(0).toUpperCase()}</Text>
+        </View>
+
         <View style={styles.studentInfo}>
           <Text style={styles.studentName} numberOfLines={1}>
             {item.fullName}
           </Text>
-          <Text style={styles.studentFee}>{`\u20B9${item.monthlyFee}`}</Text>
+          <Text style={styles.studentFee}>{'\u20B9'}{item.monthlyFee}/mo</Text>
         </View>
+
         <Pressable
           onPress={() => handleRemove(item)}
           disabled={removingId === item.id}
@@ -232,12 +236,12 @@ export function BatchDetailScreen() {
           {removingId === item.id ? (
             <ActivityIndicator size="small" color={colors.danger} />
           ) : (
-            <Text style={styles.removeText}>Remove</Text>
+            <Text style={styles.removeText}>{'\u2715'}</Text>
           )}
         </Pressable>
-      </AppCard>
+      </View>
     ),
-    [handleRemove, removingId],
+    [handleRemove, removingId, colors, styles],
   );
 
   const keyExtractor = useCallback((item: StudentListItem) => item.id, []);
@@ -251,67 +255,97 @@ export function BatchDetailScreen() {
     );
   }, [loadingMore, colors, styles]);
 
+  /* ── Header ─────────────────────────────────────────────────────────── */
   const renderHeader = useCallback(
     () => (
       <View>
         {/* Batch info card */}
-        <AppCard style={styles.infoCard}>
-          {batch.profilePhotoUrl ? (
-            <Image source={{ uri: batch.profilePhotoUrl }} style={styles.batchPhoto} />
-          ) : null}
-          <View style={styles.nameStatusRow}>
-            <Text style={styles.batchName}>{batch.batchName}</Text>
-            {batch.status === 'INACTIVE' && (
-              <View style={styles.inactiveBadge}>
-                <Text style={styles.inactiveBadgeText}>Inactive</Text>
+        <View style={styles.infoCard}>
+          {/* Avatar + name row */}
+          <View style={styles.heroRow}>
+            {batch.profilePhotoUrl ? (
+              <Image source={{ uri: batch.profilePhotoUrl }} style={styles.batchAvatar} />
+            ) : (
+              <View style={[styles.batchAvatar, styles.batchAvatarPlaceholder]}>
+                <Text style={styles.batchAvatarInitial}>
+                  {batch.batchName.charAt(0).toUpperCase()}
+                </Text>
               </View>
             )}
+            <View style={styles.heroInfo}>
+              <View style={styles.nameStatusRow}>
+                <Text style={styles.batchName} numberOfLines={1}>
+                  {batch.batchName}
+                </Text>
+                {batch.status === 'INACTIVE' && <Badge label="Inactive" variant="neutral" />}
+              </View>
+              <Text style={styles.schedule}>{daysText}</Text>
+              {timeSlotText && <Text style={styles.schedule}>{timeSlotText}</Text>}
+            </View>
           </View>
-          <Text style={styles.days}>{daysText}</Text>
-          {timeSlotText && (
-            <Text style={styles.days}>{timeSlotText}</Text>
-          )}
+
+          {/* Detail rows */}
           {batch.maxStudents != null && (
-            <Text style={styles.days}>
-              Capacity: {totalItemsRef.current} / {batch.maxStudents} students
-            </Text>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Capacity</Text>
+              <Text style={styles.detailValue}>
+                {totalItemsRef.current} / {batch.maxStudents}
+              </Text>
+            </View>
           )}
           {batch.notes ? (
-            <Text style={styles.notes}>{batch.notes}</Text>
+            <View style={styles.notesContainer}>
+              <Text style={styles.notesText}>{batch.notes}</Text>
+            </View>
           ) : null}
+
+          {/* Actions */}
           <View style={styles.actionRow}>
-            <Pressable onPress={handleEdit} style={styles.editButton} testID="edit-batch-button">
-              <Text style={styles.editText}>Edit Batch</Text>
+            <Pressable onPress={handleEdit} style={styles.actionButton} testID="edit-batch-button">
+              <Text style={styles.actionButtonText}>Edit</Text>
             </Pressable>
             {isOwner && (
-              <Pressable onPress={handleDelete} style={styles.deleteButton} testID="delete-batch-button">
-                <Text style={styles.deleteText}>Delete</Text>
+              <Pressable
+                onPress={handleDelete}
+                style={[styles.actionButton, styles.actionButtonDanger]}
+                testID="delete-batch-button"
+              >
+                <Text style={styles.actionButtonDangerText}>Delete</Text>
               </Pressable>
             )}
           </View>
-        </AppCard>
+        </View>
 
-        {/* Student count + add button */}
-        <View style={styles.studentHeader}>
-          <Text style={styles.studentCount}>
-            {totalItemsRef.current} {totalItemsRef.current === 1 ? 'student' : 'students'}
+        {/* Students section header */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            Students ({totalItemsRef.current})
           </Text>
-          <Pressable onPress={handleAddStudent} style={styles.addButton} testID="add-student-button">
-            <Text style={styles.addButtonText}>Add Student</Text>
+          <Pressable
+            onPress={handleAddStudent}
+            style={styles.addStudentButton}
+            testID="add-student-button"
+          >
+            <Text style={styles.addStudentText}>+ Add</Text>
           </Pressable>
         </View>
 
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search students..."
-          placeholderTextColor={colors.textDisabled}
-          value={searchText}
-          onChangeText={setSearchText}
-          testID="batch-detail-search-input"
-        />
+        {/* Search */}
+        <View style={styles.searchBox}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search students..."
+            placeholderTextColor={colors.textDisabled}
+            value={searchText}
+            onChangeText={setSearchText}
+            testID="batch-detail-search-input"
+          />
+        </View>
+
+        {/* Student list card wrapper — opened here, closed below */}
       </View>
     ),
-    [batch, daysText, isOwner, handleEdit, handleDelete, handleAddStudent, searchText],
+    [batch, daysText, timeSlotText, isOwner, handleEdit, handleDelete, handleAddStudent, searchText, colors, styles],
   );
 
   return (
@@ -339,12 +373,15 @@ export function BatchDetailScreen() {
           onEndReachedThreshold={0.3}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           testID="batch-students-list"
         />
       )}
     </View>
   );
 }
+
+/* ── Styles ────────────────────────────────────────────────────────────── */
 
 const makeStyles = (colors: Colors) => StyleSheet.create({
   screen: {
@@ -354,132 +391,212 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
   content: {
     padding: spacing.base,
   },
+
+  /* ── Info card ──────────────────────────────────────────────────── */
   infoCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.base,
     marginBottom: spacing.base,
+    ...shadows.sm,
   },
-  batchPhoto: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.full,
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: spacing.md,
-    alignSelf: 'center',
+  },
+  batchAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.lg,
+    marginRight: spacing.md,
+  },
+  batchAvatarPlaceholder: {
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  batchAvatarInitial: {
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold,
+    color: colors.primary,
+  },
+  heroInfo: {
+    flex: 1,
   },
   nameStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    gap: spacing.sm,
+    marginBottom: 2,
   },
   batchName: {
-    fontSize: fontSizes['2xl'],
+    fontSize: fontSizes.xl,
     fontWeight: fontWeights.bold,
     color: colors.text,
-    flex: 1,
+    flexShrink: 1,
   },
-  inactiveBadge: {
-    backgroundColor: colors.textDisabled,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-    marginLeft: spacing.sm,
+  schedule: {
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
-  inactiveBadgeText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colors.white,
+
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
   },
-  days: {
+  detailLabel: {
     fontSize: fontSizes.base,
     color: colors.textSecondary,
-    marginBottom: spacing.xs,
   },
-  notes: {
+  detailValue: {
     fontSize: fontSizes.base,
-    color: colors.textLight,
-    marginTop: spacing.xs,
+    fontWeight: fontWeights.semibold,
+    color: colors.text,
   },
+
+  notesContainer: {
+    backgroundColor: colors.bgSubtle,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  notesText: {
+    fontSize: fontSizes.sm,
+    color: colors.textLight,
+    lineHeight: 20,
+  },
+
+  /* ── Action buttons ─────────────────────────────────────────────── */
   actionRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: spacing.sm,
     marginTop: spacing.md,
-    gap: spacing.base,
   },
-  editButton: {
-    alignSelf: 'flex-start',
+  actionButton: {
+    flex: 1,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    alignItems: 'center',
   },
-  editText: {
+  actionButtonText: {
     fontSize: fontSizes.base,
     fontWeight: fontWeights.semibold,
     color: colors.primary,
   },
-  deleteButton: {
-    alignSelf: 'flex-start',
+  actionButtonDanger: {
+    borderColor: colors.danger,
   },
-  deleteText: {
+  actionButtonDangerText: {
     fontSize: fontSizes.base,
     fontWeight: fontWeights.semibold,
     color: colors.danger,
   },
-  studentHeader: {
+
+  /* ── Section header ─────────────────────────────────────────────── */
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  studentCount: {
+  sectionTitle: {
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.text,
+    fontWeight: fontWeights.bold,
+    color: colors.textDark,
   },
-  addButton: {
+  addStudentButton: {
     backgroundColor: colors.primary,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.base,
-    borderRadius: radius.md,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
   },
-  addButtonText: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
+  addStudentText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
     color: colors.white,
   },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    borderRadius: radius.md,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    fontSize: fontSizes.md,
-    color: colors.text,
+
+  /* ── Search ─────────────────────────────────────────────────────── */
+  searchBox: {
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.xl,
     marginBottom: spacing.md,
+    ...shadows.sm,
   },
-  studentCard: {
+  searchInput: {
+    paddingVertical: 10,
+    paddingHorizontal: spacing.base,
+    fontSize: fontSizes.base,
+    color: colors.text,
+  },
+
+  /* ── Student rows ───────────────────────────────────────────────── */
+  studentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.base,
+  },
+  studentRowBorder: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  studentAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: colors.bgSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  studentAvatarText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: colors.textSecondary,
   },
   studentInfo: {
     flex: 1,
   },
   studentName: {
-    fontSize: fontSizes.md,
+    fontSize: fontSizes.base,
     fontWeight: fontWeights.semibold,
     color: colors.text,
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   studentFee: {
     fontSize: fontSizes.sm,
     color: colors.textSecondary,
   },
   removeButton: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    marginLeft: spacing.md,
+    width: 32,
+    height: 32,
+    borderRadius: radius.full,
+    backgroundColor: colors.dangerBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.sm,
   },
   removeText: {
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
+    fontWeight: fontWeights.bold,
     color: colors.danger,
   },
+
+  /* ── Misc ───────────────────────────────────────────────────────── */
   skeletons: {
     gap: spacing.sm,
   },

@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsIn,
   IsInt,
@@ -25,6 +26,7 @@ export class UpdateBatchDto {
   @ApiPropertyOptional({ example: ['TUE', 'THU', 'SAT'], enum: [...WEEKDAYS], isArray: true })
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(7)
   @IsString({ each: true })
   @IsIn([...WEEKDAYS], { each: true })
   days?: Weekday[];

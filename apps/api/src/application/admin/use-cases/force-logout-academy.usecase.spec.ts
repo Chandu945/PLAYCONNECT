@@ -9,11 +9,13 @@ function buildDeps() {
   const userRepo: jest.Mocked<UserRepository> = {
     save: jest.fn(),
     findById: jest.fn(),
+    findByIds: jest.fn(),
     findByEmail: jest.fn(),
     findByPhone: jest.fn(),
     updateAcademyId: jest.fn(),
     listByAcademyAndRole: jest.fn(),
     incrementTokenVersionByAcademyId: jest.fn(),
+    incrementTokenVersionByUserId: jest.fn(),
     listByAcademyId: jest.fn(),
   };
 

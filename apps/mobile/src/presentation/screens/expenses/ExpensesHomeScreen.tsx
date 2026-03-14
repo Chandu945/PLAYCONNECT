@@ -24,6 +24,7 @@ import { spacing, fontSizes, fontWeights, radius } from '../../theme';
 import type { Colors } from '../../theme';
 import type { ExpenseSummary } from '../../../domain/expense/expense.types';
 import { useTheme } from '../../context/ThemeContext';
+import { getCurrentMonthIST } from '../../../domain/common/date-utils';
 
 type Nav = NativeStackNavigationProp<MoreStackParamList, 'ExpensesHome'>;
 
@@ -55,8 +56,7 @@ function shiftMonth(month: string, delta: number): string {
 }
 
 function currentMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  return getCurrentMonthIST();
 }
 
 function formatCurrency(amount: number): string {

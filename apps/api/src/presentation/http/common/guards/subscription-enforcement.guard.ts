@@ -48,10 +48,21 @@ export class SubscriptionEnforcementGuard implements CanActivate {
 
     const result = await this.getSubscription.execute(user.userId);
 
-    // If we can't resolve subscription (no academy, etc.), allow through
-    // The endpoint itself should handle authorization
+    // Allow through if user hasn't set up academy yet (onboarding flow)
     if (!result.ok) {
-      return true;
+      if (result.error.code === 'ACADEMY_SETUP_REQUIRED') {
+        return true;
+      }
+      this.logger.error('Subscription check failed — denying access', {
+        userId: user.userId,
+        errorCode: result.error.code,
+        path,
+      });
+      throw new ForbiddenException({
+        statusCode: 403,
+        error: 'SubscriptionCheckFailed',
+        message: 'Unable to verify subscription status. Please try again.',
+      });
     }
 
     // Cache on request for later use

@@ -16,6 +16,7 @@ import type { MoreStackParamList } from '../../navigation/MoreStack';
 import type { EnquiryListItem, EnquiryStatus } from '../../../domain/enquiry/enquiry.types';
 import { useEnquiries } from '../../../application/enquiry/use-enquiries';
 import * as enquiryApi from '../../../infra/enquiry/enquiry-api';
+import { getTodayIST } from '../../../domain/common/date-utils';
 import { Screen } from '../../components/ui/Screen';
 import { InlineError } from '../../components/ui/InlineError';
 import { spacing, fontSizes, fontWeights, radius, listDefaults } from '../../theme';
@@ -84,10 +85,7 @@ export function EnquiryListScreen() {
 
   const isOverdue = useCallback((dateStr: string | null): boolean => {
     if (!dateStr) return false;
-    // Compare as YYYY-MM-DD strings to avoid timezone issues
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    return dateStr < today;
+    return dateStr < getTodayIST();
   }, []);
 
   const renderItem = ({ item }: { item: EnquiryListItem }) => (

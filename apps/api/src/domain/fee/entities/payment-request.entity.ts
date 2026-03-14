@@ -136,4 +136,18 @@ export class PaymentRequest extends Entity<PaymentRequestProps> {
       audit: updateAuditFields(this.props.audit),
     });
   }
+
+  /** Allow staff to resubmit a previously rejected request with updated notes/amount */
+  resubmit(notes: string, amount?: number): PaymentRequest {
+    return PaymentRequest.reconstitute(this.id.toString(), {
+      ...this.props,
+      status: 'PENDING',
+      staffNotes: notes,
+      amount: amount ?? this.props.amount,
+      reviewedByUserId: null,
+      reviewedAt: null,
+      rejectionReason: null,
+      audit: updateAuditFields(this.props.audit),
+    });
+  }
 }

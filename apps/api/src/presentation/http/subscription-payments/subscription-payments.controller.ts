@@ -13,7 +13,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { SkipThrottle, Throttle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
+import { Public } from '../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RbacGuard } from '../common/guards/rbac.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -70,7 +71,8 @@ export class SubscriptionPaymentsController {
   }
 
   @Post('cashfree/webhook')
-  @SkipThrottle()
+  @Public()
+  @Throttle({ default: { limit: 1000, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cashfree payment webhook (public, signature-verified)' })
   async webhook(

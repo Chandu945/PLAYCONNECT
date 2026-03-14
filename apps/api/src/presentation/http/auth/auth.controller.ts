@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { Public } from '../common/decorators/public.decorator';
 import { OwnerSignupUseCase } from '@application/identity/use-cases/owner-signup.usecase';
 import { LoginUseCase } from '@application/identity/use-cases/login.usecase';
 import { RefreshUseCase } from '@application/identity/use-cases/refresh.usecase';
@@ -52,6 +53,7 @@ export class AuthController {
   ) {}
 
   @Post('owner/signup')
+  @Public()
   @Throttle({ short: { limit: 5, ttl: 10_000 }, medium: { limit: 10, ttl: 60_000 }, long: { limit: 30, ttl: 900_000 } })
   @ApiOperation({ summary: 'Owner signup (Step 1)' })
   async signup(@Body() dto: OwnerSignupDto, @Req() req: Request) {
@@ -74,6 +76,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 20, ttl: 60_000 }, long: { limit: 100, ttl: 900_000 } })
   @ApiOperation({ summary: 'Login with email or phone' })
@@ -97,6 +100,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 20, ttl: 60_000 }, long: { limit: 60, ttl: 900_000 } })
   @ApiOperation({ summary: 'Refresh access token' })
@@ -147,6 +151,7 @@ export class AuthController {
   }
 
   @Post('password-reset/request')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 5, ttl: 10_000 }, medium: { limit: 10, ttl: 60_000 }, long: { limit: 30, ttl: 900_000 } })
   @ApiOperation({ summary: 'Request password reset OTP' })
@@ -159,6 +164,7 @@ export class AuthController {
   }
 
   @Post('password-reset/confirm')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 5, ttl: 10_000 }, medium: { limit: 15, ttl: 60_000 }, long: { limit: 50, ttl: 900_000 } })
   @ApiOperation({ summary: 'Confirm password reset with OTP' })
@@ -175,6 +181,7 @@ export class AuthController {
   }
 
   @Post('google')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 20, ttl: 60_000 }, long: { limit: 100, ttl: 900_000 } })
   @ApiOperation({ summary: 'Login with Google ID token' })

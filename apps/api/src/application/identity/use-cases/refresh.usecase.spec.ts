@@ -41,11 +41,13 @@ function buildDeps() {
   const userRepo: jest.Mocked<UserRepository> = {
     save: jest.fn(),
     findById: jest.fn(),
+    findByIds: jest.fn(),
     findByEmail: jest.fn(),
     findByPhone: jest.fn(),
     updateAcademyId: jest.fn(),
     listByAcademyAndRole: jest.fn(),
     incrementTokenVersionByAcademyId: jest.fn(),
+    incrementTokenVersionByUserId: jest.fn(),
     listByAcademyId: jest.fn(),
   };
 
@@ -64,8 +66,10 @@ describe('RefreshUseCase', () => {
   it('should rotate refresh token and return new tokens', async () => {
     const { sessionRepo, userRepo, tokenService } = buildDeps();
     sessionRepo.findActiveByDeviceId.mockResolvedValue(createMockSession());
+    sessionRepo.updateRefreshToken.mockResolvedValue(true);
     tokenService.compareRefreshToken.mockReturnValue(true);
     userRepo.findById.mockResolvedValue(createMockUser());
+    userRepo.incrementTokenVersionByUserId.mockResolvedValue(true);
 
     const uc = new RefreshUseCase(sessionRepo, userRepo, tokenService);
     const result = await uc.execute({
@@ -83,7 +87,33 @@ describe('RefreshUseCase', () => {
       'session-1',
       'new-hash',
       expect.any(Date),
+      'stored-hash',
     );
+    expect(userRepo.incrementTokenVersionByUserId).toHaveBeenCalledWith(
+      expect.any(String),
+      0,
+    );
+  });
+
+  it('should fail when tokenVersion CAS fails (race condition)', async () => {
+    const { sessionRepo, userRepo, tokenService } = buildDeps();
+    sessionRepo.findActiveByDeviceId.mockResolvedValue(createMockSession());
+    sessionRepo.updateRefreshToken.mockResolvedValue(true);
+    tokenService.compareRefreshToken.mockReturnValue(true);
+    userRepo.findById.mockResolvedValue(createMockUser());
+    userRepo.incrementTokenVersionByUserId.mockResolvedValue(false);
+
+    const uc = new RefreshUseCase(sessionRepo, userRepo, tokenService);
+    const result = await uc.execute({
+      refreshToken: 'old-refresh',
+      deviceId: 'device-1',
+      userId: 'user-1',
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('UNAUTHORIZED');
+    }
   });
 
   it('should fail with invalid refresh token', async () => {

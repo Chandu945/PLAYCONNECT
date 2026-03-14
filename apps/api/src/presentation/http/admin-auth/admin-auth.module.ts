@@ -12,6 +12,8 @@ import type { PasswordHasher } from '@application/identity/ports/password-hasher
 import { PASSWORD_HASHER } from '@application/identity/ports/password-hasher.port';
 import type { TokenService } from '@application/identity/ports/token-service.port';
 import { TOKEN_SERVICE } from '@application/identity/ports/token-service.port';
+import type { LoginAttemptTracker } from '@application/identity/services/login-attempt-tracker';
+import { LOGIN_ATTEMPT_TRACKER } from '@application/identity/services/login-attempt-tracker';
 import { AppConfigService } from '@shared/config/config.service';
 
 @Module({
@@ -26,8 +28,9 @@ import { AppConfigService } from '@shared/config/config.service';
         hasher: PasswordHasher,
         tokenSvc: TokenService,
         config: AppConfigService,
-      ) => new AdminLoginUseCase(userRepo, sessionRepo, hasher, tokenSvc, config.jwtRefreshTtl),
-      inject: [USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER, TOKEN_SERVICE, AppConfigService],
+        loginTracker: LoginAttemptTracker,
+      ) => new AdminLoginUseCase(userRepo, sessionRepo, hasher, tokenSvc, config.jwtRefreshTtl, loginTracker),
+      inject: [USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER, TOKEN_SERVICE, AppConfigService, LOGIN_ATTEMPT_TRACKER],
     },
     {
       provide: 'ADMIN_REFRESH_USE_CASE',

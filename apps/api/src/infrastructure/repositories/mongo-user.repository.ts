@@ -50,6 +50,12 @@ export class MongoUserRepository implements UserRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
+  async findByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) return [];
+    const docs = await this.model.find({ _id: { $in: ids } }).lean().exec();
+    return docs.map((doc) => this.toDomain(doc as unknown as Record<string, unknown>));
+  }
+
   async findByEmail(emailNormalized: string): Promise<User | null> {
     const doc = await this.model
       .findOne({ emailNormalized: emailNormalized.toLowerCase() })
@@ -89,6 +95,15 @@ export class MongoUserRepository implements UserRepository {
     await this.model.updateMany({ academyId, deletedAt: null }, { $inc: { tokenVersion: 1 } }, { session: getTransactionSession() });
     const docs = await this.model.find({ academyId, deletedAt: null }).select('_id').lean().exec();
     return docs.map((d) => String(d._id));
+  }
+
+  async incrementTokenVersionByUserId(userId: string, expectedVersion: number): Promise<boolean> {
+    const result = await this.model.findOneAndUpdate(
+      { _id: userId, tokenVersion: expectedVersion },
+      { $inc: { tokenVersion: 1 } },
+      { session: getTransactionSession() },
+    );
+    return result != null;
   }
 
   async listByAcademyId(academyId: string): Promise<User[]> {

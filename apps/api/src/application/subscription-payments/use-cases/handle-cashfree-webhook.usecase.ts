@@ -39,6 +39,23 @@ export class HandleCashfreeWebhookUseCase {
       return err(AppError.unauthorized('Invalid webhook signature'));
     }
 
+    // 1b. Replay detection: reject webhooks older than 5 minutes
+    const WEBHOOK_TOLERANCE_SECONDS = 300;
+    const rawTimestamp = Number(headers.timestamp);
+    // Cashfree sends timestamp in milliseconds; normalize to seconds
+    const webhookTimestamp = rawTimestamp > 1e12 ? Math.floor(rawTimestamp / 1000) : rawTimestamp;
+    const nowEpochSeconds = Math.floor(Date.now() / 1000);
+    if (
+      Number.isNaN(webhookTimestamp) ||
+      Math.abs(nowEpochSeconds - webhookTimestamp) > WEBHOOK_TOLERANCE_SECONDS
+    ) {
+      this.logger.error('Webhook timestamp too old or invalid', {
+        webhookTimestamp: headers.timestamp,
+        serverTime: nowEpochSeconds,
+      });
+      return err(AppError.unauthorized('Webhook timestamp is stale or invalid'));
+    }
+
     // 2. Parse JSON AFTER verification
     let payload: WebhookPayload;
     try {
@@ -71,6 +88,17 @@ export class HandleCashfreeWebhookUseCase {
       // Already succeeded — ignore any further events
       this.logger.info('Ignoring webhook for already-succeeded payment', { orderId });
       return ok(undefined);
+    }
+
+    // 5. Amount cross-validation: Cashfree order_amount must match stored amountInr
+    const webhookAmount = payload.data?.order?.order_amount;
+    if (webhookAmount !== undefined && webhookAmount !== payment.amountInr) {
+      this.logger.error('Webhook amount mismatch', {
+        orderId,
+        webhookAmount,
+        storedAmount: payment.amountInr,
+      });
+      return err(AppError.validation('Payment amount mismatch between provider and stored record'));
     }
 
     const now = this.clock.now();

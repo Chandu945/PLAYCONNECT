@@ -51,8 +51,8 @@ describe('RBAC — Staff Attendance Endpoints (e2e)', () => {
     process.env['NODE_ENV'] = 'test';
     process.env['PORT'] = '3001';
     process.env['TZ'] = 'Asia/Kolkata';
-    process.env['JWT_ACCESS_SECRET'] = 'test-access-secret';
-    process.env['JWT_REFRESH_SECRET'] = 'test-refresh-secret';
+    process.env['JWT_ACCESS_SECRET'] = 'test-access-secret-that-is-at-least-32-characters-long';
+    process.env['JWT_REFRESH_SECRET'] = 'test-refresh-secret-that-is-at-least-32-characters-long';
     process.env['BCRYPT_COST'] = '4';
 
     userRepo = new InMemoryUserRepository();
@@ -85,15 +85,15 @@ describe('RBAC — Staff Attendance Endpoints (e2e)', () => {
         },
         {
           provide: 'MARK_STAFF_ATTENDANCE_USE_CASE',
-          useFactory: (ur: UserRepository, sar: StaffAttendanceRepository, hr: HolidayRepository) =>
-            new MarkStaffAttendanceUseCase(ur, sar, hr, noOpAuditRecorder),
-          inject: deps,
+          useFactory: (ur: UserRepository, sar: StaffAttendanceRepository) =>
+            new MarkStaffAttendanceUseCase(ur, sar, noOpAuditRecorder),
+          inject: [USER_REPOSITORY, STAFF_ATTENDANCE_REPOSITORY],
         },
         {
           provide: 'GET_DAILY_STAFF_ATTENDANCE_REPORT_USE_CASE',
-          useFactory: (ur: UserRepository, sar: StaffAttendanceRepository, hr: HolidayRepository) =>
-            new GetDailyStaffAttendanceReportUseCase(ur, sar, hr),
-          inject: deps,
+          useFactory: (ur: UserRepository, sar: StaffAttendanceRepository) =>
+            new GetDailyStaffAttendanceReportUseCase(ur, sar),
+          inject: [USER_REPOSITORY, STAFF_ATTENDANCE_REPOSITORY],
         },
         {
           provide: 'GET_MONTHLY_STAFF_ATTENDANCE_SUMMARY_USE_CASE',
@@ -125,7 +125,7 @@ describe('RBAC — Staff Attendance Endpoints (e2e)', () => {
   function makeToken(sub: string, role: string) {
     return jwtService.sign(
       { sub, role, email: `${sub}@test.com`, tokenVersion: 0 },
-      { secret: 'test-access-secret', expiresIn: 900 },
+      { secret: 'test-access-secret-that-is-at-least-32-characters-long', expiresIn: 900 },
     );
   }
 

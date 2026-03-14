@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-import { apiPost } from '@/infra/http/api-client';
+import { apiPut } from '@/infra/http/api-client';
 import { resolveAccessToken, handleBackend401 } from '@/infra/auth/bff-auth';
 import { isOriginValid } from '@/infra/auth/csrf';
 
@@ -27,8 +27,8 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const result = await apiPost(
-    `/api/v1/admin/academies/${encodeURIComponent(academyId)}/subscription/manual`,
+  const result = await apiPut(
+    `/api/v1/admin/academies/${encodeURIComponent(academyId)}/subscription`,
     body,
     { accessToken },
   );

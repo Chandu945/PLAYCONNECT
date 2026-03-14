@@ -1,5 +1,6 @@
 import type { UserRole } from '@playconnect/contracts';
 import { isValidLocalDate, isValidMonthKey } from '../value-objects/local-date.vo';
+import { formatLocalDate } from '@shared/date-utils';
 
 export function canMarkAttendance(role: UserRole): { allowed: boolean; reason?: string } {
   if (role !== 'OWNER' && role !== 'STAFF') {
@@ -45,13 +46,9 @@ export function validateAttendanceStatus(status: string): { valid: boolean; reas
 
 export function validateDateRange(value: string): { valid: boolean; reason?: string } {
   // Ensure date is not in the future and not more than 30 days in the past (IST)
+  // Use formatLocalDate to ensure IST-aware date comparison (TZ=Asia/Kolkata)
   const now = new Date();
-  const todayStr =
-    String(now.getFullYear()) +
-    '-' +
-    String(now.getMonth() + 1).padStart(2, '0') +
-    '-' +
-    String(now.getDate()).padStart(2, '0');
+  const todayStr = formatLocalDate(now);
 
   if (value > todayStr) {
     return { valid: false, reason: 'Date cannot be in the future' };
@@ -59,12 +56,7 @@ export function validateDateRange(value: string): { valid: boolean; reason?: str
 
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const thirtyDaysAgoStr =
-    String(thirtyDaysAgo.getFullYear()) +
-    '-' +
-    String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0') +
-    '-' +
-    String(thirtyDaysAgo.getDate()).padStart(2, '0');
+  const thirtyDaysAgoStr = formatLocalDate(thirtyDaysAgo);
 
   if (value < thirtyDaysAgoStr) {
     return { valid: false, reason: 'Date cannot be more than 30 days in the past' };

@@ -34,16 +34,14 @@ import { spacing, fontSizes, fontWeights, radius } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { animateLayout } from '../../utils/layout-animation';
+import { getCurrentMonthIST } from '../../../domain/common/date-utils';
 
 type Nav = NativeStackNavigationProp<StudentsStackParamList, 'StudentsList'>;
 
 const studentsApi = { listStudents };
 
 function getCurrentMonth(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
+  return getCurrentMonthIST();
 }
 
 const STATUS_OPTIONS: { label: string; value: StudentStatus | undefined }[] = [

@@ -26,9 +26,13 @@ export function useStudents(
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
   const mountedRef = useRef(true);
+  // Monotonic counter to discard stale responses from superseded filter changes
+  const requestIdRef = useRef(0);
 
   const load = useCallback(
     async (targetPage: number, append: boolean) => {
+      const requestId = ++requestIdRef.current;
+
       if (append) {
         setLoadingMore(true);
       } else {
@@ -40,13 +44,15 @@ export function useStudents(
       try {
         result = await listStudentsUseCase({ studentApi }, filters, targetPage, PAGE_SIZE);
       } catch (e) {
+        if (!mountedRef.current || requestId !== requestIdRef.current) return;
         setError({ code: 'UNKNOWN', message: String(e) });
         setLoading(false);
         setLoadingMore(false);
         return;
       }
 
-      if (!mountedRef.current) return;
+      // Discard stale response if filters changed while request was in flight
+      if (!mountedRef.current || requestId !== requestIdRef.current) return;
 
       if (result.ok) {
         if (append) {

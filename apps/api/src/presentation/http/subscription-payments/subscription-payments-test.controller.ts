@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   ForbiddenException,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
@@ -16,14 +17,20 @@ import {
 } from '@domain/subscription-payments/ports/cashfree-gateway.port';
 import { LOGGER_PORT, type LoggerPort } from '@shared/logging/logger.port';
 import { AppConfigService } from '@shared/config/config.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RbacGuard } from '../common/guards/rbac.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 import { randomUUID } from 'node:crypto';
 
 /**
  * Test endpoints for Cashfree payment testing in development/sandbox mode.
  * These endpoints are NEVER available in production.
+ * Protected by SUPER_ADMIN guard as defense-in-depth.
  */
 @ApiTags('Subscription Payments – Test')
 @Controller('subscription-payments/test')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@Roles('SUPER_ADMIN')
 @SkipThrottle()
 export class SubscriptionPaymentsTestController {
   constructor(

@@ -47,8 +47,8 @@ describe('Auth Failure Paths (e2e)', () => {
     process.env['NODE_ENV'] = 'test';
     process.env['PORT'] = '3001';
     process.env['TZ'] = 'Asia/Kolkata';
-    process.env['JWT_ACCESS_SECRET'] = 'test-access-secret';
-    process.env['JWT_REFRESH_SECRET'] = 'test-refresh-secret';
+    process.env['JWT_ACCESS_SECRET'] = 'test-access-secret-that-is-at-least-32-characters-long';
+    process.env['JWT_REFRESH_SECRET'] = 'test-refresh-secret-that-is-at-least-32-characters-long';
     process.env['BCRYPT_COST'] = '4';
 
     userRepo = new InMemoryUserRepository();
@@ -278,7 +278,7 @@ describe('Auth Failure Paths (e2e)', () => {
     it('should return 401 for expired token', async () => {
       const expiredToken = jwtService.sign(
         { sub: 'user-1', role: 'OWNER', email: 'x@test.com', tokenVersion: 0 },
-        { secret: 'test-access-secret', expiresIn: -10 },
+        { secret: 'test-access-secret-that-is-at-least-32-characters-long', expiresIn: -10 },
       );
 
       await request(app.getHttpServer())

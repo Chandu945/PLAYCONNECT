@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsIn,
   IsNumber,
+  Min,
   IsDateString,
   Matches,
   MinLength,
@@ -33,6 +34,7 @@ export class StaffSalaryConfigDto {
   @ApiPropertyOptional({ example: 25000 })
   @IsOptional()
   @IsNumber()
+  @Min(0)
   amount?: number | null;
 
   @ApiPropertyOptional({ example: 'MONTHLY', enum: ['MONTHLY', 'WEEKLY', 'DAILY'] })

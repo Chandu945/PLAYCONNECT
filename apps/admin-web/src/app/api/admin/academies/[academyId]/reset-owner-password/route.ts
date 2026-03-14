@@ -32,7 +32,7 @@ export async function POST(
   }
 
   const result = await apiPost<BackendResetResult>(
-    `/api/v1/admin/academies/${encodeURIComponent(academyId)}/reset-owner-password`,
+    `/api/v1/admin/academies/${encodeURIComponent(academyId)}/reset-password`,
     body,
     { accessToken },
   );

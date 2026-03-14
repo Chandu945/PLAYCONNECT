@@ -39,6 +39,10 @@ export class InMemoryUserRepository implements UserRepository {
     return this.users.get(id) ?? null;
   }
 
+  async findByIds(ids: string[]): Promise<User[]> {
+    return ids.map((id) => this.users.get(id)).filter((u): u is User => u != null);
+  }
+
   async findByEmail(emailNormalized: string): Promise<User | null> {
     for (const user of this.users.values()) {
       if (user.emailNormalized === emailNormalized.toLowerCase()) {
@@ -99,6 +103,18 @@ export class InMemoryUserRepository implements UserRepository {
       }
     }
     return ids;
+  }
+
+  async incrementTokenVersionByUserId(userId: string, expectedVersion: number): Promise<boolean> {
+    const user = this.users.get(userId);
+    if (!user || user.tokenVersion !== expectedVersion) return false;
+    const { User: UserClass } = await import('../../src/domain/identity/entities/user.entity');
+    const updated = UserClass.reconstitute(userId, {
+      ...user['props'],
+      tokenVersion: user.tokenVersion + 1,
+    });
+    this.users.set(userId, updated);
+    return true;
   }
 
   async listByAcademyId(academyId: string): Promise<User[]> {

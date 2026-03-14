@@ -90,10 +90,12 @@ export function ParentDashboardScreen() {
   const { children, payments } = data;
 
   const avgAttendance = children.length > 0
-    ? Math.round(
-        children.reduce((sum, c) => sum + (c.currentMonthAttendancePercent ?? 0), 0) /
-        children.filter((c) => c.currentMonthAttendancePercent != null).length || 0,
-      )
+    ? (() => {
+        const withAttendance = children.filter((c) => c.currentMonthAttendancePercent != null);
+        if (withAttendance.length === 0) return null;
+        const total = withAttendance.reduce((sum, c) => sum + (c.currentMonthAttendancePercent ?? 0), 0);
+        return Math.round(total / withAttendance.length);
+      })()
     : null;
 
   const totalMonthlyFee = children.reduce((sum, c) => sum + c.monthlyFee, 0);

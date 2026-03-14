@@ -17,12 +17,14 @@ describe('CreatePaymentRequestUseCase', () => {
   beforeEach(() => {
     userRepo = {
       findById: jest.fn(),
+      findByIds: jest.fn(),
       findByEmail: jest.fn(),
       findByPhone: jest.fn(),
       save: jest.fn(),
       updateAcademyId: jest.fn(),
       listByAcademyAndRole: jest.fn(),
       incrementTokenVersionByAcademyId: jest.fn(),
+      incrementTokenVersionByUserId: jest.fn(),
       listByAcademyId: jest.fn(),
     } as jest.Mocked<UserRepository>;
 

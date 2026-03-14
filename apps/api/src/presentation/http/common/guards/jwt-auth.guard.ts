@@ -54,7 +54,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Token revoked');
     }
 
-    if ((user.role === 'STAFF' || user.role === 'PARENT') && !user.isActive()) {
+    if (!user.isActive()) {
       throw new ForbiddenException('User account is inactive');
     }
 

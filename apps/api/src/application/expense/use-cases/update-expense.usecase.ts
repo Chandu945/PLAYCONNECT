@@ -2,6 +2,7 @@ import type { Result } from '@shared/kernel';
 import { ok, err, isDeleted } from '@shared/kernel';
 import type { AppError } from '@shared/kernel';
 import type { UserRole } from '@playconnect/contracts';
+import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { ExpenseRepository } from '@domain/expense/ports/expense.repository';
 import type { ExpenseCategoryRepository } from '@domain/expense/ports/expense-category.repository';
 import { canManageExpenses } from '@domain/expense/rules/expense.rules';
@@ -29,6 +30,7 @@ export interface UpdateExpenseOutput {
 
 export class UpdateExpenseUseCase {
   constructor(
+    private readonly userRepo: UserRepository,
     private readonly expenseRepo: ExpenseRepository,
     private readonly categoryRepo: ExpenseCategoryRepository,
     private readonly auditRecorder: AuditRecorderPort,
@@ -48,9 +50,16 @@ export class UpdateExpenseUseCase {
       if (input.date > todayIST) return err(ExpenseErrors.invalidDate());
     }
 
+    const user = await this.userRepo.findById(input.actorUserId);
+    if (!user || !user.academyId) return err(ExpenseErrors.academyRequired());
+
     const expense = await this.expenseRepo.findById(input.expenseId);
     if (!expense || isDeleted(expense.softDelete)) {
       return err(ExpenseErrors.notFound(input.expenseId));
+    }
+
+    if (expense.academyId !== user.academyId) {
+      return err(ExpenseErrors.notInAcademy());
     }
 
     let categoryId = expense.categoryId;

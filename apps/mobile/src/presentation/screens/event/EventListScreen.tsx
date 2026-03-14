@@ -21,12 +21,12 @@ import { Button } from '../../components/ui/Button';
 import { spacing, fontSizes, fontWeights, radius, listDefaults } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+import { getCurrentMonthIST } from '../../../domain/common/date-utils';
 
 type Nav = NativeStackNavigationProp<MoreStackParamList, 'EventList'>;
 
 function getCurrentMonth(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return getCurrentMonthIST();
 }
 
 const STATUS_FILTERS: { label: string; value: EventStatus | undefined }[] = [

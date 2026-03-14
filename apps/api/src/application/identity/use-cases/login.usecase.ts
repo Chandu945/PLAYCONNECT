@@ -7,9 +7,13 @@ import { Session } from '@domain/identity/entities/session.entity';
 import type { SessionRepository } from '@domain/identity/ports/session.repository';
 import type { PasswordHasher } from '../ports/password-hasher.port';
 import type { TokenService } from '../ports/token-service.port';
+import type { LoginAttemptTracker } from '../services/login-attempt-tracker';
 import { canLogin } from '@domain/identity/rules/auth.rules';
 import { AuthErrors } from '../../common/errors';
 import { randomUUID } from 'crypto';
+
+/** Pre-hashed bcrypt dummy — used to equalize timing when user is not found */
+const DUMMY_HASH = '$2b$12$KIX/LMmvTPRYOfx2n2PGauzE7xl8TZsI/2lDh.gPnJRFFWk4RYiGW';
 
 export interface LoginInput {
   identifier: string;
@@ -39,20 +43,30 @@ export class LoginUseCase {
     private readonly passwordHasher: PasswordHasher,
     private readonly tokenService: TokenService,
     private readonly refreshTtlSeconds: number = 2_592_000,
+    private readonly loginAttemptTracker?: LoginAttemptTracker,
   ) {}
 
   async execute(input: LoginInput): Promise<Result<LoginOutput, AppError>> {
     const identifier = input.identifier.trim();
+    const identifierLower = identifier.toLowerCase();
+
+    // Check account lockout before any other processing
+    if (this.loginAttemptTracker?.isLocked(identifierLower)) {
+      return err(AuthErrors.accountLocked());
+    }
+
     let user: User | null = null;
 
     // Try email first, then phone
     if (identifier.includes('@')) {
-      user = await this.userRepo.findByEmail(identifier.toLowerCase());
+      user = await this.userRepo.findByEmail(identifierLower);
     } else {
       user = await this.userRepo.findByPhone(identifier);
     }
 
     if (!user) {
+      await this.passwordHasher.compare(input.password, DUMMY_HASH);
+      this.loginAttemptTracker?.recordFailure(identifierLower);
       return err(AuthErrors.invalidCredentials());
     }
 
@@ -63,6 +77,7 @@ export class LoginUseCase {
 
     const passwordValid = await this.passwordHasher.compare(input.password, user.passwordHash);
     if (!passwordValid) {
+      this.loginAttemptTracker?.recordFailure(identifierLower);
       return err(AuthErrors.invalidCredentials());
     }
 
@@ -84,6 +99,9 @@ export class LoginUseCase {
     });
 
     await this.sessionRepo.save(session);
+
+    // Reset attempt counter on successful login
+    this.loginAttemptTracker?.recordSuccess(identifierLower);
 
     const accessToken = this.tokenService.generateAccessToken({
       sub: user.id.toString(),

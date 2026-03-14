@@ -4,6 +4,10 @@ import { Subscription } from '@domain/subscription/entities/subscription.entity'
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+function freshTimestamp(): string {
+  return String(Math.floor(Date.now() / 1000));
+}
+
 function makePendingPayment(orderId = 'pc_sub_20260315_abc') {
   return SubscriptionPayment.create({
     id: 'pay-1',
@@ -84,7 +88,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
 
     const result = await uc.execute(
       makeWebhookPayload('order-1', 'SUCCESS'),
-      { signature: 'bad', timestamp: '123' },
+      { signature: 'bad', timestamp: freshTimestamp() },
     );
 
     expect(result.ok).toBe(false);
@@ -105,7 +109,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
 
     const result = await uc.execute(
       makeWebhookPayload('pc_sub_20260315_abc', 'SUCCESS'),
-      { signature: 'valid', timestamp: '123' },
+      { signature: 'valid', timestamp: freshTimestamp() },
     );
 
     expect(result.ok).toBe(true);
@@ -143,7 +147,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
 
     const result = await uc.execute(
       makeWebhookPayload('pc_sub_20260315_abc', 'SUCCESS'),
-      { signature: 'valid', timestamp: '123' },
+      { signature: 'valid', timestamp: freshTimestamp() },
     );
 
     expect(result.ok).toBe(true);
@@ -166,7 +170,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
 
     const result = await uc.execute(
       makeWebhookPayload('pc_sub_20260315_abc', 'FAILED'),
-      { signature: 'valid', timestamp: '123' },
+      { signature: 'valid', timestamp: freshTimestamp() },
     );
 
     expect(result.ok).toBe(true);
@@ -191,7 +195,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
 
     const result = await uc.execute(
       makeWebhookPayload('pc_sub_20260315_abc', 'USER_DROPPED'),
-      { signature: 'valid', timestamp: '123' },
+      { signature: 'valid', timestamp: freshTimestamp() },
     );
 
     expect(result.ok).toBe(true);
@@ -218,10 +222,62 @@ describe('HandleCashfreeWebhookUseCase', () => {
 
     const result = await uc.execute(
       makeWebhookPayload('unknown-order', 'SUCCESS'),
-      { signature: 'valid', timestamp: '123' },
+      { signature: 'valid', timestamp: freshTimestamp() },
     );
 
     expect(result.ok).toBe(true);
+    expect(deps.paymentRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects stale webhook timestamp (replay detection)', async () => {
+    const deps = makeDeps();
+    const uc = new HandleCashfreeWebhookUseCase(
+      deps.paymentRepo as never,
+      deps.subscriptionRepo as never,
+      deps.signatureVerifier as never,
+      deps.clock,
+      deps.logger as never,
+      deps.auditRecorder as never,
+      deps.transaction as never,
+    );
+
+    const staleTimestamp = String(Math.floor(Date.now() / 1000) - 600); // 10 minutes ago
+    const result = await uc.execute(
+      makeWebhookPayload('pc_sub_20260315_abc', 'SUCCESS'),
+      { signature: 'valid', timestamp: staleTimestamp },
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('UNAUTHORIZED');
+  });
+
+  it('rejects webhook with amount mismatch', async () => {
+    const deps = makeDeps();
+    const uc = new HandleCashfreeWebhookUseCase(
+      deps.paymentRepo as never,
+      deps.subscriptionRepo as never,
+      deps.signatureVerifier as never,
+      deps.clock,
+      deps.logger as never,
+      deps.auditRecorder as never,
+      deps.transaction as never,
+    );
+
+    // Payment has amountInr=299, webhook sends order_amount=500
+    const mismatchPayload = Buffer.from(JSON.stringify({
+      data: {
+        order: { order_id: 'pc_sub_20260315_abc', order_amount: 500 },
+        payment: { payment_status: 'SUCCESS', cf_payment_id: '12345' },
+      },
+    }));
+
+    const result = await uc.execute(
+      mismatchPayload,
+      { signature: 'valid', timestamp: freshTimestamp() },
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('VALIDATION_ERROR');
     expect(deps.paymentRepo.save).not.toHaveBeenCalled();
   });
 
@@ -245,7 +301,7 @@ describe('HandleCashfreeWebhookUseCase', () => {
 
     const result = await uc.execute(
       makeWebhookPayload('pc_sub_20260315_abc', 'FAILED'),
-      { signature: 'valid', timestamp: '123' },
+      { signature: 'valid', timestamp: freshTimestamp() },
     );
 
     expect(result.ok).toBe(true);

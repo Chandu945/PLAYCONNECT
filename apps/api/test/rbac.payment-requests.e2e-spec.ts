@@ -63,8 +63,8 @@ describe('Payment Requests RBAC (e2e)', () => {
     process.env['NODE_ENV'] = 'test';
     process.env['PORT'] = '3001';
     process.env['TZ'] = 'Asia/Kolkata';
-    process.env['JWT_ACCESS_SECRET'] = 'test-access-secret';
-    process.env['JWT_REFRESH_SECRET'] = 'test-refresh-secret';
+    process.env['JWT_ACCESS_SECRET'] = 'test-access-secret-that-is-at-least-32-characters-long';
+    process.env['JWT_REFRESH_SECRET'] = 'test-refresh-secret-that-is-at-least-32-characters-long';
     process.env['BCRYPT_COST'] = '4';
 
     userRepo = new InMemoryUserRepository();
@@ -249,7 +249,7 @@ describe('Payment Requests RBAC (e2e)', () => {
       seedUser('owner-1', 'OWNER', 'owner@test.com');
       const token = jwtService.sign(
         { sub: 'owner-1', role: 'OWNER', email: 'owner@test.com', tokenVersion: 0 },
-        { secret: 'test-access-secret', expiresIn: 900 },
+        { secret: 'test-access-secret-that-is-at-least-32-characters-long', expiresIn: 900 },
       );
       await request(app.getHttpServer())
         .post('/api/v1/fees/payment-requests')
@@ -262,7 +262,7 @@ describe('Payment Requests RBAC (e2e)', () => {
       seedUser('staff-1', 'STAFF', 'staff@test.com');
       const token = jwtService.sign(
         { sub: 'staff-1', role: 'STAFF', email: 'staff@test.com', tokenVersion: 0 },
-        { secret: 'test-access-secret', expiresIn: 900 },
+        { secret: 'test-access-secret-that-is-at-least-32-characters-long', expiresIn: 900 },
       );
       await request(app.getHttpServer())
         .put('/api/v1/fees/payment-requests/some-id/approve')
@@ -274,7 +274,7 @@ describe('Payment Requests RBAC (e2e)', () => {
       seedUser('staff-1', 'STAFF', 'staff@test.com');
       const token = jwtService.sign(
         { sub: 'staff-1', role: 'STAFF', email: 'staff@test.com', tokenVersion: 0 },
-        { secret: 'test-access-secret', expiresIn: 900 },
+        { secret: 'test-access-secret-that-is-at-least-32-characters-long', expiresIn: 900 },
       );
       await request(app.getHttpServer())
         .put('/api/v1/fees/payment-requests/some-id/reject')
@@ -287,7 +287,7 @@ describe('Payment Requests RBAC (e2e)', () => {
       seedUser('staff-1', 'STAFF', 'staff@test.com');
       const token = jwtService.sign(
         { sub: 'staff-1', role: 'STAFF', email: 'staff@test.com', tokenVersion: 0 },
-        { secret: 'test-access-secret', expiresIn: 900 },
+        { secret: 'test-access-secret-that-is-at-least-32-characters-long', expiresIn: 900 },
       );
       await request(app.getHttpServer())
         .get('/api/v1/fees/payment-requests/transactions')
@@ -299,7 +299,7 @@ describe('Payment Requests RBAC (e2e)', () => {
       seedUser('owner-1', 'OWNER', 'owner@test.com');
       const token = jwtService.sign(
         { sub: 'owner-1', role: 'OWNER', email: 'owner@test.com', tokenVersion: 0 },
-        { secret: 'test-access-secret', expiresIn: 900 },
+        { secret: 'test-access-secret-that-is-at-least-32-characters-long', expiresIn: 900 },
       );
       await request(app.getHttpServer())
         .put('/api/v1/fees/payment-requests/some-id/cancel')

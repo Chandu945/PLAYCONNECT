@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsIn,
   IsDateString,
+  ArrayMaxSize,
   IsArray,
   MaxLength,
   MinLength,
@@ -62,6 +63,7 @@ export class CreateEventDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(50)
   @IsString({ each: true })
   batchIds?: string[];
 }

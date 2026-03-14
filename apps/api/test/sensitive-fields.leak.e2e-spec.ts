@@ -76,8 +76,8 @@ describe('Sensitive Field Leak Prevention (e2e)', () => {
     process.env['NODE_ENV'] = 'test';
     process.env['PORT'] = '3001';
     process.env['TZ'] = 'Asia/Kolkata';
-    process.env['JWT_ACCESS_SECRET'] = 'test-access-secret';
-    process.env['JWT_REFRESH_SECRET'] = 'test-refresh-secret';
+    process.env['JWT_ACCESS_SECRET'] = 'test-access-secret-that-is-at-least-32-characters-long';
+    process.env['JWT_REFRESH_SECRET'] = 'test-refresh-secret-that-is-at-least-32-characters-long';
     process.env['BCRYPT_COST'] = '4';
 
     userRepo = new InMemoryUserRepository();
@@ -200,7 +200,7 @@ describe('Sensitive Field Leak Prevention (e2e)', () => {
   function makeToken(sub: string, role: string, email: string) {
     return jwtService.sign(
       { sub, role, email, tokenVersion: 0 },
-      { secret: 'test-access-secret', expiresIn: 900 },
+      { secret: 'test-access-secret-that-is-at-least-32-characters-long', expiresIn: 900 },
     );
   }
 

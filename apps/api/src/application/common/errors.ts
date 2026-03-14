@@ -120,6 +120,8 @@ export const AuthErrors = {
   invalidRefreshToken: () => AppError.unauthorized('Invalid or expired refresh token'),
   academyAlreadyExists: () => AppError.conflict('Academy already exists for this owner'),
   notOwner: () => AppError.forbidden('Only owners can perform this action'),
+  accountLocked: () =>
+    AppError.forbidden('Too many failed login attempts. Please try again after 15 minutes.'),
 } as const;
 
 export const PasswordResetErrors = {

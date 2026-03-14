@@ -107,6 +107,8 @@ async function request<T>(
       if (newToken) {
         return request<T>(method, path, body, true);
       }
+      // Clear stale access token to prevent infinite 401 loops
+      _accessToken = null;
       _onAuthFailure?.();
       return err({ code: 'UNAUTHORIZED', message: 'Session expired' });
     }

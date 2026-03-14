@@ -1,7 +1,8 @@
-import { IsArray, IsString } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsString } from 'class-validator';
 
 export class SetStudentBatchesDto {
   @IsArray()
+  @ArrayMaxSize(50)
   @IsString({ each: true })
   batchIds!: string[];
 }

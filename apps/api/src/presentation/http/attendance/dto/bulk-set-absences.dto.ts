@@ -1,4 +1,4 @@
-import { ArrayUnique, IsArray, IsString } from 'class-validator';
+import { ArrayMaxSize, ArrayUnique, IsArray, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class BulkSetAbsencesDto {
@@ -7,6 +7,7 @@ export class BulkSetAbsencesDto {
     description: 'List of absent student IDs. Empty array = all present.',
   })
   @IsArray()
+  @ArrayMaxSize(500)
   @IsString({ each: true })
   @ArrayUnique()
   absentStudentIds!: string[];

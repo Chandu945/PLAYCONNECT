@@ -13,13 +13,12 @@ import type { BatchesStackParamList } from '../../navigation/BatchesStack';
 import type { BatchListItem } from '../../../domain/batch/batch.types';
 import { useBatches } from '../../../application/batch/use-batches';
 import { listBatches } from '../../../infra/batch/batch-api';
-import { SectionHeader } from '../../components/ui/SectionHeader';
 import { SkeletonTile } from '../../components/ui/SkeletonTile';
 import { InlineError } from '../../components/ui/InlineError';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Button } from '../../components/ui/Button';
 import { BatchRow } from '../../components/batches/BatchRow';
-import { spacing, fontSizes, radius, listDefaults } from '../../theme';
+import { spacing, fontSizes, fontWeights, radius, listDefaults, shadows } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -99,16 +98,18 @@ export function BatchesListScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
-        <SectionHeader title="Batches" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search batches..."
-          placeholderTextColor={colors.textDisabled}
-          value={searchText}
-          onChangeText={setSearchText}
-          testID="batches-search-input"
-        />
+      {/* Search */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBox}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search batches..."
+            placeholderTextColor={colors.textDisabled}
+            value={searchText}
+            onChangeText={setSearchText}
+            testID="batches-search-input"
+          />
+        </View>
       </View>
 
       {error && <InlineError message={error.message} onRetry={refetch} />}
@@ -131,12 +132,13 @@ export function BatchesListScreen() {
           ListFooterComponent={renderFooter}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           testID="batches-list"
         />
       )}
 
       <View style={styles.addButtonContainer}>
-        <Button title="Add Batch" onPress={handleAdd} testID="add-batch-button" />
+        <Button title="+ Add Batch" onPress={handleAdd} testID="add-batch-button" />
       </View>
     </View>
   );
@@ -147,20 +149,23 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
-  header: {
-    padding: spacing.base,
-    paddingBottom: 0,
+  searchContainer: {
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  searchBox: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.xl,
+    ...shadows.sm,
   },
   searchInput: {
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    borderRadius: radius.md,
     paddingVertical: 10,
-    paddingHorizontal: 14,
-    fontSize: fontSizes.md,
+    paddingHorizontal: spacing.base,
+    fontSize: fontSizes.base,
     color: colors.text,
-    backgroundColor: colors.surface,
-    marginBottom: spacing.md,
   },
   skeletons: {
     padding: spacing.base,
@@ -178,5 +183,6 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     bottom: spacing.base,
     left: spacing.base,
     right: spacing.base,
+    ...shadows.md,
   },
 });

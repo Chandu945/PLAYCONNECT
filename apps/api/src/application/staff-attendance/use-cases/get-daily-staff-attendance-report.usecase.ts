@@ -4,7 +4,6 @@ import type { AppError } from '@shared/kernel';
 import { AppError as AppErrorClass } from '@shared/kernel';
 import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { StaffAttendanceRepository } from '@domain/staff-attendance/ports/staff-attendance.repository';
-import type { HolidayRepository } from '@domain/attendance/ports/holiday.repository';
 import { canViewStaffAttendance } from '@domain/staff-attendance/rules/staff-attendance.rules';
 import { validateLocalDate } from '@domain/attendance/rules/attendance.rules';
 import { StaffAttendanceErrors } from '../../common/errors';
@@ -21,7 +20,6 @@ export class GetDailyStaffAttendanceReportUseCase {
   constructor(
     private readonly userRepo: UserRepository,
     private readonly staffAttendanceRepo: StaffAttendanceRepository,
-    private readonly holidayRepo: HolidayRepository,
   ) {}
 
   async execute(
@@ -42,18 +40,7 @@ export class GetDailyStaffAttendanceReportUseCase {
       return err(StaffAttendanceErrors.academyRequired());
     }
 
-    const holiday = await this.holidayRepo.findByAcademyAndDate(actor.academyId, input.date);
-    const isHoliday = holiday !== null;
-
-    if (isHoliday) {
-      return ok({
-        date: input.date,
-        isHoliday: true,
-        presentCount: 0,
-        absentCount: 0,
-        absentStaff: [],
-      });
-    }
+    // Staff attendance is required even on holidays — no holiday short-circuit
 
     // Get total ACTIVE staff count
     const { total: totalActive } = await this.userRepo.listByAcademyAndRole(
@@ -69,17 +56,16 @@ export class GetDailyStaffAttendanceReportUseCase {
       input.date,
     );
 
-    // Resolve absent staff names
-    const absentStaff: { staffUserId: string; fullName: string }[] = [];
-    for (const record of absentRecords) {
-      const user = await this.userRepo.findById(record.staffUserId);
-      if (user) {
-        absentStaff.push({
-          staffUserId: user.id.toString(),
-          fullName: user.fullName,
-        });
-      }
-    }
+    // Batch-resolve absent staff names (avoids N+1 queries)
+    const absentStaffIds = absentRecords.map((r) => r.staffUserId);
+    const absentUsers = await this.userRepo.findByIds(absentStaffIds);
+    const userMap = new Map(absentUsers.map((u) => [u.id.toString(), u]));
+    const absentStaff = absentRecords
+      .map((record) => {
+        const user = userMap.get(record.staffUserId);
+        return user ? { staffUserId: user.id.toString(), fullName: user.fullName } : null;
+      })
+      .filter((entry): entry is { staffUserId: string; fullName: string } => entry !== null);
 
     return ok({
       date: input.date,

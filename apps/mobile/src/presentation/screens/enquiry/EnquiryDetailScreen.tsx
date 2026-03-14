@@ -17,6 +17,7 @@ import type { RouteProp } from '@react-navigation/native';
 import type { MoreStackParamList } from '../../navigation/MoreStack';
 import type { EnquiryDetail, ClosureReason } from '../../../domain/enquiry/enquiry.types';
 import * as enquiryApi from '../../../infra/enquiry/enquiry-api';
+import { getTodayIST } from '../../../domain/common/date-utils';
 import { enquiryDetailSchema } from '../../../domain/enquiry/enquiry.schemas';
 import { useAuth } from '../../context/AuthContext';
 import { Screen } from '../../components/ui/Screen';
@@ -76,9 +77,7 @@ export function EnquiryDetailScreen() {
 
   const isOverdue = (() => {
     if (!enquiry?.nextFollowUpDate) return false;
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    return enquiry.nextFollowUpDate < today;
+    return enquiry.nextFollowUpDate < getTodayIST();
   })();
 
   if (loading || !enquiry) {

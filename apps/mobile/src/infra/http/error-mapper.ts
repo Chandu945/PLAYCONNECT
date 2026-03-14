@@ -20,8 +20,8 @@ const SAFE_MESSAGES: Record<AppErrorCode, string> = {
   NOT_FOUND: 'The requested resource was not found.',
   CONFLICT: 'This action conflicts with the current state.',
   RATE_LIMITED: 'Too many requests. Please wait a moment and try again.',
-  NETWORK: 'Unable to connect. Please check your internet.',
-  UNKNOWN: 'Something went wrong. Please try again later.',
+  NETWORK: 'Unable to connect. Please check your internet connection and try again.',
+  UNKNOWN: 'Something unexpected happened. Please try again or contact support if the issue persists.',
 };
 
 /** Codes where we trust the server-provided message for display. */

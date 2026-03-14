@@ -6,10 +6,12 @@ import type { Request, Response } from 'express';
 import type { MetricsPort } from '@application/common/ports/metrics.port';
 import { METRICS_PORT } from '@application/common/ports/metrics.port';
 import { AppConfigService } from '@shared/config/config.service';
+import { Public } from '../common/decorators/public.decorator';
 
 @ApiTags('Metrics')
 @Controller('metrics')
 @SkipThrottle()
+@Public()
 export class MetricsController {
   constructor(
     @Inject(METRICS_PORT) private readonly metrics: MetricsPort,
@@ -26,12 +28,15 @@ export class MetricsController {
     }
 
     const metricsToken = this.config.metricsToken;
-    if (metricsToken) {
-      const provided = req.headers['x-metrics-token'] as string | undefined;
-      if (!provided || !this.safeCompare(provided, metricsToken)) {
-        res.status(HttpStatus.FORBIDDEN).json({ message: 'Invalid metrics token' });
-        return;
-      }
+    if (!metricsToken) {
+      res.status(HttpStatus.FORBIDDEN).json({ message: 'Metrics token not configured' });
+      return;
+    }
+
+    const provided = req.headers['x-metrics-token'] as string | undefined;
+    if (!provided || !this.safeCompare(provided, metricsToken)) {
+      res.status(HttpStatus.FORBIDDEN).json({ message: 'Invalid metrics token' });
+      return;
     }
 
     res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');

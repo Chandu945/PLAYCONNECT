@@ -12,7 +12,7 @@ import type {
   PendingTierChange,
   TierKey,
 } from '../../../domain/subscription/subscription.types';
-import { spacing, fontSizes, fontWeights, radius } from '../../theme';
+import { spacing, fontSizes, fontWeights, radius, shadows } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -72,24 +72,67 @@ function formatDate(iso: string): string {
   });
 }
 
-function TierRow({ tier, isCurrent }: { tier: TierPricing; isCurrent: boolean }) {
+/* ── Row helpers ──────────────────────────────────────────────────────────── */
+
+function InfoRow({
+  label,
+  value,
+  isLast,
+  colors,
+}: {
+  label: string;
+  value: React.ReactNode;
+  isLast?: boolean;
+  colors: Colors;
+}) {
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  return (
+    <View style={[styles.infoRow, !isLast && styles.infoRowBorder]}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      {typeof value === 'string' ? <Text style={styles.infoValue}>{value}</Text> : value}
+    </View>
+  );
+}
+
+/* ── Tier row ─────────────────────────────────────────────────────────────── */
+
+function TierRow({
+  tier,
+  isCurrent,
+  isRequired,
+  isLast,
+}: {
+  tier: TierPricing;
+  isCurrent: boolean;
+  isRequired: boolean;
+  isLast: boolean;
+}) {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View
-      style={[styles.tierRow, isCurrent && styles.tierRowActive]}
+      style={[
+        styles.tierRow,
+        !isLast && styles.tierRowBorder,
+        isRequired && !isCurrent && styles.tierRowHighlight,
+      ]}
       testID={`tier-row-${tier.tierKey}`}
     >
-      <View style={styles.tierInfo}>
-        <Text style={styles.tierRange}>
-          {tier.min}\u2013{tier.max ?? '\u221E'} students
+      <View style={styles.tierLeft}>
+        <Text style={[styles.tierRange, isRequired && !isCurrent && styles.tierRangeHighlight]}>
+          {tier.min}{'\u2013'}{tier.max ?? '\u221E'} students
         </Text>
         {isCurrent ? <Badge label="Current" variant="info" /> : null}
+        {isRequired && !isCurrent ? <Badge label="Required" variant="warning" /> : null}
       </View>
-      <Text style={styles.tierPrice}>\u20B9{tier.priceInr}/mo</Text>
+      <Text style={[styles.tierPrice, isRequired && !isCurrent && styles.tierPriceHighlight]}>
+        {'\u20B9'}{tier.priceInr}/mo
+      </Text>
     </View>
   );
 }
+
+/* ── Upgrade banner ──────────────────────────────────────────────────────── */
 
 function UpgradeBanner({
   pendingChange,
@@ -108,10 +151,11 @@ function UpgradeBanner({
     <View style={styles.upgradeBanner} testID="upgrade-banner">
       <Text style={styles.upgradeBannerTitle}>Tier Change Required</Text>
       <Text style={styles.upgradeBannerText}>
-        Your active student count requires the {tierLabel(requiredTierKey)} tier.
+        Your active student count requires the{' '}
+        <Text style={styles.upgradeBannerBold}>{tierLabel(requiredTierKey)}</Text> tier.
       </Text>
       {pendingChange ? (
-        <Text style={styles.upgradeBannerText}>
+        <Text style={[styles.upgradeBannerText, { marginTop: spacing.xs }]}>
           Change to {tierLabel(pendingChange.tierKey)} effective{' '}
           {formatDate(pendingChange.effectiveAt)}.
         </Text>
@@ -119,6 +163,8 @@ function UpgradeBanner({
     </View>
   );
 }
+
+/* ── Main screen ─────────────────────────────────────────────────────────── */
 
 export function SubscriptionScreen() {
   const { colors } = useTheme();
@@ -146,106 +192,105 @@ export function SubscriptionScreen() {
 
   const isBlocked = !subscription.canAccessApp;
 
-  const header = (
-    <View>
-      {/* Status Card */}
-      <View style={styles.statusCard} testID="status-card">
-        <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Status</Text>
-          <Badge
-            label={statusLabel(subscription.status)}
-            variant={statusVariant(subscription.status)}
-            testID="status-badge"
-          />
-        </View>
-
-        <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Days Remaining</Text>
-          <Text style={styles.statusValue}>{subscription.daysRemaining}</Text>
-        </View>
-
-        {subscription.trialEndAt ? (
-          <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Trial Ends</Text>
-            <Text style={styles.statusValue}>{formatDate(subscription.trialEndAt)}</Text>
-          </View>
-        ) : null}
-
-        {subscription.paidEndAt ? (
-          <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Paid Until</Text>
-            <Text style={styles.statusValue}>{formatDate(subscription.paidEndAt)}</Text>
-          </View>
-        ) : null}
-
-        {subscription.blockReason ? (
-          <Text style={styles.blockReason}>{subscription.blockReason}</Text>
-        ) : null}
-      </View>
-
-      {/* Tier Info */}
-      <View style={styles.tierCard} testID="tier-card">
-        <Text style={styles.cardTitle}>Tier Info</Text>
-        <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Active Students</Text>
-          <Text style={styles.statusValue} testID="active-student-count">
-            {subscription.activeStudentCount}
-          </Text>
-        </View>
-        <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Current Tier</Text>
-          <Text style={styles.statusValue}>{tierLabel(subscription.currentTierKey)}</Text>
-        </View>
-        <View style={styles.statusRow}>
-          <Text style={styles.statusLabel}>Required Tier</Text>
-          <Text style={styles.statusValue}>{tierLabel(subscription.requiredTierKey)}</Text>
-        </View>
-      </View>
-
-      {/* Upgrade Banner */}
-      <UpgradeBanner
-        pendingChange={subscription.pendingTierChange}
-        requiredTierKey={subscription.requiredTierKey}
-        currentTierKey={subscription.currentTierKey}
-      />
-
-      {/* Payment Status Banner */}
-      <PaymentStatusBanner status={paymentFlow.status} error={paymentFlow.error} />
-
-      {/* Pay CTA — show for Owner when not ACTIVE_PAID and not DISABLED */}
-      {user?.role === 'OWNER' &&
-        subscription.status !== 'ACTIVE_PAID' &&
-        subscription.status !== 'DISABLED' && (
-          <PayWithCashfreeButton
-            status={paymentFlow.status}
-            tierLabel={tierLabel(subscription.requiredTierKey)}
-            amountInr={
-              subscription.tiers.find((t) => t.tierKey === subscription.requiredTierKey)
-                ?.priceInr ?? 299
-            }
-            onPress={paymentFlow.startPayment}
-            onRetry={paymentFlow.reset}
-          />
-        )}
-
-      {/* Pricing Table Header */}
-      <Text style={styles.cardTitle}>Pricing</Text>
-    </View>
-  );
-
   return (
     <Screen scroll={false}>
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
-        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        {header}
-        {subscription.tiers.map((tier) => (
-          <TierRow key={tier.tierKey} tier={tier} isCurrent={tier.tierKey === subscription.currentTierKey} />
-        ))}
-        <View style={styles.footer}>
+        {/* ── Status card ─────────────────────────────────────────────── */}
+        <View style={styles.card} testID="status-card">
+          <Text style={styles.sectionTitle}>Subscription</Text>
+
+          <InfoRow
+            label="Status"
+            value={
+              <Badge
+                label={statusLabel(subscription.status)}
+                variant={statusVariant(subscription.status)}
+                testID="status-badge"
+              />
+            }
+            colors={colors}
+          />
+          <InfoRow label="Days Remaining" value={String(subscription.daysRemaining)} colors={colors} />
+
+          {subscription.trialEndAt ? (
+            <InfoRow label="Trial Ends" value={formatDate(subscription.trialEndAt)} colors={colors} />
+          ) : null}
+
+          {subscription.paidEndAt ? (
+            <InfoRow label="Paid Until" value={formatDate(subscription.paidEndAt)} colors={colors} />
+          ) : null}
+
+          <InfoRow label="Active Students" value={String(subscription.activeStudentCount)} colors={colors} />
+          <InfoRow label="Current Tier" value={tierLabel(subscription.currentTierKey)} colors={colors} />
+          <InfoRow
+            label="Required Tier"
+            value={tierLabel(subscription.requiredTierKey)}
+            isLast
+            colors={colors}
+          />
+
+          {subscription.blockReason ? (
+            <View style={styles.blockReasonBox}>
+              <Text style={styles.blockReasonText}>{subscription.blockReason}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* ── Upgrade banner ──────────────────────────────────────────── */}
+        <UpgradeBanner
+          pendingChange={subscription.pendingTierChange}
+          requiredTierKey={subscription.requiredTierKey}
+          currentTierKey={subscription.currentTierKey}
+        />
+
+        {/* ── Payment banner / CTA ────────────────────────────────────── */}
+        <PaymentStatusBanner status={paymentFlow.status} error={paymentFlow.error} />
+
+        {user?.role === 'OWNER' &&
+          subscription.status !== 'ACTIVE_PAID' &&
+          subscription.status !== 'DISABLED' && (
+            <PayWithCashfreeButton
+              status={paymentFlow.status}
+              tierLabel={tierLabel(subscription.requiredTierKey)}
+              amountInr={
+                subscription.tiers.find((t) => t.tierKey === subscription.requiredTierKey)
+                  ?.priceInr ?? 299
+              }
+              onPress={paymentFlow.startPayment}
+              onRetry={paymentFlow.reset}
+            />
+          )}
+
+        {/* ── Pricing table ───────────────────────────────────────────── */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Pricing Plans</Text>
+          {subscription.tiers.map((tier, index) => (
+            <TierRow
+              key={tier.tierKey}
+              tier={tier}
+              isCurrent={tier.tierKey === subscription.currentTierKey}
+              isRequired={tier.tierKey === subscription.requiredTierKey}
+              isLast={index === subscription.tiers.length - 1}
+            />
+          ))}
+        </View>
+
+        {/* ── Actions ─────────────────────────────────────────────────── */}
+        <View style={styles.actions}>
           <Button
             title="Refresh Status"
+            variant="secondary"
             onPress={handleRefresh}
             loading={refreshing}
             testID="subscription-refresh"
@@ -267,122 +312,146 @@ export function SubscriptionScreen() {
   );
 }
 
-const makeStyles = (colors: Colors) => StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: fontSizes.md,
-    color: colors.textSecondary,
-  },
-  listContent: {
-    padding: spacing.base,
-  },
-  statusCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.base,
-    marginBottom: spacing.base,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  tierCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.base,
-    marginBottom: spacing.base,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
-    color: colors.textDark,
-    marginBottom: spacing.md,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-  },
-  statusLabel: {
-    fontSize: fontSizes.base,
-    color: colors.textSecondary,
-  },
-  statusValue: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
-    color: colors.text,
-  },
-  blockReason: {
-    fontSize: fontSizes.sm,
-    color: colors.dangerText,
-    backgroundColor: colors.dangerBg,
-    padding: spacing.sm,
-    borderRadius: radius.md,
-    marginTop: spacing.sm,
-    textAlign: 'center',
-  },
-  upgradeBanner: {
-    backgroundColor: colors.warningLightBg,
-    borderRadius: radius.lg,
-    padding: spacing.base,
-    marginBottom: spacing.base,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.warningAccent,
-  },
-  upgradeBannerTitle: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.bold,
-    color: colors.warningText,
-    marginBottom: spacing.xs,
-  },
-  upgradeBannerText: {
-    fontSize: fontSizes.sm,
-    color: colors.warningText,
-    lineHeight: 20,
-  },
-  tierRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.bgSubtle,
-  },
-  tierRowActive: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.md,
-  },
-  tierInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  tierRange: {
-    fontSize: fontSizes.base,
-    color: colors.text,
-  },
-  tierPrice: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.bold,
-    color: colors.text,
-  },
-  footer: {
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.base,
-  },
-  spacer: {
-    height: spacing.md,
-  },
-});
+/* ── Styles ────────────────────────────────────────────────────────────── */
+
+const makeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      fontSize: fontSizes.md,
+      color: colors.textSecondary,
+    },
+    content: {
+      padding: spacing.base,
+      paddingBottom: spacing.xl,
+    },
+
+    /* ── Cards ────────────────────────────────────────────────────── */
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.xl,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: spacing.base,
+      marginBottom: spacing.base,
+      ...shadows.sm,
+    },
+    sectionTitle: {
+      fontSize: fontSizes.lg,
+      fontWeight: fontWeights.bold,
+      color: colors.textDark,
+      marginBottom: spacing.md,
+    },
+
+    /* ── Info rows ────────────────────────────────────────────────── */
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.sm + 2,
+    },
+    infoRowBorder: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    infoLabel: {
+      fontSize: fontSizes.base,
+      color: colors.textSecondary,
+    },
+    infoValue: {
+      fontSize: fontSizes.base,
+      fontWeight: fontWeights.semibold,
+      color: colors.text,
+    },
+
+    /* ── Block reason ─────────────────────────────────────────────── */
+    blockReasonBox: {
+      backgroundColor: colors.dangerBg,
+      borderRadius: radius.md,
+      padding: spacing.sm,
+      marginTop: spacing.md,
+    },
+    blockReasonText: {
+      fontSize: fontSizes.sm,
+      color: colors.dangerText,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+
+    /* ── Upgrade banner ───────────────────────────────────────────── */
+    upgradeBanner: {
+      backgroundColor: colors.warningBg,
+      borderRadius: radius.xl,
+      borderWidth: 1,
+      borderColor: colors.warningBorder,
+      padding: spacing.base,
+      marginBottom: spacing.base,
+    },
+    upgradeBannerTitle: {
+      fontSize: fontSizes.base,
+      fontWeight: fontWeights.bold,
+      color: colors.warningText,
+      marginBottom: spacing.xs,
+    },
+    upgradeBannerText: {
+      fontSize: fontSizes.sm,
+      color: colors.warningText,
+      lineHeight: 20,
+    },
+    upgradeBannerBold: {
+      fontWeight: fontWeights.bold,
+    },
+
+    /* ── Tier rows ────────────────────────────────────────────────── */
+    tierRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.xs,
+    },
+    tierRowBorder: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    tierRowHighlight: {
+      backgroundColor: colors.primarySoft,
+      borderRadius: radius.md,
+      marginHorizontal: -spacing.xs,
+      paddingHorizontal: spacing.sm,
+    },
+    tierLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    tierRange: {
+      fontSize: fontSizes.base,
+      color: colors.text,
+    },
+    tierRangeHighlight: {
+      fontWeight: fontWeights.semibold,
+      color: colors.textDark,
+    },
+    tierPrice: {
+      fontSize: fontSizes.base,
+      fontWeight: fontWeights.bold,
+      color: colors.text,
+    },
+    tierPriceHighlight: {
+      color: colors.primary,
+    },
+
+    /* ── Footer actions ───────────────────────────────────────────── */
+    actions: {
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.base,
+    },
+    spacer: {
+      height: spacing.md,
+    },
+  });

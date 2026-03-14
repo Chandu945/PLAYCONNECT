@@ -21,17 +21,17 @@ import { spacing, fontSizes, fontWeights, radius, shadows } from '../../theme';
 import type { Colors } from '../../theme';
 import { formatMonthKey, formatMonthShort, formatCurrency } from '../../utils/format';
 import { useTheme } from '../../context/ThemeContext';
+import { getCurrentMonthIST, nowIST } from '../../../domain/common/date-utils';
 
 type Route = RouteProp<ParentHomeStackParamList, 'ChildDetail'>;
 type Nav = NativeStackNavigationProp<ParentHomeStackParamList, 'ChildDetail'>;
 
 function getCurrentMonth(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return getCurrentMonthIST();
 }
 
 function getMonthRange(): { from: string; to: string } {
-  const d = new Date();
+  const d = nowIST();
   const y = d.getFullYear();
   const m = d.getMonth() + 1;
   const fromMonth = m - 5;
@@ -352,7 +352,7 @@ export function ChildDetailScreen() {
             )}
             {fee.status === 'DUE' && fee.lateFee === 0 && (() => {
               const dueDateMs = new Date(fee.dueDate + 'T00:00:00').getTime();
-              const todayMs = new Date().setHours(0, 0, 0, 0);
+              const todayMs = nowIST().setHours(0, 0, 0, 0);
               const dayMs = 24 * 60 * 60 * 1000;
               const daysPastDue = Math.floor((todayMs - dueDateMs) / dayMs);
               return daysPastDue > 0 ? (

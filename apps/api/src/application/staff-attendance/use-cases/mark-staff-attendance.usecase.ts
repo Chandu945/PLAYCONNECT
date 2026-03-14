@@ -5,7 +5,6 @@ import { AppError as AppErrorClass } from '@shared/kernel';
 import { StaffAttendance } from '@domain/staff-attendance/entities/staff-attendance.entity';
 import type { StaffAttendanceRepository } from '@domain/staff-attendance/ports/staff-attendance.repository';
 import type { UserRepository } from '@domain/identity/ports/user.repository';
-import type { HolidayRepository } from '@domain/attendance/ports/holiday.repository';
 import { canMarkStaffAttendance } from '@domain/staff-attendance/rules/staff-attendance.rules';
 import {
   validateLocalDate,
@@ -35,7 +34,6 @@ export class MarkStaffAttendanceUseCase {
   constructor(
     private readonly userRepo: UserRepository,
     private readonly staffAttendanceRepo: StaffAttendanceRepository,
-    private readonly holidayRepo: HolidayRepository,
     private readonly auditRecorder: AuditRecorderPort,
   ) {}
 
@@ -80,11 +78,8 @@ export class MarkStaffAttendanceUseCase {
       return err(StaffAttendanceErrors.staffNotActive());
     }
 
-    // Holiday check — staff shares the same holiday calendar as students
-    const holiday = await this.holidayRepo.findByAcademyAndDate(actor.academyId, input.date);
-    if (holiday) {
-      return err(StaffAttendanceErrors.holidayDeclared());
-    }
+    // Staff attendance is required even on holidays — no holiday check
+    // (unlike student attendance which blocks on holidays)
 
     if (input.status === 'ABSENT') {
       // Check if an absent record already exists to avoid overwriting audit data

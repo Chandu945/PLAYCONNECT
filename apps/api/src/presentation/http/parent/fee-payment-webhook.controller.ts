@@ -10,7 +10,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
+import { Public } from '../common/decorators/public.decorator';
 import type { HandleFeePaymentWebhookUseCase } from '@application/parent/use-cases/handle-fee-payment-webhook.usecase';
 import type { Request } from 'express';
 
@@ -23,7 +24,8 @@ export class FeePaymentWebhookController {
   ) {}
 
   @Post('cashfree/webhook')
-  @SkipThrottle()
+  @Public()
+  @Throttle({ default: { limit: 1000, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cashfree fee payment webhook (public, signature-verified)' })
   async webhook(

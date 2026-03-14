@@ -6,9 +6,13 @@ import { Session } from '@domain/identity/entities/session.entity';
 import type { SessionRepository } from '@domain/identity/ports/session.repository';
 import type { PasswordHasher } from '../../identity/ports/password-hasher.port';
 import type { TokenService } from '../../identity/ports/token-service.port';
+import type { LoginAttemptTracker } from '../../identity/services/login-attempt-tracker';
 import { AuthErrors } from '../../common/errors';
 import { AdminErrors } from '../../common/errors';
 import { randomUUID } from 'crypto';
+
+/** Pre-hashed bcrypt dummy — used to equalize timing when user is not found */
+const DUMMY_HASH = '$2b$12$KIX/LMmvTPRYOfx2n2PGauzE7xl8TZsI/2lDh.gPnJRFFWk4RYiGW';
 
 export interface AdminLoginInput {
   email: string;
@@ -35,12 +39,21 @@ export class AdminLoginUseCase {
     private readonly passwordHasher: PasswordHasher,
     private readonly tokenService: TokenService,
     private readonly refreshTtlSeconds: number = 2_592_000,
+    private readonly loginAttemptTracker?: LoginAttemptTracker,
   ) {}
 
   async execute(input: AdminLoginInput): Promise<Result<AdminLoginOutput, AppError>> {
-    const user = await this.userRepo.findByEmail(input.email.trim().toLowerCase());
+    const emailLower = input.email.trim().toLowerCase();
+
+    if (this.loginAttemptTracker?.isLocked(emailLower)) {
+      return err(AuthErrors.accountLocked());
+    }
+
+    const user = await this.userRepo.findByEmail(emailLower);
 
     if (!user) {
+      await this.passwordHasher.compare(input.password, DUMMY_HASH);
+      this.loginAttemptTracker?.recordFailure(emailLower);
       return err(AuthErrors.invalidCredentials());
     }
 
@@ -54,8 +67,11 @@ export class AdminLoginUseCase {
 
     const passwordValid = await this.passwordHasher.compare(input.password, user.passwordHash);
     if (!passwordValid) {
+      this.loginAttemptTracker?.recordFailure(emailLower);
       return err(AuthErrors.invalidCredentials());
     }
+
+    this.loginAttemptTracker?.recordSuccess(emailLower);
 
     const deviceId = input.deviceId || randomUUID();
 

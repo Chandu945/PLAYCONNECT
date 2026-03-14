@@ -21,7 +21,7 @@ import { saveExpenseUseCase } from '../../../application/expense/use-cases/save-
 import { deleteExpenseUseCase } from '../../../application/expense/use-cases/delete-expense.usecase';
 import * as expenseApi from '../../../infra/expense/expense-api';
 import { Screen } from '../../components/ui/Screen';
-import { isValidDate } from '../../../domain/common/date-utils';
+import { isValidDate, getTodayIST } from '../../../domain/common/date-utils';
 import { spacing, fontSizes, fontWeights, radius } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -30,11 +30,7 @@ type Nav = NativeStackNavigationProp<MoreStackParamList, 'ExpenseForm'>;
 type Route = RouteProp<MoreStackParamList, 'ExpenseForm'>;
 
 function todayString(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  return getTodayIST();
 }
 
 export function ExpenseFormScreen() {

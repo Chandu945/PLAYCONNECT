@@ -15,8 +15,8 @@ type SessionPayload = {
 };
 
 function getDerivedKey(): Buffer {
-  const { COOKIE_SECRET } = serverEnv();
-  return scryptSync(COOKIE_SECRET, 'playconnect-salt', 32);
+  const { COOKIE_SECRET, COOKIE_SALT } = serverEnv();
+  return scryptSync(COOKIE_SECRET, COOKIE_SALT, 32);
 }
 
 function encrypt(plaintext: string): string {

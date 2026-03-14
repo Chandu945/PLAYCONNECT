@@ -21,7 +21,7 @@ export async function POST(
   }
 
   const result = await apiPost(
-    `/api/v1/admin/academies/${encodeURIComponent(academyId)}/subscription/deactivate`,
+    `/api/v1/admin/academies/${encodeURIComponent(academyId)}/deactivate`,
     {},
     { accessToken },
   );

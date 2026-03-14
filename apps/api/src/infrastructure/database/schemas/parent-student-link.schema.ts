@@ -30,3 +30,4 @@ export const ParentStudentLinkSchema = SchemaFactory.createForClass(ParentStuden
 ParentStudentLinkSchema.index({ parentUserId: 1, studentId: 1 }, { unique: true });
 ParentStudentLinkSchema.index({ parentUserId: 1 });
 ParentStudentLinkSchema.index({ studentId: 1 });
+ParentStudentLinkSchema.index({ academyId: 1 });

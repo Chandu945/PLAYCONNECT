@@ -53,8 +53,8 @@ describe('Inactive Staff Request-Time Block (e2e)', () => {
     process.env['NODE_ENV'] = 'test';
     process.env['PORT'] = '3001';
     process.env['TZ'] = 'Asia/Kolkata';
-    process.env['JWT_ACCESS_SECRET'] = 'test-access-secret';
-    process.env['JWT_REFRESH_SECRET'] = 'test-refresh-secret';
+    process.env['JWT_ACCESS_SECRET'] = 'test-access-secret-that-is-at-least-32-characters-long';
+    process.env['JWT_REFRESH_SECRET'] = 'test-refresh-secret-that-is-at-least-32-characters-long';
     process.env['BCRYPT_COST'] = '4';
 
     userRepo = new InMemoryUserRepository();
@@ -200,7 +200,7 @@ describe('Inactive Staff Request-Time Block (e2e)', () => {
 
     const ownerToken = jwtService.sign(
       { sub: ownerId, role: 'OWNER', email: 'owner@example.com', tokenVersion: 0 },
-      { secret: 'test-access-secret', expiresIn: 900 },
+      { secret: 'test-access-secret-that-is-at-least-32-characters-long', expiresIn: 900 },
     );
 
     // 3. Owner creates staff
@@ -257,7 +257,7 @@ describe('Inactive Staff Request-Time Block (e2e)', () => {
         email: 'staff@example.com',
         tokenVersion: staffUser!.tokenVersion,
       },
-      { secret: 'test-access-secret', expiresIn: 900 },
+      { secret: 'test-access-secret-that-is-at-least-32-characters-long', expiresIn: 900 },
     );
 
     const inactiveRes = await request(app.getHttpServer())
@@ -290,7 +290,7 @@ describe('Inactive Staff Request-Time Block (e2e)', () => {
 
     const ownerToken = jwtService.sign(
       { sub: ownerId, role: 'OWNER', email: 'owner@example.com', tokenVersion: 0 },
-      { secret: 'test-access-secret', expiresIn: 900 },
+      { secret: 'test-access-secret-that-is-at-least-32-characters-long', expiresIn: 900 },
     );
 
     // 2. Create and deactivate staff

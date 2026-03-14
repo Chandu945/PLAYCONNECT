@@ -4,10 +4,12 @@ import { SkipThrottle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { MongoDbHealthIndicator } from '../../../infrastructure/database/mongodb.health';
 import { getRequestId } from '../../../shared/logging/request-id.interceptor';
+import { Public } from '../common/decorators/public.decorator';
 
 @ApiTags('Health')
 @Controller('health')
 @SkipThrottle()
+@Public()
 export class HealthController {
   constructor(private readonly mongoHealth: MongoDbHealthIndicator) {}
 

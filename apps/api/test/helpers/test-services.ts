@@ -7,8 +7,8 @@ import type {
   AccessTokenPayload,
 } from '../../src/application/identity/ports/token-service.port';
 
-const TEST_ACCESS_SECRET = 'test-access-secret';
-const TEST_REFRESH_SECRET = 'test-refresh-secret';
+const TEST_ACCESS_SECRET = 'test-access-secret-that-is-at-least-32-characters-long';
+const TEST_REFRESH_SECRET = 'test-refresh-secret-that-is-at-least-32-characters-long';
 
 export function createTestPasswordHasher(): PasswordHasher {
   return {

@@ -48,6 +48,13 @@ export interface StudentDto {
   updatedAt: Date;
 }
 
+function maskAadhaar(value: string | null): string | null {
+  if (!value) return null;
+  const digits = value.replace(/\D/g, '');
+  if (digits.length < 4) return 'XXXX XXXX XXXX';
+  return `XXXX XXXX ${digits.slice(-4)}`;
+}
+
 export function toStudentDto(student: Student): StudentDto {
   return {
     id: student.id.toString(),
@@ -74,7 +81,7 @@ export function toStudentDto(student: Student): StudentDto {
     profilePhotoUrl: student.profilePhotoUrl,
     fatherName: student.fatherName,
     motherName: student.motherName,
-    aadhaarNumber: student.aadhaarNumber,
+    aadhaarNumber: maskAadhaar(student.aadhaarNumber),
     caste: student.caste,
     whatsappNumber: student.whatsappNumber,
     addressText: student.addressText,
@@ -112,7 +119,7 @@ export function toStudentDtoFromRow(row: StudentListRow): StudentDto {
     profilePhotoUrl: row.profilePhotoUrl,
     fatherName: row.fatherName,
     motherName: row.motherName,
-    aadhaarNumber: row.aadhaarNumber,
+    aadhaarNumber: maskAadhaar(row.aadhaarNumber),
     caste: row.caste,
     whatsappNumber: row.whatsappNumber,
     addressText: row.addressText,

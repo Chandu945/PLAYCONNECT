@@ -70,7 +70,7 @@ export function DashboardScreen() {
       ) : data ? (
         <View testID="kpi-container">
           {/* ── Students Overview ─────────────────────────── */}
-          <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => navigation.navigate('Students')}>
+          <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => navigation.navigate('Students')} accessibilityLabel="Students overview. Tap to view students" accessibilityRole="button">
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderIcon}>
                 {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}
@@ -105,7 +105,7 @@ export function DashboardScreen() {
 
           {/* ── Pending Requests ──────────────────────────── */}
           {data.pendingPaymentRequests > 0 && (
-            <TouchableOpacity style={styles.pendingBanner} activeOpacity={0.7} onPress={() => navigation.navigate('Fees')}>
+            <TouchableOpacity style={styles.pendingBanner} activeOpacity={0.7} onPress={() => navigation.navigate('Fees')} accessibilityLabel={`${data.pendingPaymentRequests} pending payment requests. Tap to review`} accessibilityRole="button">
               <View style={styles.pendingLeft}>
                 <View style={styles.cardHeaderIcon}>
                   {/* @ts-expect-error react-native-vector-icons types incompatible with @types/react@19 */}

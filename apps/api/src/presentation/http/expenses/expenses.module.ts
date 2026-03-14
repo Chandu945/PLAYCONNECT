@@ -58,17 +58,18 @@ import type { AuditRecorderPort } from '@application/audit/ports/audit-recorder.
     {
       provide: 'UPDATE_EXPENSE_USE_CASE',
       useFactory: (
+        userRepo: UserRepository,
         expenseRepo: ExpenseRepository,
         categoryRepo: ExpenseCategoryRepository,
         auditRecorder: AuditRecorderPort,
-      ) => new UpdateExpenseUseCase(expenseRepo, categoryRepo, auditRecorder),
-      inject: [EXPENSE_REPOSITORY, EXPENSE_CATEGORY_REPOSITORY, AUDIT_RECORDER_PORT],
+      ) => new UpdateExpenseUseCase(userRepo, expenseRepo, categoryRepo, auditRecorder),
+      inject: [USER_REPOSITORY, EXPENSE_REPOSITORY, EXPENSE_CATEGORY_REPOSITORY, AUDIT_RECORDER_PORT],
     },
     {
       provide: 'DELETE_EXPENSE_USE_CASE',
-      useFactory: (expenseRepo: ExpenseRepository, auditRecorder: AuditRecorderPort) =>
-        new DeleteExpenseUseCase(expenseRepo, auditRecorder),
-      inject: [EXPENSE_REPOSITORY, AUDIT_RECORDER_PORT],
+      useFactory: (userRepo: UserRepository, expenseRepo: ExpenseRepository, auditRecorder: AuditRecorderPort) =>
+        new DeleteExpenseUseCase(userRepo, expenseRepo, auditRecorder),
+      inject: [USER_REPOSITORY, EXPENSE_REPOSITORY, AUDIT_RECORDER_PORT],
     },
     {
       provide: 'LIST_EXPENSES_USE_CASE',

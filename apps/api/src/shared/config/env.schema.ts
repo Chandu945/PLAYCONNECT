@@ -1,8 +1,6 @@
 import { z } from 'zod';
 
 const UNSAFE_DEFAULTS = {
-  JWT_ACCESS_SECRET: 'dev-access-secret-change-me',
-  JWT_REFRESH_SECRET: 'dev-refresh-secret-change-me',
   SUPER_ADMIN_PASSWORD: 'change-me-in-production',
 } as const;
 
@@ -16,9 +14,9 @@ export const envSchema = z
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
     // JWT
-    JWT_ACCESS_SECRET: z.string().default(UNSAFE_DEFAULTS.JWT_ACCESS_SECRET),
-    JWT_REFRESH_SECRET: z.string().default(UNSAFE_DEFAULTS.JWT_REFRESH_SECRET),
-    JWT_ACCESS_TTL: z.coerce.number().int().positive().default(86400), // 1 day in seconds
+    JWT_ACCESS_SECRET: z.string().min(32),
+    JWT_REFRESH_SECRET: z.string().min(32),
+    JWT_ACCESS_TTL: z.coerce.number().int().positive().default(900), // 15 minutes in seconds
     JWT_REFRESH_TTL: z.coerce.number().int().positive().default(2592000), // 30 days in seconds
 
     // Bcrypt
@@ -109,20 +107,6 @@ export const envSchema = z
   .superRefine((val, ctx) => {
     if (val.APP_ENV !== 'production' && val.APP_ENV !== 'staging') return;
 
-    if (val.JWT_ACCESS_SECRET === UNSAFE_DEFAULTS.JWT_ACCESS_SECRET) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['JWT_ACCESS_SECRET'],
-        message: 'JWT_ACCESS_SECRET must be changed from its default value in production/staging',
-      });
-    }
-    if (val.JWT_REFRESH_SECRET === UNSAFE_DEFAULTS.JWT_REFRESH_SECRET) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['JWT_REFRESH_SECRET'],
-        message: 'JWT_REFRESH_SECRET must be changed from its default value in production/staging',
-      });
-    }
     if (val.SUPER_ADMIN_PASSWORD === UNSAFE_DEFAULTS.SUPER_ADMIN_PASSWORD) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

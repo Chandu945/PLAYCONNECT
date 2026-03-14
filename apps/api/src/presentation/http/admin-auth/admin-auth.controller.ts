@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { Public } from '../common/decorators/public.decorator';
 import type { AdminLoginUseCase } from '@application/admin-auth/use-cases/admin-login.usecase';
 import type { RefreshUseCase } from '@application/identity/use-cases/refresh.usecase';
 import type { LogoutUseCase } from '@application/identity/use-cases/logout.usecase';
@@ -35,6 +36,7 @@ export class AdminAuthController {
   ) {}
 
   @Post('login')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Admin login' })
   async login(@Body() dto: AdminLoginDto, @Req() req: Request) {
@@ -47,6 +49,7 @@ export class AdminAuthController {
   }
 
   @Post('refresh')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 10, ttl: 10_000 }, medium: { limit: 20, ttl: 60_000 }, long: { limit: 60, ttl: 900_000 } })
   @ApiOperation({ summary: 'Admin refresh token' })

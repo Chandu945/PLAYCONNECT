@@ -1,6 +1,6 @@
 import type { JwtService } from '@nestjs/jwt';
 
-const TEST_ACCESS_SECRET = 'test-access-secret';
+const TEST_ACCESS_SECRET = 'test-access-secret-that-is-at-least-32-characters-long';
 
 export interface TokenOptions {
   sub?: string;

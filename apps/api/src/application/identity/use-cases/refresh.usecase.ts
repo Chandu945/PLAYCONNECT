@@ -62,11 +62,20 @@ export class RefreshUseCase {
       return err(AuthErrors.invalidRefreshToken());
     }
 
+    // Atomically increment tokenVersion to prevent race conditions
+    const bumped = await this.userRepo.incrementTokenVersionByUserId(
+      user.id.toString(),
+      user.tokenVersion,
+    );
+    if (!bumped) {
+      return err(AuthErrors.invalidRefreshToken());
+    }
+
     const accessToken = this.tokenService.generateAccessToken({
       sub: user.id.toString(),
       role: user.role,
       email: user.emailNormalized,
-      tokenVersion: user.tokenVersion,
+      tokenVersion: user.tokenVersion + 1,
     });
 
     return ok({

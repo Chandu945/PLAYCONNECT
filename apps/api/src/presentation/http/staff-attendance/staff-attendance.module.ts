@@ -47,16 +47,15 @@ import type { HolidayRepository } from '@domain/attendance/ports/holiday.reposit
       useFactory: (
         ur: UserRepository,
         sar: StaffAttendanceRepository,
-        hr: HolidayRepository,
         audit: AuditRecorderPort,
-      ) => new MarkStaffAttendanceUseCase(ur, sar, hr, audit),
-      inject: [USER_REPOSITORY, STAFF_ATTENDANCE_REPOSITORY, HOLIDAY_REPOSITORY, AUDIT_RECORDER_PORT],
+      ) => new MarkStaffAttendanceUseCase(ur, sar, audit),
+      inject: [USER_REPOSITORY, STAFF_ATTENDANCE_REPOSITORY, AUDIT_RECORDER_PORT],
     },
     {
       provide: 'GET_DAILY_STAFF_ATTENDANCE_REPORT_USE_CASE',
-      useFactory: (ur: UserRepository, sar: StaffAttendanceRepository, hr: HolidayRepository) =>
-        new GetDailyStaffAttendanceReportUseCase(ur, sar, hr),
-      inject: [USER_REPOSITORY, STAFF_ATTENDANCE_REPOSITORY, HOLIDAY_REPOSITORY],
+      useFactory: (ur: UserRepository, sar: StaffAttendanceRepository) =>
+        new GetDailyStaffAttendanceReportUseCase(ur, sar),
+      inject: [USER_REPOSITORY, STAFF_ATTENDANCE_REPOSITORY],
     },
     {
       provide: 'GET_MONTHLY_STAFF_ATTENDANCE_SUMMARY_USE_CASE',

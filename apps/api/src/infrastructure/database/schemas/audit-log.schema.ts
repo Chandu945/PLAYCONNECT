@@ -41,3 +41,6 @@ AuditLogSchema.index({ academyId: 1, createdAt: -1 });
 
 // Filtering: by academy + action, newest first
 AuditLogSchema.index({ academyId: 1, action: 1, createdAt: -1 });
+
+// Filtering: by academy + entityType, newest first
+AuditLogSchema.index({ academyId: 1, entityType: 1, createdAt: -1 });

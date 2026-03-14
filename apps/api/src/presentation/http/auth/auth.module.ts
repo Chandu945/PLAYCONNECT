@@ -26,6 +26,7 @@ import { OTP_HASHER } from '@application/identity/ports/otp-hasher.port';
 import { EMAIL_SENDER_PORT } from '@application/notifications/ports/email-sender.port';
 import { OwnerSignupUseCase } from '@application/identity/use-cases/owner-signup.usecase';
 import { LoginUseCase } from '@application/identity/use-cases/login.usecase';
+import { LoginAttemptTracker, LOGIN_ATTEMPT_TRACKER } from '@application/identity/services/login-attempt-tracker';
 import { RefreshUseCase } from '@application/identity/use-cases/refresh.usecase';
 import { LogoutUseCase } from '@application/identity/use-cases/logout.usecase';
 import { LogoutAllUseCase } from '@application/identity/use-cases/logout-all.usecase';
@@ -68,6 +69,7 @@ import { AppConfigService } from '@shared/config/config.service';
     { provide: OTP_HASHER, useClass: BcryptOtpHasher },
     { provide: EMAIL_SENDER_PORT, useClass: NodemailerEmailSender },
     { provide: GOOGLE_TOKEN_VERIFIER, useClass: GoogleTokenVerifier },
+    { provide: LOGIN_ATTEMPT_TRACKER, useClass: LoginAttemptTracker },
 
     // Use-case factories
     {
@@ -89,8 +91,9 @@ import { AppConfigService } from '@shared/config/config.service';
         hasher: PasswordHasher,
         tokenSvc: TokenService,
         config: AppConfigService,
-      ) => new LoginUseCase(userRepo, sessionRepo, hasher, tokenSvc, config.jwtRefreshTtl),
-      inject: [USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER, TOKEN_SERVICE, AppConfigService],
+        tracker: LoginAttemptTracker,
+      ) => new LoginUseCase(userRepo, sessionRepo, hasher, tokenSvc, config.jwtRefreshTtl, tracker),
+      inject: [USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER, TOKEN_SERVICE, AppConfigService, LOGIN_ATTEMPT_TRACKER],
     },
     {
       provide: 'REFRESH_USE_CASE',
@@ -177,6 +180,6 @@ import { AppConfigService } from '@shared/config/config.service';
       inject: [GOOGLE_TOKEN_VERIFIER, USER_REPOSITORY, SESSION_REPOSITORY, TOKEN_SERVICE, AppConfigService],
     },
   ],
-  exports: [TOKEN_SERVICE, USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER],
+  exports: [TOKEN_SERVICE, USER_REPOSITORY, SESSION_REPOSITORY, PASSWORD_HASHER, LOGIN_ATTEMPT_TRACKER],
 })
 export class AuthModule {}

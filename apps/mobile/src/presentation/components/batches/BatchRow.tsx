@@ -1,6 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { AppCard } from '../ui/AppCard';
+import { Badge } from '../ui/Badge';
 import { fontSizes, fontWeights, spacing, radius } from '../../theme';
 import type { Colors } from '../../theme';
 import type { BatchListItem } from '../../../domain/batch/batch.types';
@@ -36,10 +37,8 @@ function BatchRowComponent({ batch, onPress }: BatchRowProps) {
     : 'No days set';
 
   const timeText = batch.startTime && batch.endTime
-    ? `${formatTime12h(batch.startTime)} - ${formatTime12h(batch.endTime)}`
+    ? `${formatTime12h(batch.startTime)} – ${formatTime12h(batch.endTime)}`
     : null;
-
-  const subtitleText = timeText ? `${daysText} · ${timeText}` : daysText;
 
   const studentCountText = batch.maxStudents != null
     ? `${batch.studentCount}/${batch.maxStudents}`
@@ -49,29 +48,31 @@ function BatchRowComponent({ batch, onPress }: BatchRowProps) {
     <AppCard style={styles.container} onPress={onPress} testID={`batch-row-${batch.id}`}>
       <View style={styles.row}>
         {batch.profilePhotoUrl ? (
-          <Image source={{ uri: batch.profilePhotoUrl }} style={styles.photo} />
+          <Image source={{ uri: batch.profilePhotoUrl }} style={styles.avatar} />
         ) : (
-          <View style={[styles.photo, styles.photoPlaceholder]}>
-            <Text style={styles.photoInitial}>{batch.batchName.charAt(0).toUpperCase()}</Text>
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <Text style={styles.avatarInitial}>{batch.batchName.charAt(0).toUpperCase()}</Text>
           </View>
         )}
+
         <View style={styles.info}>
-          <View style={styles.nameRow}>
+          <View style={styles.topRow}>
             <Text style={styles.name} numberOfLines={1}>
               {batch.batchName}
             </Text>
             {batch.status === 'INACTIVE' && (
-              <View style={styles.inactiveBadge}>
-                <Text style={styles.inactiveBadgeText}>Inactive</Text>
-              </View>
+              <Badge label="Inactive" variant="neutral" />
             )}
           </View>
-          <Text style={styles.days} numberOfLines={1}>
-            {subtitleText}
+
+          <Text style={styles.schedule} numberOfLines={1}>
+            {timeText ? `${daysText}  ·  ${timeText}` : daysText}
           </Text>
-          <Text style={styles.studentCount}>
-            {studentCountText} {batch.studentCount === 1 ? 'student' : 'students'}
-          </Text>
+        </View>
+
+        <View style={styles.countBadge}>
+          <Text style={styles.countNumber}>{studentCountText}</Text>
+          <Text style={styles.countLabel}>students</Text>
         </View>
       </View>
     </AppCard>
@@ -88,55 +89,59 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  photo: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.full,
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.lg,
     marginRight: spacing.md,
   },
-  photoPlaceholder: {
-    backgroundColor: colors.primary,
+  avatarPlaceholder: {
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photoInitial: {
+  avatarInitial: {
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.bold,
-    color: colors.white,
+    color: colors.primary,
   },
   info: {
     flex: 1,
+    marginRight: spacing.sm,
   },
-  nameRow: {
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    gap: spacing.sm,
+    marginBottom: 3,
   },
   name: {
     fontSize: fontSizes.md,
     fontWeight: fontWeights.semibold,
     color: colors.text,
-    flex: 1,
+    flexShrink: 1,
   },
-  inactiveBadge: {
-    backgroundColor: colors.textDisabled,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-    marginLeft: spacing.sm,
-  },
-  inactiveBadgeText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colors.white,
-  },
-  days: {
+  schedule: {
     fontSize: fontSizes.sm,
     color: colors.textSecondary,
+    lineHeight: 18,
   },
-  studentCount: {
-    fontSize: fontSizes.xs,
-    color: colors.textLight,
-    marginTop: 2,
+  countBadge: {
+    alignItems: 'center',
+    backgroundColor: colors.bgSubtle,
+    borderRadius: radius.md,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.sm + 2,
+    minWidth: 48,
+  },
+  countNumber: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
+    color: colors.text,
+  },
+  countLabel: {
+    fontSize: 9,
+    color: colors.textSecondary,
+    marginTop: 1,
   },
 });

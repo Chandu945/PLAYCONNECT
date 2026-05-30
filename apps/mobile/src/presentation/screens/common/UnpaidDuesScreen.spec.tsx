@@ -59,7 +59,7 @@ describe('UnpaidDuesScreen', () => {
     expect(screen.getByText('John Doe')).toBeTruthy();
   });
 
-  it('shows the contact phone and the total unpaid-months count on a row', () => {
+  it('shows a tap-to-call button and the total unpaid-months count on a row', () => {
     render(
       <UnpaidDuesScreen
         {...defaultProps}
@@ -68,7 +68,9 @@ describe('UnpaidDuesScreen', () => {
     );
 
     expect(screen.getByText('3 months')).toBeTruthy();
-    expect(screen.getByText('+919812345678')).toBeTruthy();
+    // Phone is shown as a call icon button — the raw number is not rendered.
+    expect(screen.getByTestId('fee-row-call-fd1')).toBeTruthy();
+    expect(screen.queryByText('+919812345678')).toBeNull();
   });
 
   it('uses the singular "1 month" when a student owes a single month', () => {

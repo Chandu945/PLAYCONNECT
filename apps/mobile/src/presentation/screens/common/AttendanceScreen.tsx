@@ -348,6 +348,8 @@ export function AttendanceScreen() {
         batches={batches}
         loading={batchesLoading}
         selectedBatchId={selectedBatchId}
+        selectedWeekday={weekdayOf(selectedDate)}
+        isSelectedToday={isToday}
         onSelect={(batchId) => {
           setSelectedBatchId(batchId);
           setShowBatchPicker(false);

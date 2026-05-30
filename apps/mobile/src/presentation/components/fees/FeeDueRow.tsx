@@ -184,23 +184,6 @@ function FeeDueRowComponent({
               : `Submitted by ${pendingRequest!.request.staffName ?? 'another staff'} · ${formatTimeAgo(pendingRequest!.request.createdAt)}`}
           </Text>
         ) : null}
-        {item.studentPhone ? (
-          <TouchableOpacity
-            style={styles.phoneRow}
-            onPress={() => {
-              Linking.openURL(`tel:${item.studentPhone}`).catch(() => {});
-            }}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            accessibilityRole="button"
-            accessibilityLabel={`Call ${resolvedName ?? 'student'} at ${item.studentPhone}`}
-            testID={`fee-row-call-${item.id}`}
-          >
-            <AppIcon name="phone-outline" size={12} color={colors.primary} />
-            <Text style={styles.phoneText} numberOfLines={1}>
-              {item.studentPhone}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
       </View>
 
       <View style={styles.right}>
@@ -225,6 +208,21 @@ function FeeDueRowComponent({
           {formatAmount(payable)}
         </Text>
       </View>
+
+      {item.studentPhone ? (
+        <TouchableOpacity
+          style={styles.callButton}
+          onPress={() => {
+            Linking.openURL(`tel:${item.studentPhone}`).catch(() => {});
+          }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={`Call ${resolvedName ?? 'student'}`}
+          testID={`fee-row-call-${item.id}`}
+        >
+          <AppIcon name="phone" size={16} color={colors.primary} />
+        </TouchableOpacity>
+      ) : null}
 
       <AppIcon name="chevron-right" size={18} color={colors.textDisabled} style={styles.chevron} />
     </TouchableOpacity>
@@ -293,17 +291,14 @@ const makeStyles = (colors: Colors) =>
       color: colors.dangerText,
       letterSpacing: 0.2,
     },
-    phoneRow: {
-      flexDirection: 'row',
+    callButton: {
+      width: 32,
+      height: 32,
+      borderRadius: radius.full,
       alignItems: 'center',
-      gap: 4,
-      marginTop: 3,
-    },
-    phoneText: {
-      fontSize: 11,
-      fontWeight: fontWeights.medium,
-      color: colors.primary,
-      letterSpacing: 0.1,
+      justifyContent: 'center',
+      backgroundColor: colors.primaryLight,
+      marginLeft: spacing.sm,
     },
     subtitleRow: {
       flexDirection: 'row',
@@ -336,7 +331,6 @@ const makeStyles = (colors: Colors) =>
     },
     right: {
       alignItems: 'flex-end',
-      minWidth: 84,
       maxWidth: 140,
     },
     pendingPill: {

@@ -96,8 +96,9 @@ export class PdfkitRenderer implements PdfRenderer {
     doc.fontSize(18).text(`Pending Dues Report — ${month}`, { align: 'center' });
     doc.moveDown();
 
-    // Summary
-    const totalPending = items.reduce((s, i) => s + i.amount, 0);
+    // Summary — total owed for the month includes late fees (base + late),
+    // matching the dashboard Pending tile and the month-wise report.
+    const totalPending = items.reduce((s, i) => s + i.totalPayable, 0);
     doc.fontSize(12).text(`Students with Dues: ${items.length}`);
     doc.text(`Total Pending: ₹${totalPending.toLocaleString('en-IN')}`);
     doc.moveDown();
@@ -111,7 +112,7 @@ export class PdfkitRenderer implements PdfRenderer {
       .text('Student Name', startX, y, { width: 150 })
       .text('Month', startX + 150, y, { width: 70 })
       .text('Amount', startX + 220, y, { width: 80, align: 'right' })
-      .text('Status', startX + 310, y, { width: 70 })
+      .text('Late Fee', startX + 310, y, { width: 70, align: 'right' })
       .text('Pending Months', startX + 380, y, { width: 70, align: 'right' })
       .text('Total Pending', startX + 450, y, { width: 70, align: 'right' });
     y += 16;
@@ -132,7 +133,7 @@ export class PdfkitRenderer implements PdfRenderer {
         .text(item.studentName, startX, y, { width: 150 })
         .text(item.monthKey, startX + 150, y, { width: 70 })
         .text(`₹${item.amount}`, startX + 220, y, { width: 80, align: 'right' })
-        .text(item.status, startX + 310, y, { width: 70 })
+        .text(`₹${item.lateFee}`, startX + 310, y, { width: 70, align: 'right' })
         .text(String(item.pendingMonthsCount), startX + 380, y, { width: 70, align: 'right' })
         .text(`₹${item.totalPendingAmount}`, startX + 450, y, { width: 70, align: 'right' });
       y += 14;

@@ -152,10 +152,16 @@ export function ReportsHomeScreen() {
             </View>
           </View>
           <View style={styles.dueAmounts}>
-            <Text style={styles.dueAmount}>{formatCurrency(item.amount)}</Text>
-            <View style={styles.dueStatusBadge}>
-              <Text style={styles.dueStatusText}>{item.status}</Text>
-            </View>
+            <Text style={styles.dueAmount}>{formatCurrency(item.amount + (item.lateFee ?? 0))}</Text>
+            {(item.lateFee ?? 0) > 0 ? (
+              <Text style={[styles.dueStatusText, { color: colors.warning }]}>
+                incl. {formatCurrency(item.lateFee ?? 0)} late
+              </Text>
+            ) : (
+              <View style={styles.dueStatusBadge}>
+                <Text style={styles.dueStatusText}>{item.status}</Text>
+              </View>
+            )}
           </View>
         </View>
       );

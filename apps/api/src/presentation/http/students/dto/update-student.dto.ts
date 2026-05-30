@@ -143,10 +143,12 @@ export class UpdateStudentDto {
   @Transform(({ value }) => (typeof value === 'string' ? trimAndCollapse(value) : value))
   motherName?: string | null;
 
-  @ApiPropertyOptional({ example: '919491823468' })
+  @ApiPropertyOptional({ example: '+919491823468', description: 'E.164 format' })
   @IsOptional()
   @IsString()
-  @Matches(/^\d{10,15}$/, { message: 'whatsappNumber must be 10-15 digits' })
+  @Matches(/^\+[1-9]\d{6,14}$/, {
+    message: 'whatsappNumber must be in E.164 format (e.g. +919491823468)',
+  })
   whatsappNumber?: string | null;
 
   @ApiPropertyOptional({ example: '456 Park Lane, Mumbai' })

@@ -165,6 +165,7 @@ import type { PushNotificationService } from '@application/notifications/push-no
         academyRepo: AcademyRepository,
         parentLinkRepo: ParentStudentLinkRepository,
         push: PushNotificationService,
+        studentBatchRepo: StudentBatchRepository,
       ) =>
         new ChangeStudentStatusUseCase(
           userRepo,
@@ -176,6 +177,7 @@ import type { PushNotificationService } from '@application/notifications/push-no
           academyRepo,
           parentLinkRepo,
           push,
+          studentBatchRepo,
         ),
       inject: [
         USER_REPOSITORY,
@@ -187,6 +189,7 @@ import type { PushNotificationService } from '@application/notifications/push-no
         ACADEMY_REPOSITORY,
         PARENT_STUDENT_LINK_REPOSITORY,
         PUSH_NOTIFICATION_SERVICE,
+        STUDENT_BATCH_REPOSITORY,
       ],
     },
     {

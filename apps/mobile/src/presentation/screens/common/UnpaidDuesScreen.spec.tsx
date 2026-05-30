@@ -55,7 +55,35 @@ describe('UnpaidDuesScreen', () => {
     render(<UnpaidDuesScreen {...defaultProps} />);
 
     expect(screen.getByTestId('fee-row-fd1')).toBeTruthy();
-    expect(screen.getByText('DUE')).toBeTruthy();
+    // The row shows the resolved student name (from studentNameMap).
+    expect(screen.getByText('John Doe')).toBeTruthy();
+  });
+
+  it('shows the contact phone and the total unpaid-months count on a row', () => {
+    render(
+      <UnpaidDuesScreen
+        {...defaultProps}
+        items={[makeFeeDue({ studentPhone: '+919812345678', unpaidMonthsCount: 3 })]}
+      />,
+    );
+
+    expect(screen.getByText('3 months')).toBeTruthy();
+    expect(screen.getByText('+919812345678')).toBeTruthy();
+  });
+
+  it('uses the singular "1 month" when a student owes a single month', () => {
+    render(
+      <UnpaidDuesScreen {...defaultProps} items={[makeFeeDue({ unpaidMonthsCount: 1 })]} />,
+    );
+
+    expect(screen.getByText('1 month')).toBeTruthy();
+  });
+
+  it('omits the months badge and phone when those fields are absent', () => {
+    render(<UnpaidDuesScreen {...defaultProps} items={[makeFeeDue()]} />);
+
+    expect(screen.queryByText(/month(s)?$/)).toBeNull();
+    expect(screen.queryByTestId('fee-row-call-fd1')).toBeNull();
   });
 
   it('shows skeleton when loading', () => {

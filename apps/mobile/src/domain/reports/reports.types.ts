@@ -35,6 +35,8 @@ export type StudentWiseDueItem = {
   studentName: string;
   monthKey: string;
   amount: number;
+  lateFee?: number;
+  totalPayable?: number;
   status: string;
   pendingMonthsCount: number;
   totalPendingAmount: number;

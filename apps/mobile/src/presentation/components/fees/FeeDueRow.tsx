@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { AppIcon } from '../ui/AppIcon';
 import { InitialsAvatar } from '../ui/InitialsAvatar';
 import type { FeeDueItem } from '../../../domain/fees/fees.types';
@@ -155,9 +155,18 @@ function FeeDueRowComponent({
 
       <View style={styles.info}>
         {hasName && (
-          <Text style={styles.name} numberOfLines={1}>
-            {resolvedName}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {resolvedName}
+            </Text>
+            {typeof item.unpaidMonthsCount === 'number' && item.unpaidMonthsCount > 0 ? (
+              <View style={styles.monthsBadge}>
+                <Text style={styles.monthsBadgeText}>
+                  {item.unpaidMonthsCount} {item.unpaidMonthsCount === 1 ? 'month' : 'months'}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         )}
         <View style={styles.subtitleRow}>
           <View style={[styles.subtitleDot, { backgroundColor: tone.dot }]} />
@@ -174,6 +183,23 @@ function FeeDueRowComponent({
               ? `Requested by you · ${formatTimeAgo(pendingRequest!.request.createdAt)}`
               : `Submitted by ${pendingRequest!.request.staffName ?? 'another staff'} · ${formatTimeAgo(pendingRequest!.request.createdAt)}`}
           </Text>
+        ) : null}
+        {item.studentPhone ? (
+          <TouchableOpacity
+            style={styles.phoneRow}
+            onPress={() => {
+              Linking.openURL(`tel:${item.studentPhone}`).catch(() => {});
+            }}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Call ${resolvedName ?? 'student'} at ${item.studentPhone}`}
+            testID={`fee-row-call-${item.id}`}
+          >
+            <AppIcon name="phone-outline" size={12} color={colors.primary} />
+            <Text style={styles.phoneText} numberOfLines={1}>
+              {item.studentPhone}
+            </Text>
+          </TouchableOpacity>
         ) : null}
       </View>
 
@@ -239,12 +265,45 @@ const makeStyles = (colors: Colors) =>
       minWidth: 0,
       marginRight: spacing.sm,
     },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 3,
+    },
     name: {
       fontSize: fontSizes.md,
       fontWeight: fontWeights.semibold,
       color: colors.text,
       letterSpacing: -0.2,
-      marginBottom: 3,
+      flexShrink: 1,
+    },
+    monthsBadge: {
+      backgroundColor: colors.dangerBg,
+      borderColor: colors.dangerBorder,
+      borderWidth: 1,
+      borderRadius: radius.full,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      flexShrink: 0,
+    },
+    monthsBadgeText: {
+      fontSize: 9,
+      fontWeight: fontWeights.bold,
+      color: colors.dangerText,
+      letterSpacing: 0.2,
+    },
+    phoneRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 3,
+    },
+    phoneText: {
+      fontSize: 11,
+      fontWeight: fontWeights.medium,
+      color: colors.primary,
+      letterSpacing: 0.1,
     },
     subtitleRow: {
       flexDirection: 'row',

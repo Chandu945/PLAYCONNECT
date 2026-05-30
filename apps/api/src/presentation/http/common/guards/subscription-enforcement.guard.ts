@@ -18,6 +18,11 @@ const ALLOWED_PREFIXES = [
   '/api/v1/admin',
   '/api/v1/academy',
   '/api/v1/parent',
+  // Account / data deletion must stay reachable even when a subscription is
+  // BLOCKED/expired — it's the user's Play User-Data / GDPR deletion right.
+  // The controller still enforces JwtAuthGuard + RbacGuard, so this is not a
+  // data route, only the delete/cancel/status flow.
+  '/api/v1/account/deletion',
 ];
 
 @Injectable()

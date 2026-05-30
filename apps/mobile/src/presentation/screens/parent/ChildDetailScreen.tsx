@@ -37,20 +37,17 @@ function getCurrentMonth(): string {
   return getCurrentMonthIST();
 }
 
-function getMonthRange(): { from: string; to: string } {
+// Fee look-back window for a child. Mirrors the parent dashboard's 24-month
+// look-back (get-my-children.usecase) so a child's old unpaid dues shown on the
+// dashboard also appear here and the per-child "Due" total agrees. Includes the
+// next month for upcoming dues. Absolute month arithmetic so the 24-month span
+// rolls over years correctly (the previous ±1-year rollover could not).
+export const FEE_LOOKBACK_MONTHS = 24;
+export function getFeeMonthRange(): { from: string; to: string } {
   const d = nowIST();
-  const y = d.getFullYear();
-  const m = d.getMonth() + 1;
-  const fromMonth = m - 5;
-  const toMonth = m + 1;
-  const fromYear = fromMonth <= 0 ? y - 1 : y;
-  const fromM = fromMonth <= 0 ? fromMonth + 12 : fromMonth;
-  const toYear = toMonth > 12 ? y + 1 : y;
-  const toM = toMonth > 12 ? toMonth - 12 : toMonth;
-  return {
-    from: `${fromYear}-${String(fromM).padStart(2, '0')}`,
-    to: `${toYear}-${String(toM).padStart(2, '0')}`,
-  };
+  const absMonth = d.getFullYear() * 12 + d.getMonth(); // months since year 0 (month 0-indexed)
+  const fmt = (abs: number) => `${Math.floor(abs / 12)}-${String((abs % 12) + 1).padStart(2, '0')}`;
+  return { from: fmt(absMonth - FEE_LOOKBACK_MONTHS), to: fmt(absMonth + 1) };
 }
 
 function AttendanceBar({
@@ -186,7 +183,7 @@ export function ChildDetailScreen() {
     setLoading(true);
     setError(null);
     const month = getCurrentMonth();
-    const { from, to } = getMonthRange();
+    const { from, to } = getFeeMonthRange();
 
     try {
       const [attResult, feesResult, methodsResult] = await Promise.all([

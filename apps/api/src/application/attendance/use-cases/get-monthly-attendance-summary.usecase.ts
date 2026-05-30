@@ -74,8 +74,8 @@ export class GetMonthlyAttendanceSummaryUseCase {
     );
     const studentIds = students.map((s) => s.id.toString());
 
-    const [allPresent, holidays] = await Promise.all([
-      this.attendanceRepo.findPresentByAcademyAndMonth(actor.academyId, input.month),
+    const [allAbsent, holidays] = await Promise.all([
+      this.attendanceRepo.findAbsentByAcademyAndMonth(actor.academyId, input.month),
       this.holidayRepo.findByAcademyAndMonth(actor.academyId, input.month),
     ]);
 
@@ -118,17 +118,24 @@ export class GetMonthlyAttendanceSummaryUseCase {
       );
     }
 
-    // Distinct present DATES per student. One record per (student, batch, day)
-    // collapses into one present day — "lax" day definition: present in ANY
-    // batch on a day = present day for the student.
-    const presentDatesByStudent = new Map<string, Set<string>>();
-    for (const record of allPresent) {
-      let set = presentDatesByStudent.get(record.studentId);
+    // Default-present model: ABSENT rows per (student, date, batch). A day
+    // counts as absent only when the student is explicitly marked ABSENT in
+    // EVERY batch scheduled that day; an unmarked or partially-present day
+    // stays present (the inverse of the old "lax present" rule, and the same
+    // rule the daily report and dashboard tile use).
+    const absentBatchesByStudentDate = new Map<string, Map<string, Set<string>>>();
+    for (const record of allAbsent) {
+      let byDate = absentBatchesByStudentDate.get(record.studentId);
+      if (!byDate) {
+        byDate = new Map();
+        absentBatchesByStudentDate.set(record.studentId, byDate);
+      }
+      let set = byDate.get(record.date);
       if (!set) {
         set = new Set();
-        presentDatesByStudent.set(record.studentId, set);
+        byDate.set(record.date, set);
       }
-      set.add(record.date);
+      set.add(record.batchId);
     }
 
     const data: MonthlyAttendanceSummaryItem[] = students.map((s) => {
@@ -136,24 +143,36 @@ export class GetMonthlyAttendanceSummaryUseCase {
       const studentJoinKey = toLocalDateKey(s.joiningDate);
       const studentStart = studentJoinKey > monthStart ? studentJoinKey : monthStart;
 
+      // Scheduled batches per expected date for this student (after applying
+      // joining / batch-assignment effective starts).
       const enrollments = enrollmentsByStudent.get(sid) ?? [];
-      const expectedDates = new Set<string>();
+      const scheduledBatchesByDate = new Map<string, Set<string>>();
       for (const enrol of enrollments) {
         const dates = expectedDatesByBatch.get(enrol.batchId);
         if (!dates) continue;
         const enrolKey = toLocalDateKey(enrol.assignedAt);
         const effectiveStart = enrolKey > studentStart ? enrolKey : studentStart;
         for (const d of dates) {
-          if (d >= effectiveStart) expectedDates.add(d);
+          if (d < effectiveStart) continue;
+          let set = scheduledBatchesByDate.get(d);
+          if (!set) {
+            set = new Set();
+            scheduledBatchesByDate.set(d, set);
+          }
+          set.add(enrol.batchId);
         }
       }
 
-      const presentDates = presentDatesByStudent.get(sid) ?? new Set<string>();
+      const absentDateBatches = absentBatchesByStudentDate.get(sid);
       let presentCount = 0;
       let absentCount = 0;
-      for (const d of expectedDates) {
-        if (presentDates.has(d)) presentCount++;
-        else absentCount++;
+      for (const [d, scheduledBatches] of scheduledBatchesByDate) {
+        const absentBatches = absentDateBatches?.get(d);
+        const absentInAllScheduled =
+          absentBatches !== undefined &&
+          [...scheduledBatches].every((batchId) => absentBatches.has(batchId));
+        if (absentInAllScheduled) absentCount++;
+        else presentCount++;
       }
       return {
         studentId: sid,

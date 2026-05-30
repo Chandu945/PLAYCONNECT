@@ -34,6 +34,18 @@ function getAvatarColor(index: number, isDark: boolean): string {
   return palette[index % palette.length]!;
 }
 
+/**
+ * Payments made within the given month (YYYY-MM). Used for the "Paid This
+ * Month" banner so its amount AND count both reflect the current month —
+ * `payments.length` (all-time) must not be paired with a this-month total.
+ */
+export function paymentsInMonth<T extends { paidAt?: string | null }>(
+  payments: T[],
+  monthKey: string,
+): T[] {
+  return payments.filter((p) => p.paidAt?.startsWith(monthKey));
+}
+
 export function ParentDashboardScreen() {
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -134,9 +146,11 @@ export function ParentDashboardScreen() {
 
   const totalMonthlyFee = children.reduce((sum, c) => sum + c.monthlyFee, 0);
   const currentMonth = getCurrentMonthIST();
-  const totalPaid = payments
-    .filter((p) => p.paidAt?.startsWith(currentMonth))
-    .reduce((sum, p) => sum + p.amount, 0);
+  // "Paid This Month" — both the amount and the count must use this month's
+  // payments. Previously the count used the whole list (all-time), which read
+  // as "N payments this month" next to a this-month total.
+  const paymentsThisMonth = paymentsInMonth(payments, currentMonth);
+  const totalPaid = paymentsThisMonth.reduce((sum, p) => sum + p.amount, 0);
   const recentPayments = payments.slice(0, 3);
 
   return (
@@ -586,7 +600,7 @@ export function ParentDashboardScreen() {
                   <Text style={styles.totalPaidValue}>{formatCurrency(totalPaid)}</Text>
                 </View>
                 <View style={styles.totalPaidCount}>
-                  <Text style={styles.totalPaidCountValue}>{payments.length}</Text>
+                  <Text style={styles.totalPaidCountValue}>{paymentsThisMonth.length}</Text>
                   <Text style={styles.totalPaidCountLabel}>payments</Text>
                 </View>
               </View>

@@ -59,6 +59,7 @@ function makeDeps(overrides: Record<string, unknown> = {}) {
     },
     studentCounter: {
       countActiveStudents: jest.fn().mockResolvedValue(30),
+      countEligibleStudents: jest.fn().mockResolvedValue(30),
     },
     clock: { now: () => now },
     logger: {
@@ -94,7 +95,7 @@ describe('InitiateSubscriptionPaymentUseCase', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.paymentSessionId).toBe('session_abc');
-      expect(result.value.amountInr).toBe(299); // 30 students → TIER_0_50
+      expect(result.value.amountInr).toBe(299); // peak 30 → TIER_0_50
       expect(result.value.tierKey).toBe('TIER_0_50');
       expect(result.value.currency).toBe('INR');
     }
@@ -219,6 +220,7 @@ describe('InitiateSubscriptionPaymentUseCase', () => {
     const deps = makeDeps({
       studentCounter: {
         countActiveStudents: jest.fn().mockResolvedValue(75),
+        countEligibleStudents: jest.fn().mockResolvedValue(75),
       },
     });
     const uc = new InitiateSubscriptionPaymentUseCase(
@@ -238,6 +240,49 @@ describe('InitiateSubscriptionPaymentUseCase', () => {
     if (result.ok) {
       expect(result.value.tierKey).toBe('TIER_51_100');
       expect(result.value.amountInr).toBe(499);
+    }
+  });
+
+  it('bills on the cycle peak, not the current count (peaked at 120, now 40 -> TIER_101_PLUS)', async () => {
+    const now = new Date('2026-03-15T12:00:00+05:30');
+    const sub = Subscription.createTrial({
+      id: 'sub-1',
+      academyId: 'academy-1',
+      trialStartAt: new Date(now.getTime() - 15 * DAY_MS),
+      trialEndAt: new Date(now.getTime() + 15 * DAY_MS),
+    }).withTierEvaluation({
+      pendingTierKey: null,
+      pendingTierEffectiveAt: null,
+      activeStudentCountSnapshot: 120,
+      peakStudentCountThisCycle: 120, // peaked at 120 this cycle
+    });
+
+    const deps = makeDeps({
+      subscriptionRepo: { findByAcademyId: jest.fn().mockResolvedValue(sub) },
+      studentCounter: {
+        // Roster has since dropped to 40 active/eligible.
+        countActiveStudents: jest.fn().mockResolvedValue(40),
+        countEligibleStudents: jest.fn().mockResolvedValue(40),
+      },
+    });
+    const uc = new InitiateSubscriptionPaymentUseCase(
+      deps.userRepo as never,
+      deps.academyRepo as never,
+      deps.subscriptionRepo as never,
+      deps.paymentRepo as never,
+      deps.cashfreeGateway as never,
+      deps.studentCounter as never,
+      deps.clock,
+      deps.logger as never,
+      deps.auditRecorder as never,
+    );
+
+    const result = await uc.execute('user-1');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      // Peak 120 -> TIER_101_PLUS -> ₹699, NOT the current 40 -> ₹299.
+      expect(result.value.tierKey).toBe('TIER_101_PLUS');
+      expect(result.value.amountInr).toBe(699);
     }
   });
 });

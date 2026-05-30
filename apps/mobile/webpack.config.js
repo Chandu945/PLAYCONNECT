@@ -83,7 +83,12 @@ module.exports = {
     proxy: [
       {
         context: ['/api'],
-        target: 'http://localhost:3001',
+        // Default to the local API. Override to run the web build against a
+        // deployed backend, e.g.:
+        //   API_PROXY_TARGET=https://academyflo.onrender.com npm run web
+        // changeOrigin rewrites the Host header so the upstream routes
+        // correctly (and sidesteps browser CORS — the proxy is server-side).
+        target: process.env.API_PROXY_TARGET || 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
       },

@@ -118,10 +118,25 @@ export class InitiateSubscriptionPaymentUseCase {
       return err(AppError.notFound('Subscription'));
     }
 
-    // Compute tier + amount
+    // Compute tier + amount. Bill on the cycle PEAK (the max eligible count
+    // across the cycle, with a 24h grace for newly-added records) — the same
+    // number GetMySubscription shows as the "Required Tier" — so owners can't
+    // dodge an upgrade by flexing their roster down right before renewal, and
+    // the charge matches the price shown in the app. activeStudentCount is kept
+    // only as a record of the real-time roster at purchase time.
     const now = this.clock.now();
+    const PEAK_GRACE_PERIOD_MS = 24 * 60 * 60 * 1000;
     const activeStudentCount = await this.studentCounter.countActiveStudents(academyId, now);
-    const requiredTier = requiredTierForCount(activeStudentCount);
+    const eligibleStudentCount = await this.studentCounter.countEligibleStudents(
+      academyId,
+      now,
+      PEAK_GRACE_PERIOD_MS,
+    );
+    const peakStudentCount = Math.max(
+      subscription.peakStudentCountThisCycle ?? eligibleStudentCount,
+      eligibleStudentCount,
+    );
+    const requiredTier = requiredTierForCount(peakStudentCount);
     const amountInr = priceForTier(requiredTier);
 
     // Create order id and persist PENDING payment record BEFORE calling Cashfree

@@ -114,17 +114,30 @@ export function FinancialOverviewWidget({ onCollectedPress, onPendingPress, onEx
   const [loading, setLoading] = useState(!initialData);
   const mountedRef = useRef(true);
 
-  // When initialData arrives and we're on the current month, use it directly
+  // Reflect the dashboard's (refreshable) initialData whenever it changes while
+  // we're on the current month. Previously a one-shot `initialUsedRef` latch
+  // applied it only on first load, so pull-to-refresh's updated numbers were
+  // ignored and the card froze on its first-load values until remount.
   const initialUsedRef = useRef(false);
   useEffect(() => {
-    if (initialData && !initialUsedRef.current) {
-      const isCurrent = year === initDate.getFullYear() && month === initDate.getMonth() + 1;
-      if (isCurrent) {
-        setData(initialData);
-        setLoading(false);
-        initialUsedRef.current = true;
-      }
-    }
+    if (!initialData) return;
+    const isCurrent = year === initDate.getFullYear() && month === initDate.getMonth() + 1;
+    if (!isCurrent) return;
+    // The current month is served by the parent's initialData — mark so load()
+    // skips its redundant self-fetch.
+    initialUsedRef.current = true;
+    setLoading(false);
+    // Only replace state when the figures actually changed, so unrelated parent
+    // re-renders don't churn this card.
+    setData((prev) =>
+      prev &&
+      prev.collected === initialData.collected &&
+      prev.pending === initialData.pending &&
+      prev.expenses === initialData.expenses &&
+      prev.lateFees === initialData.lateFees
+        ? prev
+        : initialData,
+    );
   }, [initialData, year, month, initDate]);
 
   const load = useCallback(async () => {

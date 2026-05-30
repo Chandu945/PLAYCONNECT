@@ -31,8 +31,21 @@ export interface StudentAttendanceRepository {
   /** All present records for a date across every batch — academy-wide reporting. */
   findPresentByAcademyAndDate(academyId: string, date: string): Promise<StudentAttendance[]>;
 
+  /** All ABSENT records for a date across every batch. Drives the default-present
+   *  daily report: a student is absent only when explicitly marked absent in
+   *  every batch they're scheduled in (mirrors the dashboard's day-level rule). */
+  findAbsentByAcademyAndDate(academyId: string, date: string): Promise<StudentAttendance[]>;
+
   /** All present records for a student in a month, across every batch they're in. */
   findPresentByAcademyStudentAndMonth(
+    academyId: string,
+    studentId: string,
+    monthPrefix: string,
+  ): Promise<StudentAttendance[]>;
+
+  /** All ABSENT records for a student in a month — drives the default-present
+   *  per-student monthly view (a day is absent only when explicitly marked). */
+  findAbsentByAcademyStudentAndMonth(
     academyId: string,
     studentId: string,
     monthPrefix: string,

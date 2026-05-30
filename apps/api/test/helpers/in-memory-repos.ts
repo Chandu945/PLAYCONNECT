@@ -754,7 +754,7 @@ export class InMemoryStudentAttendanceRepository implements StudentAttendanceRep
 
   async findPresentByAcademyAndDate(academyId: string, date: string): Promise<StudentAttendance[]> {
     return Array.from(this.records.values()).filter(
-      (r) => r.academyId === academyId && r.date === date,
+      (r) => r.academyId === academyId && r.date === date && r.status === 'PRESENT',
     );
   }
 
@@ -765,7 +765,10 @@ export class InMemoryStudentAttendanceRepository implements StudentAttendanceRep
   ): Promise<StudentAttendance[]> {
     return Array.from(this.records.values()).filter(
       (r) =>
-        r.academyId === academyId && r.studentId === studentId && r.date.startsWith(monthPrefix),
+        r.academyId === academyId &&
+        r.studentId === studentId &&
+        r.date.startsWith(monthPrefix) &&
+        r.status === 'PRESENT',
     );
   }
 
@@ -774,7 +777,27 @@ export class InMemoryStudentAttendanceRepository implements StudentAttendanceRep
     monthPrefix: string,
   ): Promise<StudentAttendance[]> {
     return Array.from(this.records.values()).filter(
-      (r) => r.academyId === academyId && r.date.startsWith(monthPrefix),
+      (r) => r.academyId === academyId && r.date.startsWith(monthPrefix) && r.status === 'PRESENT',
+    );
+  }
+
+  async findAbsentByAcademyAndDate(academyId: string, date: string): Promise<StudentAttendance[]> {
+    return Array.from(this.records.values()).filter(
+      (r) => r.academyId === academyId && r.date === date && r.status === 'ABSENT',
+    );
+  }
+
+  async findAbsentByAcademyStudentAndMonth(
+    academyId: string,
+    studentId: string,
+    monthPrefix: string,
+  ): Promise<StudentAttendance[]> {
+    return Array.from(this.records.values()).filter(
+      (r) =>
+        r.academyId === academyId &&
+        r.studentId === studentId &&
+        r.date.startsWith(monthPrefix) &&
+        r.status === 'ABSENT',
     );
   }
 
@@ -788,7 +811,7 @@ export class InMemoryStudentAttendanceRepository implements StudentAttendanceRep
 
   async countPresentByAcademyAndDate(academyId: string, date: string): Promise<number> {
     return Array.from(this.records.values()).filter(
-      (r) => r.academyId === academyId && r.date === date,
+      (r) => r.academyId === academyId && r.date === date && r.status === 'PRESENT',
     ).length;
   }
 
@@ -1028,6 +1051,16 @@ export class InMemoryFeeDueRepository implements FeeDueRepository {
     return Array.from(this.dues.values()).filter(
       (d) => d.academyId === academyId && (d.status === 'UPCOMING' || d.status === 'DUE'),
     );
+  }
+
+  async countUnpaidDuesGroupedByStudent(academyId: string): Promise<Record<string, number>> {
+    const counts: Record<string, number> = {};
+    for (const d of this.dues.values()) {
+      if (d.academyId === academyId && (d.status === 'UPCOMING' || d.status === 'DUE')) {
+        counts[d.studentId] = (counts[d.studentId] ?? 0) + 1;
+      }
+    }
+    return counts;
   }
 
   async sumUnpaidAmountByAcademy(academyId: string): Promise<number> {

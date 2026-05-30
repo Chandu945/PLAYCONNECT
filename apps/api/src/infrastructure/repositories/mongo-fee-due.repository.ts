@@ -225,6 +225,20 @@ export class MongoFeeDueRepository implements FeeDueRepository {
     return result[0]?.count ?? 0;
   }
 
+  async countUnpaidDuesGroupedByStudent(academyId: string): Promise<Record<string, number>> {
+    // One unpaid due == one unpaid month, so grouping by studentId and counting
+    // gives each student's total number of unpaid months across the academy.
+    const rows = await this.model
+      .aggregate<{ _id: string; count: number }>([
+        { $match: { academyId, status: { $in: ['UPCOMING', 'DUE'] } } },
+        { $group: { _id: '$studentId', count: { $sum: 1 } } },
+      ])
+      .exec();
+    const counts: Record<string, number> = {};
+    for (const row of rows) counts[row._id] = row.count;
+    return counts;
+  }
+
   async findUnpaidByDueDate(dueDate: string): Promise<FeeDue[]> {
     const docs = await this.model
       .find({ dueDate, status: { $in: ['UPCOMING', 'DUE'] } })

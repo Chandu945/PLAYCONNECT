@@ -131,6 +131,44 @@ describe('ListUnpaidDuesUseCase', () => {
     expect(result.value.items[0]?.studentName).toBe('Alive Student');
   });
 
+  it('includes the contact phone and the total unpaid-months count per row', async () => {
+    const userRepo = new InMemoryUserRepository();
+    const feeDueRepo = new InMemoryFeeDueRepository();
+    const academyRepo = new InMemoryAcademyRepository();
+    const studentRepo = new InMemoryStudentRepository();
+
+    await userRepo.save(createOwner());
+    await studentRepo.save(createStudent('s-alive', 'Alive Student'));
+    // Three unpaid months for the same student. We list only March, but the
+    // row should still report the full count (3) and the contact phone.
+    await feeDueRepo.save(createDue('s-alive', '2024-01'));
+    await feeDueRepo.save(createDue('s-alive', '2024-02'));
+    await feeDueRepo.save(createDue('s-alive', '2024-03'));
+
+    const uc = new ListUnpaidDuesUseCase(
+      userRepo,
+      feeDueRepo,
+      academyRepo,
+      fixedClock,
+      studentRepo,
+    );
+    const result = await uc.execute({
+      actorUserId: 'owner-1',
+      actorRole: 'OWNER',
+      month: '2024-03',
+      page: 1,
+      pageSize: 50,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.items).toHaveLength(1); // only March is listed
+    const row = result.value.items[0];
+    // No mobileNumber set → falls back to the guardian's mobile.
+    expect(row?.studentPhone).toBe('+919876543210');
+    expect(row?.unpaidMonthsCount).toBe(3); // Jan + Feb + Mar
+  });
+
   it('returns empty page when every student with dues has been deleted', async () => {
     const userRepo = new InMemoryUserRepository();
     const feeDueRepo = new InMemoryFeeDueRepository();

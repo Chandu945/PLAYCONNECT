@@ -122,16 +122,22 @@ export function ReceiptScreen() {
 
   const handleShare = useCallback(async () => {
     if (!receipt) return;
+    // receipt.amount is the gross collected (base fee + late fee). Show the
+    // base as "Fee Amount" and the late fee separately so they don't read as
+    // additive (e.g. ₹1,500 fee + ₹200 late = ₹1,700 paid, not ₹1,900).
+    const lateFee =
+      receipt.lateFeeApplied != null && receipt.lateFeeApplied > 0 ? receipt.lateFeeApplied : 0;
     const lines = [
       '--- Payment Receipt ---',
       `Receipt #: ${receipt.receiptNumber}`,
       `Student: ${receipt.studentName}`,
       `Academy: ${receipt.academyName}`,
       `Month: ${formatMonthKey(receipt.monthKey)}`,
-      `Fee Amount: ${formatCurrency(receipt.amount)}`,
+      `Fee Amount: ${formatCurrency(receipt.amount - lateFee)}`,
     ];
-    if (receipt.lateFeeApplied != null && receipt.lateFeeApplied > 0) {
-      lines.push(`Late Fee: ${formatCurrency(receipt.lateFeeApplied)}`);
+    if (lateFee > 0) {
+      lines.push(`Late Fee: ${formatCurrency(lateFee)}`);
+      lines.push(`Total Paid: ${formatCurrency(receipt.amount)}`);
     }
     lines.push(
       `Paid On: ${formatDateLong(receipt.paidAt)}`,
@@ -189,17 +195,26 @@ export function ReceiptScreen() {
         <ReceiptRow
           icon="currency-inr"
           label="Fee Amount"
-          value={formatCurrency(receipt.amount)}
+          value={formatCurrency(receipt.amount - (receipt.lateFeeApplied ?? 0))}
           valueColor={colors.success}
-          valueBold
+          valueBold={!(receipt.lateFeeApplied != null && receipt.lateFeeApplied > 0)}
         />
         {receipt.lateFeeApplied != null && receipt.lateFeeApplied > 0 && (
-          <ReceiptRow
-            icon="clock-alert-outline"
-            label="Late Fee"
-            value={formatCurrency(receipt.lateFeeApplied)}
-            valueColor={colors.danger}
-          />
+          <>
+            <ReceiptRow
+              icon="clock-alert-outline"
+              label="Late Fee"
+              value={formatCurrency(receipt.lateFeeApplied)}
+              valueColor={colors.danger}
+            />
+            <ReceiptRow
+              icon="cash-check"
+              label="Total Paid"
+              value={formatCurrency(receipt.amount)}
+              valueColor={colors.success}
+              valueBold
+            />
+          </>
         )}
         <ReceiptRow icon="calendar-check-outline" label="Paid On" value={formatDateLong(receipt.paidAt)} />
         <View style={[rowStyles.row, { borderBottomWidth: 0 }]}>

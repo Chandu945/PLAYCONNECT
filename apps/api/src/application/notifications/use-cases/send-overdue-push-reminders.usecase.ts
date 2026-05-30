@@ -1,13 +1,14 @@
 import type { FeeDueRepository } from '@domain/fee/ports/fee-due.repository';
 import type { StudentRepository } from '@domain/student/ports/student.repository';
 import type { ParentStudentLinkRepository } from '@domain/parent/ports/parent-student-link.repository';
+import type { AcademyRepository } from '@domain/academy/ports/academy.repository';
 import type { PushNotificationService } from '../push-notification.service';
 import type { LoggerPort } from '@shared/logging/logger.port';
 import type { ClockPort } from '../../common/clock.port';
 import type { Result } from '@shared/kernel';
 import { ok } from '@shared/kernel';
 import { formatLocalDate } from '@shared/date-utils';
-import { computeLateFee } from '@academyflo/contracts';
+import { buildLateFeeConfigFromAcademy, lateFeeForUnpaidDue } from '../../fee/common/late-fee';
 
 /** Minimal interface so we can accept QueueService without a hard dependency */
 interface NotificationQueuePort {
@@ -67,6 +68,7 @@ export class SendOverduePushRemindersUseCase {
     private readonly pushService: PushNotificationService,
     private readonly logger: LoggerPort,
     private readonly clock: ClockPort,
+    private readonly academyRepo: AcademyRepository,
     private readonly notificationQueue?: NotificationQueuePort,
   ) {}
 
@@ -103,6 +105,16 @@ export class SendOverduePushRemindersUseCase {
       return ok(summary);
     }
 
+    // Load each due's academy's LIVE late-fee config. The push must honor the
+    // owner's current late-fee toggle (kill-switch) — like the dashboard,
+    // reports, receipts, and pay flow — not the snapshot frozen on the due.
+    const academyIds = [...new Set(duesForToday.map((d) => d.academyId))];
+    const academies = await Promise.all(academyIds.map((id) => this.academyRepo.findById(id)));
+    const liveConfigByAcademy = new Map<string, ReturnType<typeof buildLateFeeConfigFromAcademy>>();
+    for (let i = 0; i < academyIds.length; i++) {
+      liveConfigByAcademy.set(academyIds[i]!, buildLateFeeConfigFromAcademy(academies[i]));
+    }
+
     // Collect unique student IDs and find their parent links
     const studentIds = [...new Set(duesForToday.map((d) => d.studentId))];
     const studentMap = new Map<string, string>();
@@ -137,29 +149,32 @@ export class SendOverduePushRemindersUseCase {
       const studentName = studentMap.get(due.studentId) ?? 'your child';
       const daysOverdue = diffDays(due.dueDate, today);
 
-      // Compute late fee if config snapshot exists
-      const lateFee = due.lateFeeConfigSnapshot
-        ? computeLateFee(due.dueDate, today, due.lateFeeConfigSnapshot)
-        : 0;
+      // Late fee respects the academy's LIVE late-fee toggle (kill-switch),
+      // not just the snapshot frozen on the due, so a disabled toggle zeroes it
+      // here exactly as it does on every screen, the receipt, and the pay flow.
+      const lateFee = lateFeeForUnpaidDue(due, liveConfigByAcademy.get(due.academyId), today);
       const safeAmount = Number(due.amount) || 0;
       const safeLateFee = Number(lateFee) || 0;
-      const lateFeeNote = safeLateFee > 0
-        ? ` A late fee of \u20B9${safeLateFee} has been added.`
-        : '';
+      const totalDue = safeAmount + safeLateFee;
+      // State the single TOTAL owed (with breakdown) so it matches the in-app
+      // "Pay now" amount; a parent reading the headline cannot underpay.
+      const amountText = safeLateFee > 0
+        ? `\u20B9${totalDue} (\u20B9${safeAmount} fee + \u20B9${safeLateFee} late fee)`
+        : `\u20B9${safeAmount}`;
 
       // Escalating tone as days pass — first ping is gentle, week-mark adds
       // urgency, two-week mark signals it's the last automated nudge.
       let body: string;
       if (daysOverdue === 0) {
-        body = `Fee of \u20B9${safeAmount} for ${studentName} (${formatMonthKey(due.monthKey)}) is due today. Please pay to avoid late fees.`;
+        body = `Fee of ${amountText} for ${studentName} (${formatMonthKey(due.monthKey)}) is due today. Please pay to avoid late fees.`;
       } else if (daysOverdue === 1) {
-        body = `Fee of \u20B9${safeAmount} for ${studentName} (${formatMonthKey(due.monthKey)}) was due yesterday. Please pay now.${lateFeeNote}`;
+        body = `Fee of ${amountText} for ${studentName} (${formatMonthKey(due.monthKey)}) was due yesterday. Please pay now.`;
       } else if (daysOverdue === 14) {
-        body = `Final reminder: fee of \u20B9${safeAmount} for ${studentName} (${formatMonthKey(due.monthKey)}) is overdue by 2 weeks.${lateFeeNote} Please pay immediately to avoid further action.`;
+        body = `Final reminder: fee of ${amountText} for ${studentName} (${formatMonthKey(due.monthKey)}) is overdue by 2 weeks. Please pay immediately to avoid further action.`;
       } else if (daysOverdue === 7) {
-        body = `Fee of \u20B9${safeAmount} for ${studentName} (${formatMonthKey(due.monthKey)}) has been overdue for a week.${lateFeeNote} Please pay now.`;
+        body = `Fee of ${amountText} for ${studentName} (${formatMonthKey(due.monthKey)}) has been overdue for a week. Please pay now.`;
       } else {
-        body = `Fee of \u20B9${safeAmount} for ${studentName} (${formatMonthKey(due.monthKey)}) is overdue by ${daysOverdue} days.${lateFeeNote} Please pay immediately.`;
+        body = `Fee of ${amountText} for ${studentName} (${formatMonthKey(due.monthKey)}) is overdue by ${daysOverdue} days. Please pay immediately.`;
       }
 
       const notificationPayload = {

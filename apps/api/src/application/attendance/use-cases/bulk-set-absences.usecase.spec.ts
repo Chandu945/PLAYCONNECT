@@ -121,7 +121,7 @@ function buildDeps(opts: { studentIds: string[]; currentPresentIds: string[] }) 
     scheduler,
   );
 
-  return { useCase, scheduler };
+  return { useCase, scheduler, attendanceRepo };
 }
 
 const INPUT_BASE = {
@@ -210,5 +210,62 @@ describe('BulkSetAbsencesUseCase — scheduler diff', () => {
 
     const result = await useCase.execute({ ...INPUT_BASE, absentStudentIds: ['s1'] });
     expect(result.ok).toBe(true);
+  });
+});
+
+describe('BulkSetAbsencesUseCase — write model (explicit ABSENT rows)', () => {
+  it('records absences as explicit ABSENT rows and never deletes', async () => {
+    const { useCase, attendanceRepo } = buildDeps({
+      studentIds: ['s1', 's2', 's3'],
+      currentPresentIds: ['s1', 's2', 's3'], // all currently PRESENT
+    });
+
+    const result = await useCase.execute({ ...INPUT_BASE, absentStudentIds: ['s1', 's2'] });
+
+    expect(result.ok).toBe(true);
+    // Absence is now a first-class ABSENT row — the dashboard counts ABSENT
+    // rows, so a delete (old behavior) silently read as PRESENT.
+    expect(attendanceRepo.deleteByAcademyStudentBatchDate).not.toHaveBeenCalled();
+    const saved = attendanceRepo.save.mock.calls.map((c) => c[0]);
+    const absentSaves = saved
+      .filter((r) => r.status === 'ABSENT')
+      .map((r) => r.studentId)
+      .sort();
+    expect(absentSaves).toEqual(['s1', 's2']);
+  });
+
+  it('flips a PRESENT student to ABSENT via an upserted ABSENT row (no delete)', async () => {
+    const { useCase, attendanceRepo } = buildDeps({
+      studentIds: ['s1', 's2'],
+      currentPresentIds: ['s1', 's2'],
+    });
+
+    await useCase.execute({ ...INPUT_BASE, absentStudentIds: ['s1'] });
+
+    const saved = attendanceRepo.save.mock.calls.map((c) => c[0]);
+    const s1 = saved.find((r) => r.studentId === 's1');
+    expect(s1?.status).toBe('ABSENT');
+    expect(attendanceRepo.deleteByAcademyStudentBatchDate).not.toHaveBeenCalled();
+  });
+
+  it('writes PRESENT rows for the rest of the roster while marking the absentee ABSENT', async () => {
+    const { useCase, attendanceRepo } = buildDeps({
+      studentIds: ['s1', 's2', 's3'],
+      currentPresentIds: [], // fresh roll
+    });
+
+    await useCase.execute({ ...INPUT_BASE, absentStudentIds: ['s2'] });
+
+    const saved = attendanceRepo.save.mock.calls.map((c) => c[0]);
+    const presentSaves = saved
+      .filter((r) => r.status === 'PRESENT')
+      .map((r) => r.studentId)
+      .sort();
+    const absentSaves = saved
+      .filter((r) => r.status === 'ABSENT')
+      .map((r) => r.studentId)
+      .sort();
+    expect(presentSaves).toEqual(['s1', 's3']);
+    expect(absentSaves).toEqual(['s2']);
   });
 });

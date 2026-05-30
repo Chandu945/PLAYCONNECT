@@ -39,7 +39,17 @@ async function attemptPost<T>(
 
     if (!res.ok) {
       const json = await res.json().catch(() => null);
-      return err(mapHttpError(res.status, json));
+      // Pass the Retry-After header so a rate-limited login/signup/reset shows
+      // the server's real cooldown (up to 15 min) instead of the hardcoded 30s
+      // fallback. Mirrors api-client.ts.
+      return err(
+        mapHttpError(
+          res.status,
+          json,
+          res.headers.get('retry-after'),
+          res.headers.get('x-request-id'),
+        ),
+      );
     }
 
     const json = (await res.json()) as { data: T };

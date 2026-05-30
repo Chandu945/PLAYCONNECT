@@ -3,6 +3,7 @@ import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { StudentRepository } from '@domain/student/ports/student.repository';
 import type { ParentStudentLinkRepository } from '@domain/parent/ports/parent-student-link.repository';
 import type { FeeDueRepository } from '@domain/fee/ports/fee-due.repository';
+import type { StudentBatchRepository } from '@domain/batch/ports/student-batch.repository';
 import type { TransactionPort } from '../../common/transaction.port';
 import { User } from '@domain/identity/entities/user.entity';
 import { Student } from '@domain/student/entities/student.entity';
@@ -385,6 +386,77 @@ describe('ChangeStudentStatusUseCase', () => {
       // Empty trim collapses to '' which is falsy — the audit context omits
       // the reason key rather than storing an empty string.
       expect(auditCall.context.reason).toBeUndefined();
+    });
+  });
+
+  describe('Option B: frees batch slots when leaving ACTIVE', () => {
+    function inactiveStudent(): Student {
+      return Student.reconstitute('student-1', {
+        ...(createStudent() as unknown as { props: Record<string, unknown> }).props,
+        status: 'INACTIVE',
+      } as never);
+    }
+
+    it.each(['INACTIVE', 'LEFT'] as const)(
+      "clears the student's batch enrollments on transition to %s",
+      async (status) => {
+        const { userRepo, studentRepo, parentLinkRepo, feeDueRepo, tx, auditRecorder } = buildDeps();
+        userRepo.findById.mockResolvedValue(createOwner());
+        studentRepo.findById.mockResolvedValue(createStudent());
+        const studentBatchRepo = {
+          replaceForStudent: jest.fn().mockResolvedValue(undefined),
+        } as unknown as jest.Mocked<StudentBatchRepository>;
+
+        const uc = new ChangeStudentStatusUseCase(
+          userRepo, studentRepo, auditRecorder, feeDueRepo, tx,
+          undefined, undefined, parentLinkRepo, undefined, studentBatchRepo,
+        );
+        const result = await uc.execute({
+          actorUserId: 'owner-1', actorRole: 'OWNER', studentId: 'student-1', status,
+        });
+
+        expect(result.ok).toBe(true);
+        expect(studentBatchRepo.replaceForStudent).toHaveBeenCalledWith('student-1', []);
+      },
+    );
+
+    it('does NOT clear enrollments when reactivating (→ ACTIVE)', async () => {
+      const { userRepo, studentRepo, parentLinkRepo, feeDueRepo, tx, auditRecorder } = buildDeps();
+      userRepo.findById.mockResolvedValue(createOwner());
+      studentRepo.findById.mockResolvedValue(inactiveStudent());
+      const studentBatchRepo = {
+        replaceForStudent: jest.fn().mockResolvedValue(undefined),
+      } as unknown as jest.Mocked<StudentBatchRepository>;
+
+      const uc = new ChangeStudentStatusUseCase(
+        userRepo, studentRepo, auditRecorder, feeDueRepo, tx,
+        undefined, undefined, parentLinkRepo, undefined, studentBatchRepo,
+      );
+      const result = await uc.execute({
+        actorUserId: 'owner-1', actorRole: 'OWNER', studentId: 'student-1', status: 'ACTIVE',
+      });
+
+      expect(result.ok).toBe(true);
+      expect(studentBatchRepo.replaceForStudent).not.toHaveBeenCalled();
+    });
+
+    it('hard-fails if leaving ACTIVE without a transaction (cleanup must be atomic)', async () => {
+      const { userRepo, studentRepo, parentLinkRepo, auditRecorder } = buildDeps();
+      userRepo.findById.mockResolvedValue(createOwner());
+      studentRepo.findById.mockResolvedValue(createStudent());
+      const studentBatchRepo = {
+        replaceForStudent: jest.fn(),
+      } as unknown as jest.Mocked<StudentBatchRepository>;
+
+      // Batch cleanup needed but no TransactionPort injected → must throw.
+      const uc = new ChangeStudentStatusUseCase(
+        userRepo, studentRepo, auditRecorder, undefined, undefined,
+        undefined, undefined, parentLinkRepo, undefined, studentBatchRepo,
+      );
+      await expect(
+        uc.execute({ actorUserId: 'owner-1', actorRole: 'OWNER', studentId: 'student-1', status: 'LEFT' }),
+      ).rejects.toThrow(/TransactionPort is required/);
+      expect(studentBatchRepo.replaceForStudent).not.toHaveBeenCalled();
     });
   });
 });

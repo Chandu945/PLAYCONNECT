@@ -216,26 +216,35 @@ export class BulkSetAbsencesUseCase {
       input.date,
     );
     const currentPresentSet = new Set(currentPresent.map((r) => r.studentId));
-    const targetPresentSet = new Set(shouldBePresentIds);
 
-    // Wrap delete+create in a transaction so a mid-flight failure doesn't leave
+    // Wrap the writes in a transaction so a mid-flight failure doesn't leave
     // the batch in a partial state.
     let didChange = false;
     const bulkOps = async () => {
-      // Delete present records for students no longer present.
-      for (const record of currentPresent) {
-        if (!targetPresentSet.has(record.studentId)) {
-          await this.attendanceRepo.deleteByAcademyStudentBatchDate(
-            academyId,
-            record.studentId,
-            input.batchId,
-            input.date,
-          );
-          didChange = true;
-        }
+      // Mark explicit absences. Previously this DELETED the present row, which
+      // left "no row" for an absent student — indistinguishable from a
+      // never-marked student and silently counted as PRESENT by the owner
+      // dashboard (which keys "absent" off explicit ABSENT rows). Writing an
+      // explicit ABSENT row makes absence a first-class signal every read path
+      // can trust. The save() upsert flips any existing PRESENT row on the
+      // same (academy, student, batch, date) to ABSENT without duplicates.
+      for (const studentId of uniqueAbsent) {
+        const record = StudentAttendance.create({
+          id: randomUUID(),
+          academyId,
+          studentId,
+          batchId: input.batchId,
+          date: input.date,
+          markedByUserId: input.actorUserId,
+          status: 'ABSENT',
+        });
+        await this.attendanceRepo.save(record);
+        didChange = true;
       }
 
-      // Insert missing present records.
+      // Insert/refresh PRESENT rows for students who should be present. The
+      // upsert flips any stale ABSENT row (a PRESENT → ABSENT → PRESENT toggle)
+      // back to PRESENT without creating a duplicate.
       for (const studentId of shouldBePresentIds) {
         if (!currentPresentSet.has(studentId)) {
           const record = StudentAttendance.create({

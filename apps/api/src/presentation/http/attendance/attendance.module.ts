@@ -211,12 +211,16 @@ import type { PushNotificationService } from '@application/notifications/push-no
         sr: StudentRepository,
         ar: StudentAttendanceRepository,
         hr: HolidayRepository,
-      ) => new GetDailyAttendanceReportUseCase(ur, sr, ar, hr),
+        sbr: StudentBatchRepository,
+        br: BatchRepository,
+      ) => new GetDailyAttendanceReportUseCase(ur, sr, ar, hr, sbr, br),
       inject: [
         USER_REPOSITORY,
         STUDENT_REPOSITORY,
         STUDENT_ATTENDANCE_REPOSITORY,
         HOLIDAY_REPOSITORY,
+        STUDENT_BATCH_REPOSITORY,
+        BATCH_REPOSITORY,
       ],
     },
     {

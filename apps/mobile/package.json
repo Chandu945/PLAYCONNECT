@@ -1,6 +1,6 @@
 {
   "name": "@academyflo/mobile",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "private": true,
   "description": "Academyflo Mobile — React Native (Owner + Staff)",
   "scripts": {

@@ -17,9 +17,13 @@ import type { ClockPort } from '../../common/clock.port';
 import { formatLocalDate } from '../../../shared/date-utils';
 import { buildLateFeeConfigFromAcademy } from '../common/late-fee';
 
-/** Project a Student entity down to the only field we need on this screen. */
-function toStudentName(s: Student): string {
-  return s.fullName;
+/** Project a Student entity down to the fields the unpaid-dues row needs: the
+ *  display name and a single contact phone (mobile → guardian → WhatsApp). */
+function toStudentRow(s: Student): { name: string; phone: string | null } {
+  return {
+    name: s.fullName,
+    phone: s.mobileNumber ?? s.guardian?.mobile ?? s.whatsappNumber ?? null,
+  };
 }
 
 export interface ListUnpaidDuesInput {
@@ -37,8 +41,15 @@ export interface ListUnpaidDuesInput {
   search?: string;
 }
 
+/** Unpaid-dues row = the shared fee-due DTO plus two list-specific fields:
+ *  the student's contact phone and their total number of unpaid months. */
+export interface UnpaidDueDto extends FeeDueDto {
+  studentPhone: string | null;
+  unpaidMonthsCount: number;
+}
+
 export interface ListUnpaidDuesOutput {
-  items: FeeDueDto[];
+  items: UnpaidDueDto[];
   meta: { page: number; pageSize: number; total: number; totalPages: number };
 }
 
@@ -61,12 +72,15 @@ export class ListUnpaidDuesUseCase {
     const user = await this.userRepo.findById(input.actorUserId);
     if (!user || !user.academyId) return err(FeeErrors.academyRequired());
 
-    const [dues, academy] = await Promise.all([
+    const [dues, academy, unpaidCountsByStudent] = await Promise.all([
       this.feeDueRepo.listByAcademyMonthAndStatuses(user.academyId, input.month, [
         'UPCOMING',
         'DUE',
       ]),
       this.academyRepo.findById(user.academyId),
+      // Per-student total unpaid months across ALL months (not just
+      // `input.month`), so each row can show "N months due".
+      this.feeDueRepo.countUnpaidDuesGroupedByStudent(user.academyId),
     ]);
 
     const today = formatLocalDate(this.clock.now());
@@ -79,12 +93,12 @@ export class ListUnpaidDuesUseCase {
     // filters deletedAt:null at the DB layer, so the returned set is the
     // alive-students subset; everything else is treated as deleted.
     let filteredDues = dues;
-    let aliveStudentsById = new Map<string, ReturnType<typeof toStudentName>>();
+    let aliveStudentsById = new Map<string, ReturnType<typeof toStudentRow>>();
     if (this.studentRepo && dues.length > 0) {
       const uniqueIds = [...new Set(dues.map((d) => d.studentId))];
       const aliveStudents = await this.studentRepo.findByIds(uniqueIds);
       aliveStudentsById = new Map(
-        aliveStudents.map((s) => [s.id.toString(), toStudentName(s)]),
+        aliveStudents.map((s) => [s.id.toString(), toStudentRow(s)]),
       );
       filteredDues = dues.filter((d) => aliveStudentsById.has(d.studentId));
     }
@@ -112,21 +126,22 @@ export class ListUnpaidDuesUseCase {
       filteredDues = filteredDues.filter((d) => matchedIds.has(d.studentId));
     }
 
-    // Build student name map. We already fetched alive students above —
-    // reuse that result so the page-slice loop doesn't re-query.
     const total = filteredDues.length;
     const { page, pageSize } = input;
     const start = (page - 1) * pageSize;
     const paged = filteredDues.slice(start, start + pageSize);
 
-    const nameMap: Record<string, string> = {};
-    for (const d of paged) {
-      const name = aliveStudentsById.get(d.studentId);
-      if (name) nameMap[d.studentId] = name;
-    }
-
+    // Each row reuses the alive-students projection fetched above (name +
+    // phone) and the academy-wide unpaid-month counts — no per-row re-query.
     return ok({
-      items: paged.map((d) => toFeeDueDto(d, config, today, nameMap[d.studentId])),
+      items: paged.map((d) => {
+        const row = aliveStudentsById.get(d.studentId);
+        return {
+          ...toFeeDueDto(d, config, today, row?.name),
+          studentPhone: row?.phone ?? null,
+          unpaidMonthsCount: unpaidCountsByStudent[d.studentId] ?? 0,
+        };
+      }),
       meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) || 1 },
     });
   }

@@ -5,6 +5,7 @@ import { Student } from '@domain/student/entities/student.entity';
 import type { StudentRepository } from '@domain/student/ports/student.repository';
 import type { UserRepository } from '@domain/identity/ports/user.repository';
 import type { ParentStudentLinkRepository } from '@domain/parent/ports/parent-student-link.repository';
+import type { StudentBatchRepository } from '@domain/batch/ports/student-batch.repository';
 import {
   canChangeStudentStatus,
   validateStatusChangeReason,
@@ -58,6 +59,13 @@ export class ChangeStudentStatusUseCase {
      * the status change.
      */
     private readonly pushService?: PushNotificationService,
+    /**
+     * Clears the student's batch enrollments when they leave ACTIVE status
+     * (INACTIVE/LEFT), freeing their slot so a batch's enrolled count stays
+     * consistent with its active-only roster. Optional so legacy fixtures keep
+     * working — without it the enrollments are left in place.
+     */
+    private readonly studentBatchRepo?: StudentBatchRepository,
   ) {}
 
   async execute(
@@ -138,18 +146,24 @@ export class ChangeStudentStatusUseCase {
       softDelete: student.softDelete,
     });
 
-    const needsFeeCleanup =
-      (input.status === 'INACTIVE' || input.status === 'LEFT') && this.feeDueRepo;
+    const isLeavingActive = input.status === 'INACTIVE' || input.status === 'LEFT';
+    const needsFeeCleanup = isLeavingActive && this.feeDueRepo;
+    // Free the student's batch slots when they leave ACTIVE status, mirroring
+    // soft-delete. Keeps the enrolled count (used for capacity) consistent with
+    // the active-only roster, so a batch isn't wrongly "full" of inactive
+    // students. A reactivated student must be re-assigned to batches.
+    const needsBatchCleanup = isLeavingActive && this.studentBatchRepo;
 
-    // SAFETY: If fee cleanup is needed, a transaction is required to keep
-    // student status and fee-due deletion atomic. Without a transaction,
-    // a failure after save but before delete (or vice-versa) leaves data
-    // inconsistent. We previously warned and proceeded — that risked silent
-    // data corruption in production. Now we hard-fail so the misconfiguration
-    // is caught at the request boundary, not days later via a stale dashboard.
-    if (needsFeeCleanup && !this.transaction) {
+    // SAFETY: If fee or batch cleanup is needed, a transaction is required to
+    // keep the student status change and the cascading deletes atomic. Without
+    // a transaction, a failure after save but before delete (or vice-versa)
+    // leaves data inconsistent. We previously warned and proceeded — that
+    // risked silent data corruption in production. Now we hard-fail so the
+    // misconfiguration is caught at the request boundary, not days later via a
+    // stale dashboard.
+    if ((needsFeeCleanup || needsBatchCleanup) && !this.transaction) {
       throw new Error(
-        '[ChangeStudentStatusUseCase] TransactionPort is required when changing status to INACTIVE/LEFT (fee cleanup must be atomic). Inject TransactionPort.',
+        '[ChangeStudentStatusUseCase] TransactionPort is required when changing status to INACTIVE/LEFT (fee + batch cleanup must be atomic). Inject TransactionPort.',
       );
     }
 
@@ -164,6 +178,11 @@ export class ChangeStudentStatusUseCase {
 
       if (needsFeeCleanup) {
         deletedDues = await this.feeDueRepo!.deleteUpcomingByStudent(academyId, input.studentId);
+      }
+
+      if (needsBatchCleanup) {
+        // Empty assignment list = remove all of this student's batch rows.
+        await this.studentBatchRepo!.replaceForStudent(input.studentId, []);
       }
     };
 

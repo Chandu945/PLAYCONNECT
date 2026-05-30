@@ -1,4 +1,5 @@
 import type { LateFeeConfig, LateFeeRepeatInterval } from '@academyflo/contracts';
+import { computeLateFee } from '@academyflo/contracts';
 
 /**
  * Minimal shape of an Academy that provides live late-fee config fields.
@@ -56,4 +57,23 @@ export function buildEffectiveLateFeeConfig(
 ): LateFeeConfig | undefined {
   if (!liveConfig) return undefined;
   return snapshot ?? liveConfig;
+}
+
+/**
+ * Late fee currently owed on a single unpaid (UPCOMING/DUE) fee due — honoring
+ * the snapshot + the live "enabled" kill-switch (L1). Returns 0 when late fee is
+ * disabled or none has accrued yet. Pass `liveConfig` from
+ * buildLateFeeConfigFromAcademy and `todayStr` from formatLocalDate(clock.now()).
+ * Centralizes the per-due late-fee math the dashboard, month-wise report, and
+ * parent views already use, so the dues reports agree with them.
+ */
+export function lateFeeForUnpaidDue(
+  due: { dueDate: string; lateFeeConfigSnapshot: LateFeeConfig | null },
+  liveConfig: LateFeeConfig | undefined,
+  todayStr: string,
+): number {
+  const effectiveConfig = buildEffectiveLateFeeConfig(due.lateFeeConfigSnapshot, liveConfig);
+  if (!effectiveConfig) return 0;
+  const computed = computeLateFee(due.dueDate, todayStr, effectiveConfig);
+  return Number.isFinite(computed) ? computed : 0;
 }

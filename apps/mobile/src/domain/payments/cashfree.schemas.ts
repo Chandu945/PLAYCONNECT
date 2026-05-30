@@ -60,4 +60,9 @@ export const subscriptionInfoSchema = z.object({
   requiredTierKey: tierKeySchema,
   pendingTierChange: pendingTierChangeSchema.nullable(),
   tiers: z.array(tierPricingSchema),
+  // Server-authoritative PENDING Cashfree order id; the screen uses it to resume
+  // polling after an app kill / network drop mid-checkout. Without this key Zod
+  // strips the field and resume-after-kill silently never fires. Optional so a
+  // lagging API still parses (consumers treat a missing value as null).
+  pendingPaymentOrderId: z.string().nullable().optional(),
 });

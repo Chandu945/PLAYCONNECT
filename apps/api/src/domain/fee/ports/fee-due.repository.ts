@@ -52,6 +52,12 @@ export interface FeeDueRepository {
     academyId: string,
     monthKey: string,
   ): Promise<number>;
+  /**
+   * DB-side count of unpaid dues (UPCOMING + DUE) grouped by student, across
+   * ALL months. Returns a studentId → count map. Used by the unpaid dues list
+   * to show each student's total number of unpaid months.
+   */
+  countUnpaidDuesGroupedByStudent(academyId: string): Promise<Record<string, number>>;
   findUnpaidByDueDate(dueDate: string): Promise<FeeDue[]>;
   findOverdueDues(upToDate: string): Promise<FeeDue[]>;
   findDueWithoutSnapshot(academyId: string): Promise<FeeDue[]>;

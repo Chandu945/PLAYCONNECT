@@ -30,6 +30,10 @@ export const studentWiseDueItemSchema = z.object({
   studentName: z.string(),
   monthKey: z.string(),
   amount: z.number(),
+  // Optional so an un-redeployed API (without late-fee fields) still parses;
+  // consumers treat a missing value as 0.
+  lateFee: z.number().optional(),
+  totalPayable: z.number().optional(),
   status: z.string(),
   pendingMonthsCount: z.number(),
   totalPendingAmount: z.number(),

@@ -57,13 +57,15 @@ export class GenerateStudentReportUseCase {
     // keyed by (student, batch, date) — count distinct dates so a two-batch
     // student isn't double-counted in the report.
     const months = this.getMonthRange(fromMonth, toMonth);
-    const attendanceByMonth: { month: string; absentCount: number }[] = [];
+    const attendanceByMonth: { month: string; presentCount: number }[] = [];
     for (const month of months) {
       const records = await this.attendanceRepo.findPresentByAcademyStudentAndMonth(
         actor.academyId, input.studentId, month,
       );
       const distinctPresentDates = new Set(records.map((r) => r.date)).size;
-      attendanceByMonth.push({ month, absentCount: distinctPresentDates });
+      // This is the count of days the student was PRESENT (attendance is stored
+      // as present-only records). It is reported under a "Present Days" column.
+      attendanceByMonth.push({ month, presentCount: distinctPresentDates });
     }
 
     try {
@@ -106,14 +108,14 @@ export class GenerateStudentReportUseCase {
         // Table header
         const tableTop = doc.y;
         doc.text('Month', 50, tableTop, { width: 150 });
-        doc.text('Absent Days', 200, tableTop, { width: 100 });
+        doc.text('Present Days', 200, tableTop, { width: 100 });
         doc.moveDown(0.3);
         doc.moveTo(50, doc.y).lineTo(350, doc.y).stroke();
         doc.moveDown(0.2);
         for (const row of attendanceByMonth) {
           const y = doc.y;
           doc.text(row.month, 50, y, { width: 150 });
-          doc.text(String(row.absentCount), 200, y, { width: 100 });
+          doc.text(String(row.presentCount), 200, y, { width: 100 });
           doc.moveDown(0.3);
         }
       }

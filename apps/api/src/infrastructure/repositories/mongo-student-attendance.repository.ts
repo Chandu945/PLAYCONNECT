@@ -103,6 +103,20 @@ export class MongoStudentAttendanceRepository implements StudentAttendanceReposi
     return docs.map((doc) => this.toDomain(doc as unknown as Record<string, unknown>));
   }
 
+  async findAbsentByAcademyAndDate(
+    academyId: string,
+    date: string,
+  ): Promise<StudentAttendance[]> {
+    // Mirror of findPresentByAcademyAndDate for the default-present daily
+    // report. Returns explicit ABSENT rows (with batchId) so the use case can
+    // apply the "absent in every scheduled batch" day-level rule.
+    const docs = await this.model
+      .find({ academyId, date, status: 'ABSENT' })
+      .lean()
+      .exec();
+    return docs.map((doc) => this.toDomain(doc as unknown as Record<string, unknown>));
+  }
+
   async findPresentByAcademyStudentAndMonth(
     academyId: string,
     studentId: string,
@@ -114,6 +128,23 @@ export class MongoStudentAttendanceRepository implements StudentAttendanceReposi
         studentId,
         date: { $regex: `^${escapeRegex(monthPrefix)}` },
         status: 'PRESENT',
+      })
+      .lean()
+      .exec();
+    return docs.map((doc) => this.toDomain(doc as unknown as Record<string, unknown>));
+  }
+
+  async findAbsentByAcademyStudentAndMonth(
+    academyId: string,
+    studentId: string,
+    monthPrefix: string,
+  ): Promise<StudentAttendance[]> {
+    const docs = await this.model
+      .find({
+        academyId,
+        studentId,
+        date: { $regex: `^${escapeRegex(monthPrefix)}` },
+        status: 'ABSENT',
       })
       .lean()
       .exec();

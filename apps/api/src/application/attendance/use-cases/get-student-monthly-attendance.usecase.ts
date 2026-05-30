@@ -66,8 +66,8 @@ export class GetStudentMonthlyAttendanceUseCase {
       return err(AttendanceErrors.studentNotInAcademy());
     }
 
-    const [presentRecords, holidays, enrollments] = await Promise.all([
-      this.attendanceRepo.findPresentByAcademyStudentAndMonth(
+    const [absentRecords, holidays, enrollments] = await Promise.all([
+      this.attendanceRepo.findAbsentByAcademyStudentAndMonth(
         actor.academyId,
         input.studentId,
         input.month,
@@ -81,13 +81,15 @@ export class GetStudentMonthlyAttendanceUseCase {
     const batches =
       studentBatchIds.length > 0 ? await this.batchRepo.findByIds(studentBatchIds) : [];
 
-    // Group present records by batch for per-batch breakdown.
-    const presentByBatch = new Map<string, Set<string>>();
-    for (const record of presentRecords) {
-      let set = presentByBatch.get(record.batchId);
+    // Group ABSENT records by batch for the per-batch breakdown. Default-
+    // present: a scheduled date is absent only when explicitly marked ABSENT;
+    // every other scheduled date (unmarked or present) counts as present.
+    const absentByBatch = new Map<string, Set<string>>();
+    for (const record of absentRecords) {
+      let set = absentByBatch.get(record.batchId);
       if (!set) {
         set = new Set<string>();
-        presentByBatch.set(record.batchId, set);
+        absentByBatch.set(record.batchId, set);
       }
       set.add(record.date);
     }
@@ -110,7 +112,7 @@ export class GetStudentMonthlyAttendanceUseCase {
     let totalExpected = 0;
     let totalPresent = 0;
     const expectedBatchesByDate = new Map<string, Set<string>>();
-    const presentBatchesByDate = new Map<string, Set<string>>();
+    const absentBatchesByDate = new Map<string, Set<string>>();
     const perBatch: StudentBatchAttendanceBreakdown[] = batches.map((batch) => {
       const batchId = batch.id.toString();
       const enrolStart = enrolStartByBatch.get(batchId) ?? studentEffectiveStart;
@@ -120,9 +122,9 @@ export class GetStudentMonthlyAttendanceUseCase {
         holidayDates,
         today,
       ).filter((d) => d >= enrolStart);
-      const presentSet = presentByBatch.get(batchId) ?? new Set<string>();
-      const presentDates = expectedDates.filter((d) => presentSet.has(d));
-      const absentDates = expectedDates.filter((d) => !presentSet.has(d));
+      const absentSet = absentByBatch.get(batchId) ?? new Set<string>();
+      const absentDates = expectedDates.filter((d) => absentSet.has(d));
+      const presentDates = expectedDates.filter((d) => !absentSet.has(d));
       for (const d of expectedDates) {
         let set = expectedBatchesByDate.get(d);
         if (!set) {
@@ -131,11 +133,11 @@ export class GetStudentMonthlyAttendanceUseCase {
         }
         set.add(batchId);
       }
-      for (const d of presentDates) {
-        let set = presentBatchesByDate.get(d);
+      for (const d of absentDates) {
+        let set = absentBatchesByDate.get(d);
         if (!set) {
           set = new Set();
-          presentBatchesByDate.set(d, set);
+          absentBatchesByDate.set(d, set);
         }
         set.add(batchId);
       }
@@ -152,18 +154,24 @@ export class GetStudentMonthlyAttendanceUseCase {
     });
 
     // Day-level aggregates — the user-facing "how is this student doing".
+    // Default-present: a day is absent only when the student is marked ABSENT
+    // in EVERY batch scheduled that day. A day with at least one non-absent
+    // (unmarked or present) batch counts as present; if some — but not all —
+    // of the day's batches are absent, it's a partial day.
     let presentDays = 0;
     let absentDays = 0;
     let partialDays = 0;
     const dayAbsentDates: string[] = [];
     for (const [date, expectedBatches] of expectedBatchesByDate) {
-      const presentBatches = presentBatchesByDate.get(date);
-      if (!presentBatches || presentBatches.size === 0) {
+      const absentBatches = absentBatchesByDate.get(date);
+      const absentInAll =
+        absentBatches !== undefined && absentBatches.size >= expectedBatches.size;
+      if (absentInAll) {
         absentDays++;
         dayAbsentDates.push(date);
       } else {
         presentDays++;
-        if (presentBatches.size < expectedBatches.size) partialDays++;
+        if (absentBatches !== undefined && absentBatches.size > 0) partialDays++;
       }
     }
     const expectedDays = expectedBatchesByDate.size;

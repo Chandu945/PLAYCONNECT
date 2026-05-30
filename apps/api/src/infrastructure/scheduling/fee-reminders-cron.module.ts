@@ -106,6 +106,7 @@ import type { ClockPort } from '@application/common/clock.port';
         pushService: PushNotificationService,
         logger: LoggerPort,
         clock: ClockPort,
+        academyRepo: AcademyRepository,
         queueService: QueueService,
       ) =>
         new SendOverduePushRemindersUseCase(
@@ -115,6 +116,7 @@ import type { ClockPort } from '@application/common/clock.port';
           pushService,
           logger,
           clock,
+          academyRepo,
           queueService,
         ),
       inject: [
@@ -124,6 +126,7 @@ import type { ClockPort } from '@application/common/clock.port';
         PUSH_NOTIFICATION_SERVICE,
         LOGGER_PORT,
         CLOCK_PORT,
+        ACADEMY_REPOSITORY,
         QueueService,
       ],
     },

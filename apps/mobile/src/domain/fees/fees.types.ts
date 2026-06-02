@@ -27,4 +27,8 @@ export type FeeDueItem = {
   /** Total number of unpaid months this student owes across all months
    *  (unpaid-dues list only). Lets each row show "N months due". */
   unpaidMonthsCount?: number;
+  /** Total amount owed across ALL unpaid months (base + live late fee),
+   *  unpaid-dues list only. Lets the row show the real total, not just the
+   *  listed month's due. */
+  studentTotalOutstanding?: number;
 };

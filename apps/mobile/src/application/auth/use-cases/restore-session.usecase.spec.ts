@@ -66,7 +66,11 @@ describe('restoreSessionUseCase', () => {
     expect(mockTryRefresh).toHaveBeenCalledTimes(1);
   });
 
-  it('clears session on refresh failure', async () => {
+  it('returns unauthenticated on refresh failure WITHOUT destroying the session', async () => {
+    // Revocation is owned by tryRefresh: it clears the session only on a
+    // definitive server revoke (401/403) and preserves it on a transient
+    // failure. restore-session must NOT clear it here, so a network hiccup at
+    // launch never forces a re-login — the session is restored on reconnect.
     const deps = makeDeps();
     (deps.tokenStore.getSession as jest.Mock).mockResolvedValue({
       refreshToken: 'expired-refresh',
@@ -80,6 +84,20 @@ describe('restoreSessionUseCase', () => {
     if (!result.ok) {
       expect(result.error.code).toBe('UNAUTHORIZED');
     }
+    expect(deps.tokenStore.clearSession).not.toHaveBeenCalled();
+  });
+
+  it('clears the session when the stored account status is INACTIVE', async () => {
+    const deps = makeDeps();
+    (deps.tokenStore.getSession as jest.Mock).mockResolvedValue({
+      refreshToken: 'r',
+      user: { ...storedUser, status: 'INACTIVE' as const },
+    });
+    mockTryRefresh.mockResolvedValue('new-access');
+
+    const result = await restoreSessionUseCase(deps);
+
+    expect(result.ok).toBe(false);
     expect(deps.tokenStore.clearSession).toHaveBeenCalled();
   });
 

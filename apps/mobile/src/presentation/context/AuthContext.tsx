@@ -250,7 +250,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .then(async (result) => {
             if (!mountedRef.current) return;
             if (!result.ok) {
-              setState({ phase: 'unauthenticated', user: null, subscription: null, forceUpdate: null, sessionExpired: true });
+              // Only sign the user out if the session was actually revoked.
+              // restore-session/tryRefresh clear the stored session ONLY on a
+              // definitive server revoke; on a transient failure (offline / 5xx)
+              // the session is preserved — keep the user signed in and just drop
+              // the stale access token so a later call retries the refresh.
+              const session = await tokenStore.getSession();
+              if (!session) {
+                setState({ phase: 'unauthenticated', user: null, subscription: null, forceUpdate: null, sessionExpired: true });
+              } else {
+                accessTokenStore.set(null);
+              }
               return;
             }
             if (state.user) {

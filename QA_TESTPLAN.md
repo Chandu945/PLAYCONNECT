@@ -565,7 +565,8 @@ This phase exists because a tenant leak = production blocker.
 - [ ] **STEP** Drop JWT signature byte → 401
 - [ ] **STEP** Swap algorithm to `none` (classic attack) → 401
 - [ ] **STEP** Expired JWT → 401; refresh flow issues new pair
-- [ ] **STEP** Refresh token reuse after rotation → all sessions revoked (token theft defense)
+- [ ] **STEP** Re-present the just-rotated (now-previous) refresh token once within ~60s → honoured (one-shot rotation grace tolerates a lost rotation response)
+- [ ] **STEP** Re-present that token again, or any older token, or after the grace window → session revoked (token theft / fork defense)
 
 ### 20.2 Authorization (RBAC)
 

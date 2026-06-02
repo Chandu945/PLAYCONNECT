@@ -23,6 +23,8 @@ export class MongoSessionRepository implements SessionRepository {
           expiresAt: session.expiresAt,
           revokedAt: null,
           lastRotatedAt: null,
+          previousRefreshTokenHash: null,
+          previousRefreshTokenExpiresAt: null,
         },
         $setOnInsert: {
           _id: session.id.toString(),
@@ -59,20 +61,33 @@ export class MongoSessionRepository implements SessionRepository {
     );
   }
 
-  async updateRefreshToken(sessionId: string, newHash: string, expiresAt: Date, expectedCurrentHash?: string): Promise<boolean> {
+  async updateRefreshToken(
+    sessionId: string,
+    newHash: string,
+    expiresAt: Date,
+    expectedCurrentHash?: string,
+    previousHashGraceUntil?: Date,
+  ): Promise<boolean> {
     const filter: Record<string, unknown> = { _id: sessionId };
     if (expectedCurrentHash) {
       filter['refreshTokenHash'] = expectedCurrentHash;
     }
+    // Carry the outgoing hash into the grace window so a retried (lost-response)
+    // refresh is accepted rather than treated as reuse — but ONLY when a grace
+    // instant is supplied (a normal rotation). When it isn't (a grace-path
+    // redemption), CLEAR the previous slot so the just-redeemed token can't be
+    // replayed and a fork is detected as reuse on the next rotation.
+    const set: Record<string, unknown> = {
+      refreshTokenHash: newHash,
+      expiresAt,
+      lastRotatedAt: new Date(),
+      previousRefreshTokenHash:
+        previousHashGraceUntil && expectedCurrentHash ? expectedCurrentHash : null,
+      previousRefreshTokenExpiresAt: previousHashGraceUntil ?? null,
+    };
     const result = await this.model.updateOne(
       filter,
-      {
-        $set: {
-          refreshTokenHash: newHash,
-          expiresAt,
-          lastRotatedAt: new Date(),
-        },
-      },
+      { $set: set },
       { session: getTransactionSession() },
     );
     return result.modifiedCount > 0;
@@ -99,6 +114,8 @@ export class MongoSessionRepository implements SessionRepository {
       expiresAt: Date;
       revokedAt: Date | null;
       lastRotatedAt: Date | null;
+      previousRefreshTokenHash?: string | null;
+      previousRefreshTokenExpiresAt?: Date | null;
     };
 
     return Session.reconstitute(String(d._id), {
@@ -109,6 +126,8 @@ export class MongoSessionRepository implements SessionRepository {
       expiresAt: d.expiresAt,
       revokedAt: d.revokedAt,
       lastRotatedAt: d.lastRotatedAt,
+      previousRefreshTokenHash: d.previousRefreshTokenHash ?? null,
+      previousRefreshTokenExpiresAt: d.previousRefreshTokenExpiresAt ?? null,
     });
   }
 }

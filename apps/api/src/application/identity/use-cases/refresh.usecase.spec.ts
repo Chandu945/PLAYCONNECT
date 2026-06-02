@@ -5,7 +5,12 @@ import type { TokenService } from '../ports/token-service.port';
 import { Session } from '@domain/identity/entities/session.entity';
 import { User } from '@domain/identity/entities/user.entity';
 
-function createMockSession(overrides?: { revokedAt?: Date; expiresAt?: Date }): Session {
+function createMockSession(overrides?: {
+  revokedAt?: Date;
+  expiresAt?: Date;
+  previousRefreshTokenHash?: string | null;
+  previousRefreshTokenExpiresAt?: Date | null;
+}): Session {
   return Session.reconstitute('session-1', {
     userId: 'user-1',
     deviceId: 'device-1',
@@ -14,6 +19,8 @@ function createMockSession(overrides?: { revokedAt?: Date; expiresAt?: Date }): 
     expiresAt: overrides?.expiresAt ?? new Date(Date.now() + 86400000),
     revokedAt: overrides?.revokedAt ?? null,
     lastRotatedAt: null,
+    previousRefreshTokenHash: overrides?.previousRefreshTokenHash ?? null,
+    previousRefreshTokenExpiresAt: overrides?.previousRefreshTokenExpiresAt ?? null,
   });
 }
 
@@ -67,13 +74,12 @@ function buildDeps() {
 }
 
 describe('RefreshUseCase', () => {
-  it('should rotate refresh token and return new tokens', async () => {
+  it('should rotate refresh token and return new tokens (carrying a grace window)', async () => {
     const { sessionRepo, userRepo, tokenService } = buildDeps();
     sessionRepo.findActiveByDeviceId.mockResolvedValue(createMockSession());
     sessionRepo.updateRefreshToken.mockResolvedValue(true);
     tokenService.compareRefreshToken.mockReturnValue(true);
     userRepo.findById.mockResolvedValue(createMockUser());
-    userRepo.incrementTokenVersionByUserId.mockResolvedValue(true);
 
     const uc = new RefreshUseCase(sessionRepo, userRepo, tokenService);
     const result = await uc.execute({
@@ -87,22 +93,109 @@ describe('RefreshUseCase', () => {
       expect(result.value.accessToken).toBe('new-access');
       expect(result.value.refreshToken).toBe('new-refresh');
     }
+    // Rotation CAS on the current hash + a grace expiry passed for the old hash.
     expect(sessionRepo.updateRefreshToken).toHaveBeenCalledWith(
       'session-1',
       'new-hash',
       expect.any(Date),
       'stored-hash',
+      expect.any(Date),
     );
-    expect(userRepo.incrementTokenVersionByUserId).toHaveBeenCalledWith(expect.any(String), 0);
   });
 
-  it('should fail when tokenVersion CAS fails (race condition)', async () => {
+  it('does NOT bump tokenVersion on routine refresh and re-issues at the same version', async () => {
+    // Regression guard for the "Token revoked" thrash: routine refresh must not
+    // increment the per-user tokenVersion (which would invalidate other devices'
+    // and concurrent requests' still-valid access tokens). The new access token
+    // must carry the user's CURRENT tokenVersion unchanged.
     const { sessionRepo, userRepo, tokenService } = buildDeps();
     sessionRepo.findActiveByDeviceId.mockResolvedValue(createMockSession());
     sessionRepo.updateRefreshToken.mockResolvedValue(true);
     tokenService.compareRefreshToken.mockReturnValue(true);
     userRepo.findById.mockResolvedValue(createMockUser());
-    userRepo.incrementTokenVersionByUserId.mockResolvedValue(false);
+
+    const uc = new RefreshUseCase(sessionRepo, userRepo, tokenService);
+    const result = await uc.execute({
+      refreshToken: 'old-refresh',
+      deviceId: 'device-1',
+      userId: 'user-1',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(userRepo.incrementTokenVersionByUserId).not.toHaveBeenCalled();
+    expect(tokenService.generateAccessToken).toHaveBeenCalledWith(
+      expect.objectContaining({ tokenVersion: 0 }),
+    );
+  });
+
+  it('accepts the previous refresh token within the rotation grace window (lost-response retry)', async () => {
+    // A dropped rotation response leaves the client holding its prior token.
+    // Re-presenting it within the grace window must succeed (NOT be treated as
+    // reuse) so the user is not force-logged-out by a network hiccup.
+    const { sessionRepo, userRepo, tokenService } = buildDeps();
+    sessionRepo.findActiveByDeviceId.mockResolvedValue(
+      createMockSession({
+        previousRefreshTokenHash: 'prev-hash',
+        previousRefreshTokenExpiresAt: new Date(Date.now() + 30_000),
+      }),
+    );
+    sessionRepo.updateRefreshToken.mockResolvedValue(true);
+    // Current hash does NOT match; previous hash (within grace) DOES.
+    tokenService.compareRefreshToken.mockReturnValueOnce(false).mockReturnValueOnce(true);
+    userRepo.findById.mockResolvedValue(createMockUser());
+
+    const uc = new RefreshUseCase(sessionRepo, userRepo, tokenService);
+    const result = await uc.execute({
+      refreshToken: 'previous-refresh',
+      deviceId: 'device-1',
+      userId: 'user-1',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(sessionRepo.revokeByUserAndDevice).not.toHaveBeenCalled();
+    // One-shot grace: a grace-path redemption rotates WITHOUT re-arming the
+    // window (5th arg undefined), so the just-redeemed token cannot be replayed
+    // and a forked lineage is detected as reuse on the next rotation.
+    expect(sessionRepo.updateRefreshToken).toHaveBeenCalledWith(
+      'session-1',
+      'new-hash',
+      expect.any(Date),
+      'stored-hash',
+      undefined,
+    );
+  });
+
+  it('revokes when the previous token is presented AFTER the grace window (reuse/theft)', async () => {
+    const { sessionRepo, userRepo, tokenService } = buildDeps();
+    sessionRepo.findActiveByDeviceId.mockResolvedValue(
+      createMockSession({
+        previousRefreshTokenHash: 'prev-hash',
+        previousRefreshTokenExpiresAt: new Date(Date.now() - 1_000), // grace expired
+      }),
+    );
+    // Neither current nor (expired) previous is honoured.
+    tokenService.compareRefreshToken.mockReturnValue(false);
+
+    const uc = new RefreshUseCase(sessionRepo, userRepo, tokenService);
+    const result = await uc.execute({
+      refreshToken: 'previous-refresh',
+      deviceId: 'device-1',
+      userId: 'user-1',
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('UNAUTHORIZED');
+    }
+    expect(sessionRepo.revokeByUserAndDevice).toHaveBeenCalled();
+  });
+
+  it('should fail when session rotation CAS fails (concurrent rotation)', async () => {
+    const { sessionRepo, userRepo, tokenService } = buildDeps();
+    sessionRepo.findActiveByDeviceId.mockResolvedValue(createMockSession());
+    tokenService.compareRefreshToken.mockReturnValue(true);
+    sessionRepo.updateRefreshToken.mockResolvedValue(false); // another request rotated first
+    userRepo.findById.mockResolvedValue(createMockUser());
 
     const uc = new RefreshUseCase(sessionRepo, userRepo, tokenService);
     const result = await uc.execute({
@@ -196,7 +289,6 @@ describe('RefreshUseCase', () => {
     sessionRepo.findActiveByDeviceId.mockResolvedValue(createMockSession());
     tokenService.compareRefreshToken.mockReturnValue(true);
     sessionRepo.updateRefreshToken.mockResolvedValue(true);
-    userRepo.incrementTokenVersionByUserId.mockResolvedValue(true);
 
     const inactiveUser = User.reconstitute('user-1', {
       ...createMockUser()['props'],

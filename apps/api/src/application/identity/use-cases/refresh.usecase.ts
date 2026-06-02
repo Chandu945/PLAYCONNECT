@@ -26,6 +26,22 @@ export interface RefreshOutput {
   };
 }
 
+/**
+ * Window during which a session's immediately-previous refresh token is still
+ * accepted after rotation. Tolerates a lost/dropped rotation response so the
+ * client's retry with its prior token is NOT mistaken for token reuse (which
+ * would force an undesired automatic logout).
+ *
+ * The grace is ONE-SHOT and armed only on a normal (current-token) rotation.
+ * Redeeming the previous token via the grace path clears the previous slot (we
+ * omit graceUntil below), so the same token can't be replayed twice and the
+ * lineage can't "ping-pong". A token older than the single in-grace previous —
+ * or a replay after the grace was consumed — matches neither current nor
+ * previous and therefore revokes the session (reuse/fork detection), exactly as
+ * the pre-grace code did, just relaxed by one generation for 60s.
+ */
+const ROTATION_GRACE_MS = 60_000;
+
 export class RefreshUseCase {
   constructor(
     private readonly sessionRepo: SessionRepository,
@@ -40,17 +56,36 @@ export class RefreshUseCase {
       return err(AuthErrors.invalidRefreshToken());
     }
 
-    const isValid = this.tokenService.compareRefreshToken(
+    const matchesCurrent = this.tokenService.compareRefreshToken(
       input.refreshToken,
       session.refreshTokenHash,
     );
-    if (!isValid) {
-      // Possible token reuse — revoke session for safety
+
+    // Rotation grace: if the presented token isn't the current one but matches
+    // the immediately-previous hash within the grace window, accept it. This is
+    // the lost-rotation-response retry — not reuse.
+    const matchesPreviousInGrace =
+      !matchesCurrent &&
+      session.isWithinRotationGrace() &&
+      session.previousRefreshTokenHash !== null &&
+      this.tokenService.compareRefreshToken(
+        input.refreshToken,
+        session.previousRefreshTokenHash,
+      );
+
+    if (!matchesCurrent && !matchesPreviousInGrace) {
+      // Genuine token reuse / theft (or a token from beyond the grace window) —
+      // revoke session for safety.
       await this.sessionRepo.revokeByUserAndDevice(session.userId, session.deviceId);
       return err(AuthErrors.invalidRefreshToken());
     }
 
-    // Rotate: issue new refresh token and update hash (CAS to prevent race condition)
+    // Rotate: issue new refresh token and update hash (CAS to prevent race
+    // condition). CAS is on the CURRENT hash in both paths — in the grace path
+    // the DB current hash is the successor the client may never have received.
+    // Arm the grace window ONLY on a normal rotation; a grace-path redemption
+    // omits it (graceUntil = undefined) so the previous slot is cleared and the
+    // just-redeemed token cannot be replayed — see ROTATION_GRACE_MS.
     const newRefreshToken = this.tokenService.generateRefreshToken();
     const newHash = this.tokenService.hashRefreshToken(newRefreshToken);
 
@@ -60,6 +95,7 @@ export class RefreshUseCase {
       newHash,
       new Date(Date.now() + refreshTtlMs),
       session.refreshTokenHash,
+      matchesCurrent ? new Date(Date.now() + ROTATION_GRACE_MS) : undefined,
     );
     if (!updated) {
       // Another concurrent request already rotated the token
@@ -82,23 +118,19 @@ export class RefreshUseCase {
       return err(AuthErrors.inactiveUser(loginCheck.reason!));
     }
 
-    // Atomically increment tokenVersion to prevent race conditions.
-    // Note: user auth cache (user:auth:{userId}) will be invalidated on next
-    // JWT check via tokenVersion mismatch, and expires naturally within 5 min TTL.
-    const bumped = await this.userRepo.incrementTokenVersionByUserId(
-      user.id.toString(),
-      user.tokenVersion,
-    );
-    if (!bumped) {
-      return err(AuthErrors.invalidRefreshToken());
-    }
-
+    // Routine refresh does NOT bump tokenVersion. Access tokens are short-lived
+    // (15m) and self-expiring, so there is no need to revoke previously-issued
+    // tokens here — doing so invalidated other devices' and concurrent
+    // requests' still-valid access tokens ("Token revoked" thrash). tokenVersion
+    // is reserved for DELIBERATE revocation: logout-all, password reset/change,
+    // admin force-logout, academy disable, and account deactivation/deletion —
+    // each of which also revokes the refresh session, so logout still happens.
     const accessToken = this.tokenService.generateAccessToken({
       sub: user.id.toString(),
       role: user.role,
       email: user.emailNormalized,
       academyId: user.academyId,
-      tokenVersion: user.tokenVersion + 1,
+      tokenVersion: user.tokenVersion,
     });
 
     return ok({

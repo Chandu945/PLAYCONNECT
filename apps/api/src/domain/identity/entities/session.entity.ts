@@ -8,6 +8,15 @@ export interface SessionProps {
   expiresAt: Date;
   revokedAt: Date | null;
   lastRotatedAt: Date | null;
+  /**
+   * The refresh-token hash that was current immediately before the last
+   * rotation, kept valid until `previousRefreshTokenExpiresAt` (rotation
+   * grace window). Lets a client that lost a rotation response retry with
+   * its prior token without being treated as token reuse — so a dropped
+   * network response does not force an undesired automatic logout.
+   */
+  previousRefreshTokenHash: string | null;
+  previousRefreshTokenExpiresAt: Date | null;
 }
 
 export class Session extends Entity<SessionProps> {
@@ -30,6 +39,8 @@ export class Session extends Entity<SessionProps> {
       expiresAt: params.expiresAt,
       revokedAt: null,
       lastRotatedAt: null,
+      previousRefreshTokenHash: null,
+      previousRefreshTokenExpiresAt: null,
     });
   }
 
@@ -57,12 +68,29 @@ export class Session extends Entity<SessionProps> {
     return this.props.revokedAt;
   }
 
+  get previousRefreshTokenHash(): string | null {
+    return this.props.previousRefreshTokenHash;
+  }
+
+  get previousRefreshTokenExpiresAt(): Date | null {
+    return this.props.previousRefreshTokenExpiresAt;
+  }
+
   isExpired(): boolean {
     return new Date() > this.props.expiresAt;
   }
 
   isRevoked(): boolean {
     return this.props.revokedAt !== null;
+  }
+
+  /** True while the immediately-previous refresh token is still within the
+   *  rotation grace window and may be accepted in place of the current one. */
+  isWithinRotationGrace(now: Date = new Date()): boolean {
+    return (
+      this.props.previousRefreshTokenExpiresAt !== null &&
+      now < this.props.previousRefreshTokenExpiresAt
+    );
   }
 
   isValid(): boolean {

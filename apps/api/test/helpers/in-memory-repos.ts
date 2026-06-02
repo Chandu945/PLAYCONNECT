@@ -217,6 +217,8 @@ export class InMemorySessionRepository implements SessionRepository {
           expiresAt: session.expiresAt,
           revokedAt: new Date(),
           lastRotatedAt: null,
+          previousRefreshTokenHash: session.previousRefreshTokenHash,
+          previousRefreshTokenExpiresAt: session.previousRefreshTokenExpiresAt,
         });
         this.sessions.set(key, revoked);
       }
@@ -228,6 +230,7 @@ export class InMemorySessionRepository implements SessionRepository {
     newHash: string,
     expiresAt: Date,
     expectedCurrentHash?: string,
+    previousHashGraceUntil?: Date,
   ): Promise<boolean> {
     const session = this.sessions.get(sessionId);
     if (!session) return false;
@@ -244,6 +247,9 @@ export class InMemorySessionRepository implements SessionRepository {
       expiresAt,
       revokedAt: null,
       lastRotatedAt: new Date(),
+      previousRefreshTokenHash:
+        previousHashGraceUntil && expectedCurrentHash ? expectedCurrentHash : null,
+      previousRefreshTokenExpiresAt: previousHashGraceUntil ?? null,
     });
     this.sessions.set(sessionId, updated);
     return true;
@@ -263,6 +269,8 @@ export class InMemorySessionRepository implements SessionRepository {
           expiresAt: session.expiresAt,
           revokedAt: new Date(),
           lastRotatedAt: null,
+          previousRefreshTokenHash: session.previousRefreshTokenHash,
+          previousRefreshTokenExpiresAt: session.previousRefreshTokenExpiresAt,
         });
         this.sessions.set(key, revoked);
       }

@@ -129,6 +129,8 @@ describe('ListUnpaidDuesUseCase', () => {
     if (!result.ok) return;
     expect(result.value.items).toHaveLength(1);
     expect(result.value.items[0]?.studentName).toBe('Alive Student');
+    // Single unpaid month → total owed equals that one due (₹500).
+    expect(result.value.items[0]?.studentTotalOutstanding).toBe(500);
   });
 
   it('includes the contact phone and the total unpaid-months count per row', async () => {
@@ -167,6 +169,9 @@ describe('ListUnpaidDuesUseCase', () => {
     // No mobileNumber set → falls back to the guardian's mobile.
     expect(row?.studentPhone).toBe('+919876543210');
     expect(row?.unpaidMonthsCount).toBe(3); // Jan + Feb + Mar
+    // Total owed across all 3 unpaid months (₹500 each; no late-fee config in
+    // this fixture), NOT just the listed month's ₹500.
+    expect(row?.studentTotalOutstanding).toBe(1500);
   });
 
   it('returns empty page when every student with dues has been deleted', async () => {

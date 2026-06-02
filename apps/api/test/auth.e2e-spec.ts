@@ -298,11 +298,12 @@ describe('Auth Endpoints (e2e)', () => {
         })
         .expect(201);
 
-      const { refreshToken, deviceId } = signupRes.body.data;
+      // /auth/refresh requires userId (RefreshDto); the signup envelope returns it.
+      const { refreshToken, deviceId, userId } = signupRes.body.data;
 
       const refreshRes = await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
-        .send({ refreshToken, deviceId })
+        .send({ refreshToken, deviceId, userId })
         .expect(200);
 
       expect(refreshRes.body.success).toBe(true);
@@ -310,10 +311,21 @@ describe('Auth Endpoints (e2e)', () => {
       expect(refreshRes.body.data.refreshToken).toBeDefined();
       expect(refreshRes.body.data.refreshToken).not.toBe(refreshToken);
 
-      // Old token should no longer work
+      // Rotation grace: re-presenting the just-rotated token once (e.g. after a
+      // dropped rotation response) is still honoured rather than treated as
+      // theft — this is what prevents a network hiccup from force-logging-out
+      // an otherwise-valid session.
       await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
-        .send({ refreshToken, deviceId })
+        .send({ refreshToken, deviceId, userId })
+        .expect(200);
+
+      // …but a token older than the immediately-previous one is reuse: it
+      // matches neither the current nor the (one-shot, now-cleared) previous
+      // hash, so the session is revoked and the request is rejected.
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken, deviceId, userId })
         .expect(401);
     });
   });

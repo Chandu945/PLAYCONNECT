@@ -47,21 +47,36 @@ export async function tryRefresh(): Promise<string | null> {
     const deviceId = await deviceIdStore.getDeviceId();
     const userId = session.user.id;
 
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30_000);
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 30_000);
-      const res = await fetch(`${env.API_BASE_URL}/api/v1/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: session.refreshToken, deviceId, userId }),
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
+      let res: Response;
+      try {
+        res = await fetch(`${env.API_BASE_URL}/api/v1/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: session.refreshToken, deviceId, userId }),
+          signal: controller.signal,
+        });
+      } finally {
+        // Always clear the abort timer — including when fetch throws (network
+        // error / abort) — so it doesn't leak for the full 30s.
+        clearTimeout(timer);
+      }
 
       if (!res.ok) {
-        // On permanent auth failure (401/403), clear stored session to prevent stale-token loops
+        // Only a DEFINITIVE server revoke ends the session. The refresh endpoint
+        // returns 401/403 solely for a genuinely revoked/expired session, token
+        // reuse beyond the rotation grace, or a disabled/deactivated account —
+        // i.e. the deliberate events (logout-all, password reset, admin
+        // force-logout, academy disable, deactivation). For those we clear the
+        // stored session and signal logout here (the single owner of that
+        // decision). Transient failures (5xx, 429, …) keep the session so the
+        // user is never logged out automatically by a hiccup.
         if (res.status === 401 || res.status === 403) {
           await tokenStore.clearSession();
+          _accessToken = null;
+          _onAuthFailure?.();
         }
         return null;
       }
@@ -83,7 +98,11 @@ export async function tryRefresh(): Promise<string | null> {
             role: (data.user['role'] as typeof session.user.role) ?? session.user.role,
           }
         : session.user;
-      await tokenStore.setSession(data.refreshToken, updatedUser);
+      // A successful refresh means the server re-checked canLogin, so the
+      // account is active. Keep the stored status fresh — the cold-start
+      // INACTIVE guard previously acted on a value that refresh never updated.
+      const refreshedUser = { ...updatedUser, status: 'ACTIVE' as const };
+      await tokenStore.setSession(data.refreshToken, refreshedUser);
 
       return data.accessToken;
     } catch {
@@ -139,10 +158,21 @@ async function request<T>(
       if (newToken && !isTokenExpiredOrExpiring(newToken)) {
         return request<T>(method, path, body, true);
       }
-      // Refresh failed or returned a stale token — clear and cascade to logout.
-      _accessToken = null;
-      _onAuthFailure?.();
-      return err({ code: 'UNAUTHORIZED', message: 'Session expired' });
+      // tryRefresh ALREADY clears the stored session and signals logout iff the
+      // failure was a definitive server revoke. Do NOT independently force a
+      // logout here. Distinguish the two outcomes by the AUTHORITATIVE signal —
+      // whether the stored session still exists — rather than _accessToken,
+      // which AuthContext may have transiently nulled on a prior hiccup. A
+      // transient failure (offline / 5xx) keeps the session, so the user stays
+      // signed in and can simply retry.
+      const sessionStillStored = (await tokenStore.getSession()) !== null;
+      if (!sessionStillStored) {
+        return err({ code: 'UNAUTHORIZED', message: 'Session expired' });
+      }
+      return err({
+        code: 'NETWORK',
+        message: 'Unable to refresh your session. Please check your connection and try again.',
+      });
     }
 
     if (!res.ok) {

@@ -22,18 +22,21 @@ export async function restoreSessionUseCase(
   const newToken = await deps.tokenRefresher.tryRefresh();
 
   if (!newToken) {
-    await deps.tokenStore.clearSession();
+    // tryRefresh clears the stored session itself ONLY on a definitive server
+    // revoke (401/403). On a transient failure (offline / 5xx) it preserves the
+    // session, so we must NOT clear it here — the user stays logged in and is
+    // restored on the next launch / reconnect rather than being forced to
+    // re-login because of a network hiccup.
     return { ok: false, error: { code: 'UNAUTHORIZED', message: 'Session expired' } };
   }
 
-  // Check if user account is still active
+  // Defence-in-depth: a server-deactivated account fails the refresh above
+  // (canLogin → 401/403, session cleared). This local guard additionally blocks
+  // a stored INACTIVE status; tryRefresh now keeps that status fresh on success.
   if (session.user.status === 'INACTIVE') {
     await deps.tokenStore.clearSession();
     return { ok: false, error: { code: 'UNAUTHORIZED', message: 'Account is inactive' } };
   }
-
-  // TODO: Periodically fetch the user profile after refresh to keep session.user up-to-date.
-  // The refresh response does not include updated user data, so the stored user may become stale.
 
   return {
     ok: true,

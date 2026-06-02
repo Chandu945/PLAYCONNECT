@@ -185,8 +185,15 @@ import { AppConfigService } from '@shared/config/config.service';
         deviceTokenRepo: DeviceTokenRepository,
         userRepo: UserRepository,
         audit: AuditRecorderPort,
-      ) => new LogoutAllUseCase(sessionRepo, deviceTokenRepo, userRepo, audit),
-      inject: [SESSION_REPOSITORY, DEVICE_TOKEN_REPOSITORY, USER_REPOSITORY, AUDIT_RECORDER_PORT],
+        userAuthCache: UserAuthCachePort,
+      ) => new LogoutAllUseCase(sessionRepo, deviceTokenRepo, userRepo, audit, userAuthCache),
+      inject: [
+        SESSION_REPOSITORY,
+        DEVICE_TOKEN_REPOSITORY,
+        USER_REPOSITORY,
+        AUDIT_RECORDER_PORT,
+        USER_AUTH_CACHE_PORT,
+      ],
     },
     {
       provide: 'REQUEST_PASSWORD_RESET_USE_CASE',

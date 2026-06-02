@@ -46,6 +46,9 @@ export interface ListUnpaidDuesInput {
 export interface UnpaidDueDto extends FeeDueDto {
   studentPhone: string | null;
   unpaidMonthsCount: number;
+  /** Total amount the student owes across ALL unpaid months (base + live late
+   *  fee), not just the listed month's due. Lets the row show the real total. */
+  studentTotalOutstanding: number;
 }
 
 export interface ListUnpaidDuesOutput {
@@ -72,19 +75,33 @@ export class ListUnpaidDuesUseCase {
     const user = await this.userRepo.findById(input.actorUserId);
     if (!user || !user.academyId) return err(FeeErrors.academyRequired());
 
-    const [dues, academy, unpaidCountsByStudent] = await Promise.all([
+    const [dues, academy, allUnpaidDues] = await Promise.all([
       this.feeDueRepo.listByAcademyMonthAndStatuses(user.academyId, input.month, [
         'UPCOMING',
         'DUE',
       ]),
       this.academyRepo.findById(user.academyId),
-      // Per-student total unpaid months across ALL months (not just
-      // `input.month`), so each row can show "N months due".
-      this.feeDueRepo.countUnpaidDuesGroupedByStudent(user.academyId),
+      // ALL unpaid dues across every month (not just `input.month`), so each
+      // row can report the student's total unpaid months AND total amount owed.
+      this.feeDueRepo.listUnpaidByAcademy(user.academyId),
     ]);
 
     const today = formatLocalDate(this.clock.now());
     const config = buildLateFeeConfigFromAcademy(academy);
+
+    // Per-student aggregates over every unpaid month:
+    //  - count       → the "N months due" badge
+    //  - outstanding → base + live late fee, summed, so the row shows the real
+    //    total owed across all unpaid months, not just the listed month's due.
+    //    Late fee is computed dynamically (toFeeDueDto), so a plain DB sum of
+    //    `amount` would understate it — we sum the projected totalPayable here.
+    const unpaidCountsByStudent: Record<string, number> = {};
+    const outstandingByStudent: Record<string, number> = {};
+    for (const due of allUnpaidDues) {
+      unpaidCountsByStudent[due.studentId] = (unpaidCountsByStudent[due.studentId] ?? 0) + 1;
+      outstandingByStudent[due.studentId] =
+        (outstandingByStudent[due.studentId] ?? 0) + toFeeDueDto(due, config, today).totalPayable;
+    }
 
     // Hide dues for soft-deleted students. They're preserved in the DB
     // (financial audit) but rendering them on the active dues list creates
@@ -140,6 +157,7 @@ export class ListUnpaidDuesUseCase {
           ...toFeeDueDto(d, config, today, row?.name),
           studentPhone: row?.phone ?? null,
           unpaidMonthsCount: unpaidCountsByStudent[d.studentId] ?? 0,
+          studentTotalOutstanding: outstandingByStudent[d.studentId] ?? 0,
         };
       }),
       meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) || 1 },

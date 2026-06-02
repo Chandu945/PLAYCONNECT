@@ -32,6 +32,15 @@ export class SessionModel {
 
   @Prop({ type: Date, default: null })
   lastRotatedAt!: Date | null;
+
+  // Rotation grace window: the prior refresh-token hash and the instant it
+  // stops being accepted. Lets a client retry with its previous token after a
+  // lost rotation response instead of being force-logged-out as token reuse.
+  @Prop({ type: String, default: null })
+  previousRefreshTokenHash!: string | null;
+
+  @Prop({ type: Date, default: null })
+  previousRefreshTokenExpiresAt!: Date | null;
 }
 
 export const SessionSchema = SchemaFactory.createForClass(SessionModel);

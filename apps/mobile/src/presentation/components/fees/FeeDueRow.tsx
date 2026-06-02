@@ -112,6 +112,14 @@ function FeeDueRowComponent({
   const hasName = showStudentName && resolvedName;
 
   const payable = item.status !== 'PAID' && item.lateFee > 0 ? item.totalPayable : item.amount;
+  // On the unpaid-dues list the API projects the student's total owed across
+  // ALL unpaid months (base + live late fees). Show that total so a row with a
+  // "3 months" badge shows the full ₹ owed, not just the listed month's due.
+  // Other surfaces (Paid list, etc.) omit the field → fall back to this row.
+  const displayAmount =
+    typeof item.studentTotalOutstanding === 'number' && item.studentTotalOutstanding > 0
+      ? item.studentTotalOutstanding
+      : payable;
   const subtitle = subtitleFor(item, showMonth);
 
   const stripeColor =
@@ -205,7 +213,7 @@ function FeeDueRowComponent({
           adjustsFontSizeToFit
           minimumFontScale={0.75}
         >
-          {formatAmount(payable)}
+          {formatAmount(displayAmount)}
         </Text>
       </View>
 

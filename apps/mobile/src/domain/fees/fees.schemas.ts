@@ -23,6 +23,7 @@ export const feeDueItemSchema = z.object({
   // Unpaid-dues list only; older API responses / other surfaces omit these.
   studentPhone: z.string().nullable().optional(),
   unpaidMonthsCount: z.number().int().optional(),
+  studentTotalOutstanding: z.number().int().optional(),
 });
 
 export const feeDueListResponseSchema = z.array(feeDueItemSchema);

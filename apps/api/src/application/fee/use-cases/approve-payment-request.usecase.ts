@@ -83,6 +83,15 @@ export class ApprovePaymentRequestUseCase {
       return err(PaymentRequestErrors.dueNotFound(`${request.studentId}:${request.monthKey}`));
     if (due.status === 'PAID') return err(PaymentRequestErrors.alreadyPaid());
 
+    // Reject underpayment. The app has no partial-payment concept, so a
+    // request for less than the principal due must not silently close the fee
+    // as fully paid (which would under-collect — e.g. a stale request created
+    // before the fee amount increased). Overpayment is fine: the excess is
+    // recorded as late fee via lateFeeApplied below.
+    if (request.amount < due.amount) {
+      return err(PaymentRequestErrors.amountBelowDue(request.amount, due.amount));
+    }
+
     const now = this.clock.now();
 
     // Generate receipt number

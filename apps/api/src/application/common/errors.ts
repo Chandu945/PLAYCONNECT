@@ -102,6 +102,17 @@ export const PaymentRequestErrors = {
   invalidNotes: (reason: string) => AppError.validation(reason),
   viewNotAllowed: () => AppError.forbidden('Only owners and staff can view payment requests'),
   rejectionReasonRequired: () => AppError.validation('Rejection reason is required'),
+  /**
+   * Approving a request for less than the principal due would silently mark
+   * the whole fee PAID while collecting less — under-collection. The app has
+   * no partial-payment concept, so reject it. Overpayment is fine (the excess
+   * is recorded as late fee). Realistic trigger: a stale request created
+   * before the fee amount increased.
+   */
+  amountBelowDue: (paid: number, due: number) =>
+    AppError.validation(
+      `Payment amount (₹${paid}) is less than the fee due (₹${due}). Partial payments are not supported — collect the full amount.`,
+    ),
 } as const;
 
 export const StaffAttendanceErrors = {

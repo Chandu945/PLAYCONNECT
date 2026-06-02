@@ -63,7 +63,9 @@ function createFeeDue(academyId: string, studentId: string, monthKey = '2024-03'
     dueDate: `${monthKey}-05`,
     amount: 500,
   });
-  // Flip to DUE status since markPaid rejects UPCOMING fees
+  // Most tests exercise the DUE path; flip so the fixture reflects a fee
+  // past its due date. (UPCOMING fees are also collectible — see the
+  // early-payment test below.)
   return upcoming.flipToDue();
 }
 
@@ -145,6 +147,47 @@ describe('MarkFeePaidUseCase', () => {
       expect(result.value.paidSource).toBe('OWNER_DIRECT');
       expect(result.value.paymentLabel).toBe('CASH');
     }
+  });
+
+  it('marks an UPCOMING fee as PAID (early payment, before the due date) with no late fee', async () => {
+    // Regression for the production 500 "Cannot mark an UPCOMING fee as paid":
+    // an owner must be able to collect a fee that is still UPCOMING (its due
+    // date is a few days out). dueDate 2024-03-15 is in the future relative to
+    // the fixed clock (2024-03-10), so no late fee applies.
+    const owner = createOwner();
+    await userRepo.save(owner);
+    const student = createStudent('s1', 'academy-1');
+    await studentRepo.save(student);
+    const upcoming = FeeDue.create({
+      id: 's1-2024-03',
+      academyId: 'academy-1',
+      studentId: 's1',
+      monthKey: '2024-03',
+      dueDate: '2024-03-15',
+      amount: 500,
+    });
+    expect(upcoming.status).toBe('UPCOMING');
+    await feeDueRepo.save(upcoming);
+
+    const result = await useCase.execute({
+      actorUserId: 'owner-1',
+      actorRole: 'OWNER',
+      studentId: 's1',
+      monthKey: '2024-03',
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.status).toBe('PAID');
+      expect(result.value.paidSource).toBe('OWNER_DIRECT');
+      expect(result.value.lateFee).toBe(0);
+      expect(result.value.totalPayable).toBe(500);
+    }
+    // A transaction log recording the base amount only (no late fee) is written.
+    const logs = await transactionLogRepo.listByStudentIds(['s1']);
+    expect(logs).toHaveLength(1);
+    expect(logs[0]!.amount).toBe(500);
+    expect(logs[0]!.lateFeeAmount).toBe(0);
   });
 
   it('M3: maps ConcurrentModificationError on FeeDue.save to a domain CONFLICT', async () => {

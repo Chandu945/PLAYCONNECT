@@ -139,8 +139,14 @@ export class FeeDue extends Entity<FeeDueProps> {
     paymentLabel: PaymentLabel = 'CASH',
     lateFeeApplied?: number,
   ): FeeDue {
-    if (this.props.status === 'UPCOMING') {
-      throw new Error('Cannot mark an UPCOMING fee as paid');
+    // PAID is the only terminal, non-payable state. A fee can be collected
+    // while UPCOMING (an early / advance payment before its due date) or DUE;
+    // computeLateFee returns 0 before the due date, so collecting early
+    // correctly applies no late fee. Re-paying a PAID fee is rejected so we
+    // never silently overwrite who-paid / how / when — this is the entity-level
+    // backstop for the use-case's own already-paid pre-check.
+    if (this.props.status === 'PAID') {
+      throw new Error('Fee is already paid');
     }
     return FeeDue.reconstitute(this.id.toString(), {
       ...this.props,
@@ -162,8 +168,9 @@ export class FeeDue extends Entity<FeeDueProps> {
     paymentLabel?: PaymentLabel;
     lateFeeApplied?: number;
   }): FeeDue {
-    if (this.props.status === 'UPCOMING') {
-      throw new Error('Cannot mark an UPCOMING fee as paid');
+    // PAID is terminal (see markPaid); UPCOMING/DUE are both collectible.
+    if (this.props.status === 'PAID') {
+      throw new Error('Fee is already paid');
     }
     return FeeDue.reconstitute(this.id.toString(), {
       ...this.props,
@@ -181,8 +188,10 @@ export class FeeDue extends Entity<FeeDueProps> {
   }
 
   markPaidByParentOnline(parentUserId: string, paidAt: Date, lateFeeApplied?: number): FeeDue {
-    if (this.props.status === 'UPCOMING') {
-      throw new Error('Cannot mark an UPCOMING fee as paid');
+    // PAID is terminal (see markPaid); UPCOMING/DUE are both collectible — a
+    // parent paying the current month early settles a not-yet-due fee.
+    if (this.props.status === 'PAID') {
+      throw new Error('Fee is already paid');
     }
     return FeeDue.reconstitute(this.id.toString(), {
       ...this.props,

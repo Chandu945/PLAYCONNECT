@@ -245,6 +245,35 @@ describe('Fees Endpoints (e2e)', () => {
       expect(res.body.data.paymentLabel).toBe('CASH');
     });
 
+    it('should mark an UPCOMING fee paid (early payment, before the due date)', async () => {
+      // Regression for the production 500 "Cannot mark an UPCOMING fee as
+      // paid": running the engine on day 3 (< dueDateDay 5) creates the fee
+      // but does NOT flip it, so it stays UPCOMING ("due in a few days").
+      // The owner must still be able to collect it.
+      await seedOwner();
+      await seedAcademy();
+      await seedStudent('s1');
+      await engine.execute({ academyId: 'academy-1', now: new Date('2024-03-03') });
+
+      const token = makeToken();
+
+      // Sanity: the due is UPCOMING before payment.
+      const before = await request(app.getHttpServer())
+        .get('/api/v1/fees/dues?month=2024-03')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(before.body.data.items[0].status).toBe('UPCOMING');
+
+      const res = await request(app.getHttpServer())
+        .put('/api/v1/fees/students/s1/2024-03/pay')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body.data.status).toBe('PAID');
+      expect(res.body.data.paidSource).toBe('OWNER_DIRECT');
+      expect(res.body.data.lateFee).toBe(0);
+    });
+
     it('should show in paid list after marking', async () => {
       await seedOwner();
       await seedAcademy();

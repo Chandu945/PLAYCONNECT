@@ -265,6 +265,50 @@ describe('ApprovePaymentRequestUseCase', () => {
     }
   });
 
+  it('should reject approving a request for less than the amount due (underpayment)', async () => {
+    // Realistic trigger: the request was created for ₹500, then the fee
+    // amount was raised to ₹800 before approval. Approving must NOT silently
+    // close the ₹800 fee while only ₹500 was collected.
+    userRepo.findById.mockResolvedValue(makeOwner());
+    prRepo.findById.mockResolvedValue(makePendingRequest()); // amount 500
+    const higherDue = FeeDue.reconstitute('due-1', { ...makeFeeDue()['props'], amount: 800 });
+    feeDueRepo.findByAcademyStudentMonth.mockResolvedValue(higherDue);
+    academyRepo.findById.mockResolvedValue(makeAcademy());
+
+    const result = await useCase.execute({
+      actorUserId: 'owner-1',
+      actorRole: 'OWNER',
+      requestId: 'pr-1',
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('VALIDATION');
+      expect(result.error.message).toContain('less than the fee due');
+    }
+    // The fee must not be marked paid and no ledger row may be written.
+    expect(feeDueRepo.save).not.toHaveBeenCalled();
+    expect(txLogRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('still approves an exact-amount request (boundary: request.amount === due.amount)', async () => {
+    // Guard is strictly `<` — paying exactly the amount due is valid.
+    userRepo.findById.mockResolvedValue(makeOwner());
+    prRepo.findById.mockResolvedValue(makePendingRequest()); // amount 500
+    feeDueRepo.findByAcademyStudentMonth.mockResolvedValue(makeFeeDue()); // amount 500
+    academyRepo.findById.mockResolvedValue(makeAcademy());
+    txLogRepo.incrementReceiptCounter.mockResolvedValue(1);
+
+    const result = await useCase.execute({
+      actorUserId: 'owner-1',
+      actorRole: 'OWNER',
+      requestId: 'pr-1',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(feeDueRepo.save).toHaveBeenCalled();
+  });
+
   it('M2: maps ConcurrentModificationError on FeeDue.save to a domain CONFLICT', async () => {
     // The race we're closing: the in-transaction PR-status pre-check passed
     // (so we're not hitting ConcurrentApprovalError), but somewhere between

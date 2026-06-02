@@ -12,15 +12,18 @@ import type { FeeDueDto } from '../dtos/fee-due.dto';
 import { toFeeDueDto } from '../dtos/fee-due.dto';
 import type { UserRole } from '@academyflo/contracts';
 import type { ClockPort } from '../../common/clock.port';
-import { formatLocalDate } from '../../../shared/date-utils';
+import { formatLocalDate, toMonthKeyFromDate } from '../../../shared/date-utils';
 import { buildLateFeeConfigFromAcademy } from '../common/late-fee';
 
 export interface GetStudentFeesInput {
   actorUserId: string;
   actorRole: UserRole;
   studentId: string;
-  from: string;
-  to: string;
+  /** Optional. When omitted, defaults to the student's joining month so the
+   *  full history (incl. older overdue dues) is returned. */
+  from?: string;
+  /** Optional. When omitted, defaults to the current month. */
+  to?: string;
 }
 
 export class GetStudentFeesUseCase {
@@ -36,11 +39,10 @@ export class GetStudentFeesUseCase {
     const check = canViewFees(input.actorRole);
     if (!check.allowed) return err(FeeErrors.viewNotAllowed());
 
-    if (!isValidMonthKey(input.from) || !isValidMonthKey(input.to)) {
-      return err(FeeErrors.invalidMonthKey());
-    }
-
-    if (input.from > input.to) {
+    // Validate only what the caller actually supplied — the range is optional.
+    if (input.from && !isValidMonthKey(input.from)) return err(FeeErrors.invalidMonthKey());
+    if (input.to && !isValidMonthKey(input.to)) return err(FeeErrors.invalidMonthKey());
+    if (input.from && input.to && input.from > input.to) {
       return err(FeeErrors.invalidMonthRange());
     }
 
@@ -51,8 +53,17 @@ export class GetStudentFeesUseCase {
     if (!student) return err(FeeErrors.studentNotFound(input.studentId));
     if (student.academyId !== user.academyId) return err(FeeErrors.studentNotInAcademy());
 
+    // Default to the student's FULL history: joining month → current month. A
+    // hardcoded calendar-year window previously hid older overdue dues that the
+    // fees list still counts, so the detail couldn't reconcile with the list
+    // total. Joining month is the true lower bound (no due predates it). The
+    // clamp guards against a future joining date (then just show the latest).
+    const to = input.to ?? toMonthKeyFromDate(this.clock.now());
+    const defaultFrom = toMonthKeyFromDate(student.joiningDate);
+    const from = input.from ?? (defaultFrom > to ? to : defaultFrom);
+
     const [dues, academy] = await Promise.all([
-      this.feeDueRepo.listByStudentAndRange(user.academyId, input.studentId, input.from, input.to),
+      this.feeDueRepo.listByStudentAndRange(user.academyId, input.studentId, from, to),
       this.academyRepo.findById(user.academyId),
     ]);
 

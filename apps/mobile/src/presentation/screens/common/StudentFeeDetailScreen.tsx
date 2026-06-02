@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
+import { View, FlatList, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RouteProp } from '@react-navigation/native';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -25,8 +25,9 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmSheet } from '../../components/ui/ConfirmSheet';
 import { FeeDueRow } from '../../components/fees/FeeDueRow';
 import { PendingRequestSheet } from '../../components/fees/PendingRequestSheet';
-import { getCurrentMonthIST } from '../../../application/fees/use-fees';
-import { spacing, listDefaults } from '../../theme';
+import { computeOutstandingSummary } from '../../../domain/fees/fee-summary';
+import { formatCurrency as formatAmount, formatMonthShort } from '../../utils/format';
+import { spacing, listDefaults, fontSizes, fontWeights, radius } from '../../theme';
 import type { Colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -36,14 +37,6 @@ type Nav = NativeStackNavigationProp<FeesStackParamList, 'StudentFeeDetail'>;
 const detailApi = { getStudentFees };
 const markPaidApi = { markFeePaid };
 const requestsApi = { listPaymentRequests, cancelPaymentRequest };
-
-function getDefaultRange(): { from: string; to: string } {
-  const current = getCurrentMonthIST();
-  const [y, m] = current.split('-').map(Number) as [number, number];
-  const from = `${y}-01`;
-  const toMonth = String(m).padStart(2, '0');
-  return { from, to: `${y}-${toMonth}` };
-}
 
 export function StudentFeeDetailScreen() {
   const { colors } = useTheme();
@@ -84,15 +77,16 @@ export function StudentFeeDetailScreen() {
     setLoading(true);
     setError(null);
     try {
-      const { from, to } = getDefaultRange();
-
+      // No range → API returns the student's full fee history (joining month →
+      // current month), so older overdue dues are shown and the headline total
+      // matches the Fees list row.
       // Parallel: student fees + ALL pending requests for this student
       // (regardless of author or source). The studentId filter on the
       // payment-requests endpoint is what makes parent-source and
       // other-staff-source pending requests visible here — without it the
       // staff endpoint scopes to the caller's own requests only.
       const [feesResult, requestsResult] = await Promise.all([
-        getStudentFeeDetailUseCase({ feesApi: detailApi }, studentId, from, to),
+        getStudentFeeDetailUseCase({ feesApi: detailApi }, studentId),
         isStaff
           ? listPaymentRequestsUseCase(
               { paymentRequestsApi: requestsApi },
@@ -285,6 +279,10 @@ export function StudentFeeDetailScreen() {
 
   const keyExtractor = useCallback((item: FeeDueItem) => item.id, []);
 
+  // Outstanding total across every unpaid month — shared with the Students-tab
+  // detail so both screens show the same headline that matches the Fees list.
+  const summary = useMemo(() => computeOutstandingSummary(items), [items]);
+
   if (loading) {
     return (
       <View style={styles.screen}>
@@ -317,6 +315,18 @@ export function StudentFeeDetailScreen() {
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
           testID="student-fee-list"
+          ListHeaderComponent={
+            summary.monthsCount > 0 ? (
+              <View style={styles.summaryCard} testID="student-fee-outstanding">
+                <Text style={styles.summaryLabel}>Outstanding</Text>
+                <Text style={styles.summaryAmount}>{formatAmount(summary.totalOutstanding)}</Text>
+                <Text style={styles.summaryMeta}>
+                  {summary.monthsCount} {summary.monthsCount === 1 ? 'month' : 'months'} ·{' '}
+                  {summary.monthKeys.map(formatMonthShort).join(', ')}
+                </Text>
+              </View>
+            ) : null
+          }
         />
       )}
 
@@ -379,5 +389,29 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     paddingHorizontal: spacing.base,
     paddingBottom: listDefaults.contentPaddingBottomNoFab,
     marginTop: spacing.base,
+  },
+  summaryCard: {
+    backgroundColor: colors.warningBg,
+    borderColor: colors.warningBorder,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    padding: spacing.base,
+    marginBottom: spacing.base,
+  },
+  summaryLabel: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: colors.textSecondary,
+  },
+  summaryAmount: {
+    fontSize: fontSizes['2xl'],
+    fontWeight: fontWeights.bold,
+    color: colors.warningText,
+    marginTop: 2,
+  },
+  summaryMeta: {
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
 });

@@ -10,8 +10,8 @@ import {
 export type GetStudentFeeDetailApiPort = {
   getStudentFees(
     studentId: string,
-    from: string,
-    to: string,
+    from?: string,
+    to?: string,
   ): Promise<Result<FeeDueListApiResponse, AppError>>;
 };
 
@@ -22,9 +22,10 @@ export type GetStudentFeeDetailDeps = {
 export async function getStudentFeeDetailUseCase(
   deps: GetStudentFeeDetailDeps,
   studentId: string,
-  from: string,
-  to: string,
+  from?: string,
+  to?: string,
 ): Promise<Result<FeeDueItem[], AppError>> {
+  // Range omitted by default → API returns the student's full fee history.
   const result = await deps.feesApi.getStudentFees(studentId, from, to);
 
   if (!result.ok) {

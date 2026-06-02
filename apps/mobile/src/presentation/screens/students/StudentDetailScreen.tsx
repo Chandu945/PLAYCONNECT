@@ -19,6 +19,8 @@ import { ProfilePhotoUploader } from '../../components/common/ProfilePhotoUpload
 import { getStudentPhotoUploadPath, getStudent } from '../../../infra/student/student-api';
 import { getStudentFees } from '../../../infra/fees/fees-api';
 import type { FeeDueItem } from '../../../domain/fees/fees.types';
+import { computeOutstandingSummary } from '../../../domain/fees/fee-summary';
+import { formatCurrency, formatMonthShort } from '../../utils/format';
 import { StudentActionMenu } from '../../components/student/StudentActionMenu';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { InlineError } from '../../components/ui/InlineError';
@@ -117,10 +119,10 @@ export function StudentDetailScreen() {
     if (!studentId) return;
     setFeesLoading(true);
     try {
-      const now = new Date();
-      const from = `${now.getFullYear() - 1}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const result = await getStudentFees(studentId, from, to);
+      // No range → API returns the student's FULL history (joining month →
+      // current month), so older overdue dues aren't hidden and this matches
+      // the Fees-tab detail and the Fees list total.
+      const result = await getStudentFees(studentId);
       if (mountedRef.current && result.ok) {
         setFees(result.value);
       }
@@ -132,6 +134,10 @@ export function StudentDetailScreen() {
   }, [studentId]);
 
   useEffect(() => { loadFees(); }, [loadFees]);
+
+  // Outstanding total across every unpaid month — same shared helper the
+  // Fees-tab detail uses, so both screens (and the Fees list) always agree.
+  const feeSummary = useMemo(() => computeOutstandingSummary(fees), [fees]);
 
   const refetchStudent = useCallback(async () => {
     if (!studentId) return;
@@ -464,6 +470,21 @@ export function StudentDetailScreen() {
                 </View>
               </View>
 
+              {feeSummary.monthsCount > 0 && (
+                <View style={styles.feeOutstandingRow} testID="student-detail-outstanding">
+                  <Text style={styles.feeOutstandingLabel}>Outstanding</Text>
+                  <View style={styles.feeOutstandingRight}>
+                    <Text style={styles.feeOutstandingAmount}>
+                      {formatCurrency(feeSummary.totalOutstanding)}
+                    </Text>
+                    <Text style={styles.feeOutstandingMeta}>
+                      {feeSummary.monthsCount} {feeSummary.monthsCount === 1 ? 'month' : 'months'} ·{' '}
+                      {feeSummary.monthKeys.map(formatMonthShort).join(', ')}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
               {/* Fee rows */}
               {fees.map((fee) => {
                 const isPaid = fee.status === 'PAID';
@@ -692,6 +713,36 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
   feeSummaryLabel: {
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.medium,
+    marginTop: 2,
+  },
+  feeOutstandingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.warningBg,
+    borderColor: colors.warningBorder,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  feeOutstandingLabel: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.warningText,
+  },
+  feeOutstandingRight: {
+    alignItems: 'flex-end',
+  },
+  feeOutstandingAmount: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
+    color: colors.warningText,
+  },
+  feeOutstandingMeta: {
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   feeRow: {

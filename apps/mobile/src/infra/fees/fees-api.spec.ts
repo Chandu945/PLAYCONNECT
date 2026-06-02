@@ -53,6 +53,14 @@ describe('fees-api', () => {
 
       expect(mockApiGet).toHaveBeenCalledWith('/api/v1/fees/students/s1?from=2026-01&to=2026-03');
     });
+
+    it('omits the query string entirely when no range is given (full history)', async () => {
+      mockApiGet.mockResolvedValue(ok([]));
+
+      await getStudentFees('s1');
+
+      expect(mockApiGet).toHaveBeenCalledWith('/api/v1/fees/students/s1');
+    });
   });
 
   describe('markFeePaid', () => {

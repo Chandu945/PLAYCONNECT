@@ -64,10 +64,19 @@ export async function listPaidDues(
 
 export async function getStudentFees(
   studentId: string,
-  from: string,
-  to: string,
+  from?: string,
+  to?: string,
 ): Promise<Result<FeeDueListApiResponse, AppError>> {
-  const result = await apiGet<unknown>(`/api/v1/fees/students/${studentId}?from=${from}&to=${to}`);
+  // Range is optional — omit it to get the student's full history (joining
+  // month → current month), so older overdue dues are never hidden.
+  const params = [
+    from ? `from=${encodeURIComponent(from)}` : null,
+    to ? `to=${encodeURIComponent(to)}` : null,
+  ]
+    .filter(Boolean)
+    .join('&');
+  const url = `/api/v1/fees/students/${studentId}${params ? `?${params}` : ''}`;
+  const result = await apiGet<unknown>(url);
   return validateResponse(
     feeDueListResponseSchema as unknown as ZodSchema<FeeDueListApiResponse>,
     result,

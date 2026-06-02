@@ -36,13 +36,16 @@ export class FeesMonthPaginatedQueryDto extends PaginationQueryDto {
 }
 
 export class StudentFeeRangeQueryDto {
-  @IsNotEmpty()
+  // Both optional: when omitted the API returns the student's FULL history
+  // (joining month → current month) so older overdue dues the fees list counts
+  // are never hidden by an arbitrary client-chosen window.
+  @IsOptional()
   @IsString()
   @Matches(/^\d{4}-\d{2}$/, { message: 'from must be in YYYY-MM format' })
-  from!: string;
+  from?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @Matches(/^\d{4}-\d{2}$/, { message: 'to must be in YYYY-MM format' })
-  to!: string;
+  to?: string;
 }

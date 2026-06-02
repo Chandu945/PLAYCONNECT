@@ -1,4 +1,4 @@
-import { computeOutstandingSummary } from './fee-summary';
+import { computeOutstandingSummary, groupFeeHistoryForDisplay } from './fee-summary';
 import type { FeeDueItem } from './fees.types';
 
 function item(
@@ -52,5 +52,30 @@ describe('computeOutstandingSummary', () => {
       item('2026-05', 'PAID', 800),
     ]);
     expect(summary).toEqual({ totalOutstanding: 0, monthsCount: 0, monthKeys: [] });
+  });
+});
+
+describe('groupFeeHistoryForDisplay', () => {
+  it('keeps the current year in full but drops previous-year PAID months (keeps earlier dues)', () => {
+    const { earlierDues, currentYear } = groupFeeHistoryForDisplay([
+      item('2025-10', 'PAID', 800), // prev year, paid → dropped
+      item('2025-11', 'DUE', 800, 4100), // prev year, due → kept
+      item('2025-12', 'DUE', 800, 3500), // prev year, due → kept
+      item('2026-01', 'PAID', 800), // current year → kept
+      item('2026-06', 'UPCOMING', 800), // current year → kept
+    ]);
+
+    expect(earlierDues.map((i) => i.monthKey)).toEqual(['2025-11', '2025-12']);
+    expect(currentYear.map((i) => i.monthKey)).toEqual(['2026-01', '2026-06']);
+  });
+
+  it('returns no earlier dues when the whole history is in the current year', () => {
+    const { earlierDues, currentYear } = groupFeeHistoryForDisplay([
+      item('2026-05', 'PAID', 800),
+      item('2026-06', 'UPCOMING', 800),
+    ]);
+
+    expect(earlierDues).toEqual([]);
+    expect(currentYear).toHaveLength(2);
   });
 });

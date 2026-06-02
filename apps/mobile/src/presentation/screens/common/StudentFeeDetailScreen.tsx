@@ -25,7 +25,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmSheet } from '../../components/ui/ConfirmSheet';
 import { FeeDueRow } from '../../components/fees/FeeDueRow';
 import { PendingRequestSheet } from '../../components/fees/PendingRequestSheet';
-import { computeOutstandingSummary } from '../../../domain/fees/fee-summary';
+import { computeOutstandingSummary, groupFeeHistoryForDisplay } from '../../../domain/fees/fee-summary';
 import { formatCurrency as formatAmount, formatMonthShort } from '../../utils/format';
 import { spacing, listDefaults, fontSizes, fontWeights, radius } from '../../theme';
 import type { Colors } from '../../theme';
@@ -33,6 +33,11 @@ import { useTheme } from '../../context/ThemeContext';
 
 type Route = RouteProp<FeesStackParamList, 'StudentFeeDetail'>;
 type Nav = NativeStackNavigationProp<FeesStackParamList, 'StudentFeeDetail'>;
+
+/** A row in the sectioned fee list: either a section header or a fee due. */
+type DisplayRow =
+  | { kind: 'header'; id: string; label: string }
+  | { kind: 'fee'; item: FeeDueItem };
 
 const detailApi = { getStudentFees };
 const markPaidApi = { markFeePaid };
@@ -259,7 +264,11 @@ export function StudentFeeDetailScreen() {
   }, [cancelConfirm, load, showToast]);
 
   const renderItem = useCallback(
-    ({ item }: { item: FeeDueItem }) => {
+    ({ item: row }: { item: DisplayRow }) => {
+      if (row.kind === 'header') {
+        return <Text style={styles.sectionHeader}>{row.label}</Text>;
+      }
+      const item = row.item;
       const pending = pendingByFeeDue.get(item.id);
       return (
         <FeeDueRow
@@ -274,14 +283,38 @@ export function StudentFeeDetailScreen() {
         />
       );
     },
-    [handleRowPress, pendingByFeeDue, user?.id],
+    [handleRowPress, pendingByFeeDue, user?.id, styles],
   );
 
-  const keyExtractor = useCallback((item: FeeDueItem) => item.id, []);
+  const keyExtractor = useCallback(
+    (row: DisplayRow) => (row.kind === 'header' ? row.id : row.item.id),
+    [],
+  );
 
   // Outstanding total across every unpaid month — shared with the Students-tab
   // detail so both screens show the same headline that matches the Fees list.
   const summary = useMemo(() => computeOutstandingSummary(items), [items]);
+
+  // Sectioned rows: previous-year months show only outstanding dues (old paid
+  // months are dropped as noise); the current year shows in full, as usual.
+  // Section headers ("Earlier dues" / the current year) appear only when there
+  // ARE carried-forward dues, so a clean account looks exactly like before.
+  const displayRows = useMemo<DisplayRow[]>(() => {
+    const { earlierDues, currentYear } = groupFeeHistoryForDisplay(items);
+    // Most-recent month first within each section (e.g. Jun → Jan).
+    const recentFirst = (a: FeeDueItem, b: FeeDueItem) => b.monthKey.localeCompare(a.monthKey);
+    const earlier = [...earlierDues].sort(recentFirst);
+    const current = [...currentYear].sort(recentFirst);
+    const rows: DisplayRow[] = [];
+    if (earlier.length > 0) {
+      rows.push({ kind: 'header', id: 'hdr-earlier', label: 'Earlier dues' });
+      earlier.forEach((item) => rows.push({ kind: 'fee', item }));
+      const year = current[0]?.monthKey.slice(0, 4);
+      if (year) rows.push({ kind: 'header', id: `hdr-${year}`, label: year });
+    }
+    current.forEach((item) => rows.push({ kind: 'fee', item }));
+    return rows;
+  }, [items]);
 
   if (loading) {
     return (
@@ -310,7 +343,7 @@ export function StudentFeeDetailScreen() {
         <EmptyState message="No fee records found" />
       ) : (
         <FlatList
-          data={items}
+          data={displayRows}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
@@ -413,5 +446,15 @@ const makeStyles = (colors: Colors) => StyleSheet.create({
     fontSize: fontSizes.sm,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  sectionHeader: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    marginLeft: spacing.xs,
   },
 });
